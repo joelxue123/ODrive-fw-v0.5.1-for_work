@@ -33,6 +33,12 @@ void Encoder::setup() {
             axis_->controller_.anticogging_valid_ = true;
         }
     }
+    else if(mode_ & MODE_FLAG_485_ABS)
+    {
+        abs_485_cs_pin_init();
+        abs_485_init();
+        
+    }
 }
 
 void Encoder::set_error(Error error) {
@@ -318,7 +324,7 @@ void Encoder::sample_now() {
         } break;
 
         default: {
-           set_error(ERROR_UNSUPPORTED_ENCODER_MODE);
+           //set_error(ERROR_UNSUPPORTED_ENCODER_MODE);
         } break;
     }
 }
@@ -346,6 +352,86 @@ bool Encoder::abs_spi_init(){
     HAL_SPI_Init(spi);
     return true;
 }
+
+bool Encoder::abs_485_init()
+{
+  UART_HandleTypeDef *encode_uart = &huart4;
+  huart4.Instance = UART4;
+  huart4.Init.BaudRate = 2500000;  // Provisionally this can be changed to 921600 for faster transfers, the low power Arduinos will not keep up. 
+  huart4.Init.WordLength = UART_WORDLENGTH_8B;
+  huart4.Init.StopBits = UART_STOPBITS_1;
+  huart4.Init.Parity = UART_PARITY_NONE; 
+  huart4.Init.Mode = UART_MODE_TX_RX;
+  huart4.Init.HwFlowCtl = UART_HWCONTROL_NONE;
+  huart4.Init.OverSampling = UART_OVERSAMPLING_8;
+  if (HAL_UART_Init(&huart4) != HAL_OK)
+  {
+    while(1);
+  }
+
+}
+  
+void Encoder::abs_485_cs_pin_init(){
+    // Decode cs pin
+
+    GPIO_TypeDef  *GPIOx = GPIOA;
+    uint32_t GPIO_Pin =  GPIO_PIN_2;
+
+    // Init cs pin
+    HAL_GPIO_DeInit(GPIOx, GPIO_Pin);
+    GPIO_InitTypeDef GPIO_InitStruct;
+    GPIO_InitStruct.Pin = GPIO_Pin;
+    GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+    GPIO_InitStruct.Pull = GPIO_PULLUP;
+    GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+    HAL_GPIO_Init(GPIOx, &GPIO_InitStruct);
+
+    // Write pin high
+    HAL_GPIO_WritePin(GPIOx, GPIO_Pin, GPIO_PIN_RESET);
+}
+
+bool Encoder::abs_start_transaction(){
+
+    if (mode_ & MODE_FLAG_485_ABS){
+        abs_485_start_transaction();
+    }
+    else if(mode_ & MODE_FLAG_ABS)
+    {
+        abs_spi_start_transaction();
+    }
+    else
+    {
+         return true;
+    }
+
+}
+
+
+
+bool Encoder::abs_485_start_transaction(){
+
+    GPIO_TypeDef  *GPIOx = GPIOA;
+    uint32_t GPIO_Pin =  GPIO_PIN_2;
+
+    if (mode_ & MODE_FLAG_485_ABS){
+        axis_->motor_.log_timing(TIMING_LOG_SPI_START);
+        HAL_GPIO_WritePin(GPIOx, GPIO_Pin, GPIO_PIN_SET);
+        abs_485_dma_tx_[0] = 0x33;
+        abs_485_dma_tx_[1] = calcCRC(&abs_485_dma_tx_[0],1);;
+        if(HAL_BUSY == HAL_UART_Transmit_DMA(&huart4, (uint8_t*)abs_485_dma_tx_, 1))
+        {
+            set_error(ERROR_ABS_SPI_NOT_READY);
+            //assert(HAL_BUSY);
+            return false;
+        }
+        else
+        {
+            HAL_UART_Receive_DMA(&huart4, (uint8_t*)abs_485_dma_rx_, 7);
+        }
+    }
+    return true;
+}
+
 
 bool Encoder::abs_spi_start_transaction(){
     if (mode_ & MODE_FLAG_ABS){
@@ -380,7 +466,7 @@ void Encoder::abs_spi_cb(){
 
     axis_->motor_.log_timing(TIMING_LOG_SPI_END);
 
-    uint16_t pos;
+    uint32_t pos;
 
     switch (mode_) {
         case MODE_SPI_ABS_AMS: {
@@ -405,7 +491,8 @@ void Encoder::abs_spi_cb(){
           //  uint16_t rawVal = abs_spi_dma_rx_[0];
           //  pos = (rawVal >> 2) & 0x3fff;
           uint32_t rawVal = *(uint32_t *)&abs_spi_dma_rx_[0];
-          pos = (rawVal & 0x0000ff00) | ( (rawVal & 0x00ff0000)>>16 )  ;
+          pos = ((rawVal & 0x0000ff00)) | ( (rawVal & 0x00ff0000)>>16 ) ;
+
         } break;
 
         default: {
@@ -502,8 +589,13 @@ bool Encoder::update() {
 
         }break;
         default: {
-           set_error(ERROR_UNSUPPORTED_ENCODER_MODE);
-           return false;
+            delta_enc = pos_abs_latched - count_in_cpr_; //LATCH
+            delta_enc = mod(delta_enc, config_.cpr);
+            if (delta_enc > config_.cpr/2) {
+                delta_enc -= config_.cpr;
+            }
+           //set_error(ERROR_UNSUPPORTED_ENCODER_MODE);
+           //return false;
         } break;
     }
 
@@ -511,7 +603,7 @@ bool Encoder::update() {
     count_in_cpr_ += delta_enc;
     count_in_cpr_ = mod(count_in_cpr_, config_.cpr);
 
-    if(mode_ & MODE_FLAG_ABS)
+    if( (mode_ & MODE_FLAG_ABS) | (mode_ & MODE_FLAG_485_ABS) )
         count_in_cpr_ = pos_abs_latched;
 
     //// run pll (for now pll is in units of encoder counts)
@@ -572,4 +664,22 @@ bool Encoder::update() {
     vel_estimate_valid_ = true;
     pos_estimate_valid_ = true;
     return true;
+}
+
+
+ void HAL_UART_TxCpltCallback(UART_HandleTypeDef *huart)
+ {
+    GPIO_TypeDef  *GPIOx = GPIOA;
+    uint32_t GPIO_Pin =  GPIO_PIN_2;
+
+     HAL_GPIO_WritePin(GPIOx, GPIO_Pin, GPIO_PIN_RESET);
+
+ }
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    int pos;
+    if(huart->pRxBuffPtr == (uint8_t*)axes[0]->encoder_.abs_485_dma_rx_)
+         axes[0]->encoder_.pos_abs_ =  (axes[0]->encoder_.abs_485_dma_rx_[5]<<8) | (axes[0]->encoder_.abs_485_dma_rx_[4]<<0); 
+
 }

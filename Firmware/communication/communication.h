@@ -2,7 +2,7 @@
 #define COMMANDS_H
 
 // TODO: resolve assert
-#define assert(expr)
+#define assert(expr) 
 
 #ifdef __cplusplus
 

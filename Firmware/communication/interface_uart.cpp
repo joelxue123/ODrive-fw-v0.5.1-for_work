@@ -107,6 +107,8 @@ void start_uart_server() {
     uart_thread = osThreadCreate(osThread(uart_server_thread_def), NULL);
 }
 
+#if 0
 void HAL_UART_TxCpltCallback(UART_HandleTypeDef* huart) {
     osSemaphoreRelease(sem_uart_dma);
 }
+#endif

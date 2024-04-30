@@ -98,6 +98,7 @@ extern "C" int load_configuration(void) {
     } else {
         odrv.user_config_loaded_ = true;
     }
+    encoder_configs[0].mode = Encoder::MODE_UART_ABS_KING;
     return odrv.user_config_loaded_;
 }
 
@@ -264,7 +265,7 @@ int odrive_main(void) {
     // Set up the CS pins for absolute encoders
     for(auto& axis : axes){
         if(axis->encoder_.config_.mode & Encoder::MODE_FLAG_ABS){
-            axis->encoder_.abs_spi_cs_pin_init();
+           // axis->encoder_.abs_spi_cs_pin_init();
         }
     }
 

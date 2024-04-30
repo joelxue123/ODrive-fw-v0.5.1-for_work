@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "makefile": "makefile",
+        "arm_common_tables.h": "c",
+        "arm_math.h": "c"
+    }
+}

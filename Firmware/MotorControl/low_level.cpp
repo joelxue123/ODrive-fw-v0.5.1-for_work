@@ -530,7 +530,8 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
         // Also see comment on sync_timers.
         if((current_meas_not_DC_CAL && !axis_num) ||
                 (axis_num && !current_meas_not_DC_CAL)){
-            axis.encoder_.abs_spi_start_transaction();
+            axis.encoder_.abs_start_transaction();
+            
         }
     }
 
@@ -558,6 +559,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     } else {
         ADCValue = HAL_ADC_GetValue(hadc);
     }
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET);
     float current = axis.motor_.phase_current_from_adcval(ADCValue);
 
     if (current_meas_not_DC_CAL) {
@@ -587,6 +589,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
             axis.motor_.DC_calib_.phC += (current - axis.motor_.DC_calib_.phC) * calib_filter_k;
         }
     }
+      
 }
 
 void tim_update_cb(TIM_HandleTypeDef* htim) {
@@ -820,3 +823,16 @@ void HAL_SPI_TxRxCpltCallback(SPI_HandleTypeDef *hspi)
     else if (hspi->pRxBuffPtr == (uint8_t*)axes[1]->encoder_.abs_spi_dma_rx_)
         axes[1]->encoder_.abs_spi_cb();
 }
+
+
+void selfdefined_UART_DMAReceiveCpltCallback(SPI_HandleTypeDef *hspi)
+{
+    
+}
+
+
+void selfdefined_UART_DMAsendCpltCallback(SPI_HandleTypeDef *hspi)
+{
+
+}
+

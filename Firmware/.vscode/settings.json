@@ -57,6 +57,7 @@
         "mutex": "cpp",
         "sstream": "cpp",
         "thread": "cpp",
-        "odrive_main.h": "c"
+        "odrive_main.h": "c",
+        "usart.h": "c"
     }
 }

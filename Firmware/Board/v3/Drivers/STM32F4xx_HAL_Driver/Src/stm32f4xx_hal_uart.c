@@ -875,7 +875,7 @@ HAL_StatusTypeDef HAL_UART_Transmit_DMA(UART_HandleTypeDef *huart, uint8_t *pDat
   uint32_t *tmp;
   
   /* Check that a Tx process is not already ongoing */
-  if(huart->gState == HAL_UART_STATE_READY)
+  if(1)//huart->gState == HAL_UART_STATE_READY)
   {
     if((pData == NULL ) || (Size == 0))
     {

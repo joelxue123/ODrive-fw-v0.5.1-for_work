@@ -10,6 +10,7 @@
 #include <spi.h>
 #include <tim.h>
 #include <main.h>
+#include <usart.h>
 
 #if HW_VERSION_MAJOR == 3
 #if HW_VERSION_MINOR <= 3
@@ -37,6 +38,8 @@ typedef struct {
     GPIO_TypeDef* hallC_port;
     uint16_t hallC_pin;
     SPI_HandleTypeDef* spi;
+  //  UART_HandleTypeDef *uart;
+
 } EncoderHardwareConfig_t;
 typedef struct {
     TIM_HandleTypeDef* timer;
@@ -91,6 +94,7 @@ const BoardHardwareConfig_t hw_configs[2] = { {
         .hallC_port = M0_ENC_Z_GPIO_Port,
         .hallC_pin = M0_ENC_Z_Pin,
         .spi = &hspi3,
+    //    .uart = &huart4,
     },
     .motor_config = {
         .timer = &htim1,

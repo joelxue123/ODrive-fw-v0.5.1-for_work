@@ -9,6 +9,7 @@
 class Encoder : public ODriveIntf::EncoderIntf {
 public:
     static constexpr uint32_t MODE_FLAG_ABS = 0x100;
+    static constexpr uint32_t MODE_FLAG_485_ABS = 0x200;
 
     struct Config_t {
         Mode mode = MODE_INCREMENTAL;
@@ -34,6 +35,8 @@ public:
         uint16_t sincos_gpio_pin_sin = 3;
         uint16_t sincos_gpio_pin_cos = 4;
 
+    //    uint16_t abs_485_cs_gpio_pin = 2;
+
         // custom setters
         Encoder* parent = nullptr;
         void set_use_index(bool value) { use_index = value; parent->set_idx_subscribe(); }
@@ -41,6 +44,7 @@ public:
         void set_abs_spi_cs_gpio_pin(uint16_t value) { abs_spi_cs_gpio_pin = value; parent->abs_spi_cs_pin_init(); }
         void set_pre_calibrated(bool value) { pre_calibrated = value; parent->check_pre_calibrated(); }
         void set_bandwidth(float value) { bandwidth = value; parent->update_pll_gains(); }
+
     };
 
     Encoder(const EncoderHardwareConfig_t& hw_config,
@@ -100,18 +104,25 @@ public:
     float sincos_sample_c_ = 0.0f;
 
     bool abs_spi_init();
+    bool abs_485_init();
+    bool abs_start_transaction();
     bool abs_spi_start_transaction();
+    bool abs_485_start_transaction();
     void abs_spi_cb();
     void abs_spi_cs_pin_init();
+    void abs_485_cs_pin_init();
     uint8_t abs_spi_dma_tx_[4] = {0xA6,0x00,0x00,0x00};
     uint8_t abs_spi_dma_rx_[4];
+    uint8_t abs_485_dma_tx_[4] = {0xA6,0x00,0x00,0x00};
+    uint8_t abs_485_dma_rx_[7];
+
     bool abs_spi_pos_updated_ = false;
     Mode mode_ = MODE_INCREMENTAL;
     GPIO_TypeDef* abs_spi_cs_port_;
     uint16_t abs_spi_cs_pin_;
     uint32_t abs_spi_cr1;
     uint32_t abs_spi_cr2;
-
+  
     constexpr float getCoggingRatio(){
         return 1.0f / 3600.0f;
     }

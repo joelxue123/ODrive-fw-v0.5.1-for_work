@@ -28,6 +28,8 @@ my_drive.axis0.requested_state = AXIS_STATE_CLOSED_LOOP_CONTROL
 # To read a value, simply read the property
 print("Bus voltage is " + str(my_drive.vbus_voltage) + "V")
 
+
+
 # Or to change a value, just assign to the property
 my_drive.axis0.controller.pos_setpoint = 3.14
 print("Position setpoint is " + str(my_drive.axis0.controller.pos_setpoint))

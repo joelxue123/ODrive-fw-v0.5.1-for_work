@@ -948,7 +948,9 @@ valuetypes:
       SpiAbsRls:
         value: 0x103
         doc: RLS Encoders
-
+      UartAbsKing:
+        value: 0x200
+        doc: Uart Encoders
   ODrive.Controller.ControlMode:
     values:
       # Note: these should be sorted from lowest level of control to
