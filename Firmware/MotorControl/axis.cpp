@@ -201,9 +201,11 @@ bool Axis::do_updates() {
         thermistor->update();
     }
     encoder_.update();
+    #if 0
     sensorless_estimator_.update();
     min_endstop_.update();
     max_endstop_.update();
+    #endif
     bool ret = check_for_errors();
     odCAN->send_heartbeat(this);
     return ret;
@@ -233,9 +235,20 @@ bool Axis::run_lockin_spin(const LockinConfig_t &lockin_config) {
     lockin_state_ = LOCKIN_STATE_RAMP;
     float x = 0.0f;
     run_control_loop([&]() {
-        float phase = wrap_pm_pi(lockin_config.ramp_distance * x);
-        float torque = lockin_config.current * motor_.config_.torque_constant * x;
-        x += current_meas_period / lockin_config.ramp_time;
+        float phase = 0;
+        float torque = 0;
+        if(0 == lockin_config.vel)
+        {
+             phase = wrap_pm_pi(lockin_config.ramp_distance);
+             torque = lockin_config.current * motor_.config_.torque_constant;
+        }
+        else
+        {
+             phase = wrap_pm_pi(lockin_config.ramp_distance * x);
+             torque = lockin_config.current * motor_.config_.torque_constant * x;
+            x += current_meas_period / lockin_config.ramp_time;
+        }
+
         if (!motor_.update(torque, phase, 0.0f))
             return false;
         return x < 1.0f;
@@ -290,6 +303,7 @@ bool Axis::run_lockin_spin(const LockinConfig_t &lockin_config) {
     lockin_state_ = LOCKIN_STATE_INACTIVE;
     return check_for_errors();
 }
+
 
 // Note run_sensorless_control_loop and run_closed_loop_control_loop are very similar and differ only in where we get the estimate from.
 bool Axis::run_sensorless_control_loop() {

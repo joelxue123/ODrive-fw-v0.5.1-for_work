@@ -355,7 +355,7 @@ bool Encoder::abs_spi_init(){
 
 bool Encoder::abs_485_init()
 {
-  UART_HandleTypeDef *encode_uart = &huart4;
+  //UART_HandleTypeDef *encode_uart = &huart4;
   huart4.Instance = UART4;
   huart4.Init.BaudRate = 2500000;  // Provisionally this can be changed to 921600 for faster transfers, the low power Arduinos will not keep up. 
   huart4.Init.WordLength = UART_WORDLENGTH_8B;
@@ -366,9 +366,10 @@ bool Encoder::abs_485_init()
   huart4.Init.OverSampling = UART_OVERSAMPLING_8;
   if (HAL_UART_Init(&huart4) != HAL_OK)
   {
-    while(1);
+    return false;
+   // while(1);
   }
-
+    return true;
 }
   
 void Encoder::abs_485_cs_pin_init(){
@@ -403,7 +404,7 @@ bool Encoder::abs_start_transaction(){
     {
          return true;
     }
-
+    return true; 
 }
 
 
@@ -678,7 +679,6 @@ bool Encoder::update() {
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
-    int pos;
     if(huart->pRxBuffPtr == (uint8_t*)axes[0]->encoder_.abs_485_dma_rx_)
          axes[0]->encoder_.pos_abs_ =  (axes[0]->encoder_.abs_485_dma_rx_[5]<<8) | (axes[0]->encoder_.abs_485_dma_rx_[4]<<0); 
 

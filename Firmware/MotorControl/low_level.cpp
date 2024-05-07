@@ -205,11 +205,11 @@ void start_adc_pwm() {
     __HAL_ADC_ENABLE(&hadc3);
     // Warp field stabilize.
     osDelay(2);
-    __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);
-    __HAL_ADC_ENABLE_IT(&hadc2, ADC_IT_JEOC);
+   // __HAL_ADC_ENABLE_IT(&hadc1, ADC_IT_JEOC);
+  //  __HAL_ADC_ENABLE_IT(&hadc2, ADC_IT_JEOC);
     __HAL_ADC_ENABLE_IT(&hadc3, ADC_IT_JEOC);
-    __HAL_ADC_ENABLE_IT(&hadc2, ADC_IT_EOC);
-    __HAL_ADC_ENABLE_IT(&hadc3, ADC_IT_EOC);
+  //  __HAL_ADC_ENABLE_IT(&hadc2, ADC_IT_EOC);
+  //  __HAL_ADC_ENABLE_IT(&hadc3, ADC_IT_EOC);
 
     // Ensure that debug halting of the core doesn't leave the motor PWM running
     __HAL_DBGMCU_FREEZE_TIM1();
@@ -219,8 +219,9 @@ void start_adc_pwm() {
     start_pwm(&htim1);
     start_pwm(&htim8);
     // TODO: explain why this offset
-    sync_timers(&htim1, &htim8, TIM_CLOCKSOURCE_ITR0, TIM_1_8_PERIOD_CLOCKS / 2 - 1 * 128,
+    sync_timers(&htim1, &htim8, TIM_1_8_PERIOD_CLOCKS/2, TIM_1_8_PERIOD_CLOCKS,
             &htim13);
+
 
     // Motor output starts in the disabled state
     __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(&htim1);
@@ -246,9 +247,9 @@ void start_adc_pwm() {
 void start_pwm(TIM_HandleTypeDef* htim) {
     // Init PWM
     int half_load = TIM_1_8_PERIOD_CLOCKS / 2;
-    htim->Instance->CCR1 = half_load;
-    htim->Instance->CCR2 = half_load;
-    htim->Instance->CCR3 = half_load;
+    htim->Instance->CCR1 = half_load-0;
+    htim->Instance->CCR2 = half_load+0;
+    htim->Instance->CCR3 = half_load+0;
 
     // This hardware obfustication layer really is getting on my nerves
     HAL_TIM_PWM_Start(htim, TIM_CHANNEL_1);
@@ -505,90 +506,40 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     // Motor 1 is on Timer 8, which triggers ADC 2 and 3 on a regular conversion
     // If the corresponding timer is counting up, we just sampled in SVM vector 0, i.e. real current
     // If we are counting down, we just sampled in SVM vector 7, with zero current
-    Axis& axis = injected ? *axes[0] : *axes[1];
-    int axis_num = injected ? 0 : 1;
-    Axis& other_axis = injected ? *axes[1] : *axes[0];
-    bool counting_down = axis.motor_.hw_config_.timer->Instance->CR1 & TIM_CR1_DIR;
-    bool current_meas_not_DC_CAL = !counting_down;
+    Axis& axis = *axes[0];
+    int axis_num = 0;
+
 
     // Check the timing of the sequencing
-    if (current_meas_not_DC_CAL)
-        axis.motor_.log_timing(TIMING_LOG_ADC_CB_I);
-    else
-        axis.motor_.log_timing(TIMING_LOG_ADC_CB_DC);
+     axis.motor_.log_timing(TIMING_LOG_ADC_CB_I);
 
-    bool update_timings = false;
-    if (hadc == &hadc2) {
-        if (&axis == axes[1] && counting_down)
-            update_timings = true; // update timings of M0
-        else if (&axis == axes[0] && !counting_down)
-            update_timings = true; // update timings of M1
 
-        // TODO: this is out of place here. However when moving it somewhere
-        // else we have to consider the timing requirements to prevent the SPI
-        // transfers of axis0 and axis1 from conflicting.
-        // Also see comment on sync_timers.
-        if((current_meas_not_DC_CAL && !axis_num) ||
-                (axis_num && !current_meas_not_DC_CAL)){
-            axis.encoder_.abs_start_transaction();
-            
-        }
-    }
+    bool update_timings = true;
 
-    // Load next timings for the motor that we're not currently sampling
-    if (update_timings) {
-        if (!other_axis.motor_.next_timings_valid_) {
-            // the motor control loop failed to update the timings in time
-            // we must assume that it died and therefore float all phases
-            bool was_armed = safety_critical_disarm_motor_pwm(other_axis.motor_);
-            if (was_armed) {
-                other_axis.motor_.error_ |= Motor::ERROR_CONTROL_DEADLINE_MISSED;
-            }
-        } else {
-            other_axis.motor_.next_timings_valid_ = false;
-            safety_critical_apply_motor_pwm_timings(
-                other_axis.motor_, other_axis.motor_.next_timings_
-            );
-        }
-        update_brake_current();
-    }
+    axis.encoder_.abs_start_transaction();
 
-    uint32_t ADCValue;
-    if (injected) {
-        ADCValue = HAL_ADCEx_InjectedGetValue(hadc, ADC_INJECTED_RANK_1);
-    } else {
-        ADCValue = HAL_ADC_GetValue(hadc);
-    }
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET);
-    float current = axis.motor_.phase_current_from_adcval(ADCValue);
 
-    if (current_meas_not_DC_CAL) {
-        // ADC2 and ADC3 record the phB and phC currents concurrently,
-        // and their interrupts should arrive on the same clock cycle.
-        // We dispatch the callbacks in order, so ADC2 will always be processed before ADC3.
-        // Therefore we store the value from ADC2 and signal the thread that the
-        // measurement is ready when we receive the ADC3 measurement
+    // update_brake_current(); todo
+    
+    uint32_t ADCValue_dc_b = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_1);
+    uint32_t ADCValue_dc_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_1);
+    uint32_t ADCValue_b = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_2);
+    uint32_t ADCValue_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_2);
 
-        // return or continue
-        if (hadc == &hadc2) {
-            axis.motor_.current_meas_.phB = current - axis.motor_.DC_calib_.phB;
-            return;
-        } else {
-            axis.motor_.current_meas_.phC = current - axis.motor_.DC_calib_.phC;
-        }
-        // Prepare hall readings
-        // TODO move this to inside encoder update function
-      //  decode_hall_samples(axis.encoder_, GPIO_port_samples[axis_num]);
-        // Trigger axis thread
-        axis.signal_current_meas();
-    } else {
-        // DC_CAL measurement
-        if (hadc == &hadc2) {
-            axis.motor_.DC_calib_.phB += (current - axis.motor_.DC_calib_.phB) * calib_filter_k;
-        } else {
-            axis.motor_.DC_calib_.phC += (current - axis.motor_.DC_calib_.phC) * calib_filter_k;
-        }
-    }
+    float current_b = axis.motor_.phase_current_from_adcval(ADCValue_b);
+    float current_c = axis.motor_.phase_current_from_adcval(ADCValue_c);
+    axis.motor_.DC_calib_.phB = axis.motor_.phase_current_from_adcval(ADCValue_dc_b);
+    axis.motor_.DC_calib_.phC = axis.motor_.phase_current_from_adcval(ADCValue_dc_c);
+
+    axis.motor_.current_meas_.phB = current_b - axis.motor_.DC_calib_.phB;
+    axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
+
+
+
+    
+
+    axis.signal_current_meas();
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET); //用于485
       
 }
 

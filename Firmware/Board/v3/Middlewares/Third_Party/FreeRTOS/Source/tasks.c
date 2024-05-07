@@ -4444,6 +4444,9 @@ TickType_t uxReturn;
 #endif /* configUSE_TASK_NOTIFICATIONS */
 /*-----------------------------------------------------------*/
 
+//#include <stm32f405xx.h>
+//#include <stm32f4xx_hal.h>  // Sets up the correct chip specifc defines required by arm_math
+
 #if( configUSE_TASK_NOTIFICATIONS == 1 )
 
 	BaseType_t xTaskGenericNotifyFromISR( TaskHandle_t xTaskToNotify, uint32_t ulValue, eNotifyAction eAction, uint32_t *pulPreviousNotificationValue, BaseType_t *pxHigherPriorityTaskWoken )
@@ -4518,7 +4521,7 @@ TickType_t uxReturn;
 			}
 
 			traceTASK_NOTIFY_FROM_ISR();
-
+			
 			/* If the task is in the blocked state specifically to wait for a
 			notification then unblock it now. */
 			if( ucOriginalNotifyState == taskWAITING_NOTIFICATION )

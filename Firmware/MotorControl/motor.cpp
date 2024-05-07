@@ -308,11 +308,14 @@ bool Motor::enqueue_modulation_timings(float mod_alpha, float mod_beta) {
     next_timings_[1] = (uint16_t)(tB * (float)TIM_1_8_PERIOD_CLOCKS);
     next_timings_[2] = (uint16_t)(tC * (float)TIM_1_8_PERIOD_CLOCKS);
     next_timings_valid_ = true;
+    safety_critical_apply_motor_pwm_timings(
+                *this, next_timings_
+            );
     return true;
 }
 
 bool Motor::enqueue_voltage_timings(float v_alpha, float v_beta) {
-    float vfactor = 1.0f / ((2.0f / 3.0f) * vbus_voltage);
+    float vfactor = 1.0f / ((2.0f / 3.0f) * 24.0);  // float vfactor = 1.0f / ((2.0f / 3.0f) * vbus_voltage);
     float mod_alpha = vfactor * v_alpha;
     float mod_beta = vfactor * v_beta;
     if (!enqueue_modulation_timings(mod_alpha, mod_beta))

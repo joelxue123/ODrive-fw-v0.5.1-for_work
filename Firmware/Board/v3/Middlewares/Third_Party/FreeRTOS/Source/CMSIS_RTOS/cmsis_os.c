@@ -26,7 +26,7 @@
  *  
  *----------------------------------------------------------------------------
  *
- * Portions Copyright � 2016 STMicroelectronics International N.V. All rights reserved.
+ * Portions Copyright � 2016 STMicroelectronics International N.V. All rights reserved.
  * Portions Copyright (c) 2013 ARM LIMITED
  * All rights reserved.
  * Redistribution and use in source and binary forms, with or without
@@ -533,7 +533,8 @@ osStatus result = osOK;
  
   return result;
 }
-
+#include <stm32f405xx.h>
+#include <stm32f4xx_hal.h>  // Sets up the correct chip specifc defines required by arm_math
 /***************************  Signal Management ********************************/
 /**
 * @brief  Set the specified Signal Flags of an active thread.
@@ -550,6 +551,7 @@ int32_t osSignalSet (osThreadId thread_id, int32_t signal)
   
   if (inHandlerMode())
   {
+    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET); //用于485
     if(xTaskGenericNotifyFromISR( thread_id , (uint32_t)signal, eSetBits, &ulPreviousNotificationValue, &xHigherPriorityTaskWoken ) != pdPASS )
       return 0x80000000;
     

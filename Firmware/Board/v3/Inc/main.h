@@ -67,12 +67,12 @@
 
 /* Private define ------------------------------------------------------------*/
 #define TIM_1_8_CLOCK_HZ 168000000
-#define TIM_1_8_PERIOD_CLOCKS 3500
+#define TIM_1_8_PERIOD_CLOCKS 4200 //2024-5-6  原来3500
 #define TIM_1_8_DEADTIME_CLOCKS 20
 #define TIM_APB1_CLOCK_HZ 84000000
 #define TIM_APB1_PERIOD_CLOCKS 4096
 #define TIM_APB1_DEADTIME_CLOCKS 40
-#define TIM_1_8_RCR 2
+#define TIM_1_8_RCR 0  //原来2
 
 #define M0_nCS_Pin GPIO_PIN_13
 #define M0_nCS_GPIO_Port GPIOC

@@ -35,7 +35,7 @@ public:
         uint16_t sincos_gpio_pin_sin = 3;
         uint16_t sincos_gpio_pin_cos = 4;
 
-    //    uint16_t abs_485_cs_gpio_pin = 2;
+        uint16_t abs_485_cs_gpio_pin = 2;
 
         // custom setters
         Encoder* parent = nullptr;
