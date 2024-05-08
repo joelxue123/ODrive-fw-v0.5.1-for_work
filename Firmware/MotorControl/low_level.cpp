@@ -536,10 +536,9 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
 
 
 
-    
 
     axis.signal_current_meas();
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET); //用于485
+    
       
 }
 
