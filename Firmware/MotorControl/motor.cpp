@@ -315,7 +315,7 @@ bool Motor::enqueue_modulation_timings(float mod_alpha, float mod_beta) {
 }
 
 bool Motor::enqueue_voltage_timings(float v_alpha, float v_beta) {
-    float vfactor = 1.0f / ((2.0f / 3.0f) * 24.0);  // float vfactor = 1.0f / ((2.0f / 3.0f) * vbus_voltage);
+    float vfactor = 1.0f / ((2.0f / 3.0f) * vbus_voltage);  // float vfactor = 1.0f / ((2.0f / 3.0f) * vbus_voltage);
     float mod_alpha = vfactor * v_alpha;
     float mod_beta = vfactor * v_beta;
     if (!enqueue_modulation_timings(mod_alpha, mod_beta))

@@ -509,14 +509,16 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     Axis& axis = *axes[0];
     int axis_num = 0;
 
-
+    axis.encoder_.abs_start_transaction();
+    vbus_sense_adc_cb(&hadc1,true);
+    
     // Check the timing of the sequencing
      axis.motor_.log_timing(TIMING_LOG_ADC_CB_I);
 
 
     bool update_timings = true;
 
-    axis.encoder_.abs_start_transaction();
+    
 
 
     // update_brake_current(); todo
@@ -538,7 +540,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
 
 
     axis.signal_current_meas();
-    
+   
       
 }
 

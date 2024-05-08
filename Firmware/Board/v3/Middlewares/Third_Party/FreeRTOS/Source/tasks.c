@@ -4444,8 +4444,8 @@ TickType_t uxReturn;
 #endif /* configUSE_TASK_NOTIFICATIONS */
 /*-----------------------------------------------------------*/
 
-//#include <stm32f405xx.h>
-//#include <stm32f4xx_hal.h>  // Sets up the correct chip specifc defines required by arm_math
+#include <stm32f405xx.h>
+#include <stm32f4xx_hal.h>  // Sets up the correct chip specifc defines required by arm_math
 
 #if( configUSE_TASK_NOTIFICATIONS == 1 )
 
@@ -4457,7 +4457,7 @@ TickType_t uxReturn;
 	UBaseType_t uxSavedInterruptStatus;
 
 		configASSERT( xTaskToNotify );
-
+HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET); //用于485
 		/* RTOS ports that support interrupt nesting have the concept of a
 		maximum	system call (or maximum API call) interrupt priority.
 		Interrupts that are	above the maximum system call priority are keep
@@ -4487,7 +4487,7 @@ TickType_t uxReturn;
 
 			ucOriginalNotifyState = pxTCB->ucNotifyState;
 			pxTCB->ucNotifyState = taskNOTIFICATION_RECEIVED;
-
+			
 			switch( eAction )
 			{
 				case eSetBits	:
@@ -4519,13 +4519,14 @@ TickType_t uxReturn;
 					updated. */
 					break;
 			}
-
+			
 			traceTASK_NOTIFY_FROM_ISR();
 			
 			/* If the task is in the blocked state specifically to wait for a
 			notification then unblock it now. */
 			if( ucOriginalNotifyState == taskWAITING_NOTIFICATION )
 			{
+				
 				/* The task should not have been on an event list. */
 				configASSERT( listLIST_ITEM_CONTAINER( &( pxTCB->xEventListItem ) ) == NULL );
 
