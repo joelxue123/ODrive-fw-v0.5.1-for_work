@@ -57,7 +57,7 @@
 /* USER CODE END 0 */
 
 CAN_HandleTypeDef hcan1;
-
+ // Prescaler = 7 ;  TimeSeg1 = CAN_BS1_3TQ; TimeSeg2 = CAN_BS2_2TQ;
 /* CAN1 init function */
 void MX_CAN1_Init(void)
 {

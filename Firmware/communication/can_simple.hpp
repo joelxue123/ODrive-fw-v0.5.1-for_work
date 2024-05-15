@@ -31,11 +31,14 @@ class CANSimple {
         MSG_RESET_ODRIVE,
         MSG_GET_VBUS_VOLTAGE,
         MSG_CLEAR_ERRORS,
+        MSG_402_SEND,
         MSG_CO_HEARTBEAT_CMD = 0x700,  // CANOpen NMT Heartbeat  SEND
     };
 
     static void handle_can_message(can_Message_t& msg);
     static void send_heartbeat(Axis* axis);
+
+    static int32_t cia_402_send_callback(Axis* axis, can_Message_t&msg);
 
    private:
     static void nmt_callback(Axis* axis, can_Message_t& msg);

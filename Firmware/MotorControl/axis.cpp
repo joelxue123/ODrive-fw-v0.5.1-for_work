@@ -7,7 +7,7 @@
 #include "utils.hpp"
 #include "gpio_utils.hpp"
 #include "communication/interface_can.hpp"
-
+#include "communication/can_simple.hpp"
 Axis::Axis(int axis_num,
            const AxisHardwareConfig_t& hw_config,
            Config_t& config,
@@ -207,7 +207,7 @@ bool Axis::do_updates() {
     max_endstop_.update();
     #endif
     bool ret = check_for_errors();
-    odCAN->send_heartbeat(this);
+    odCAN->cia_402_send_task(this);
     return ret;
 }
 

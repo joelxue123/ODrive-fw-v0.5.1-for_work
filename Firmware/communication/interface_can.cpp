@@ -11,6 +11,9 @@
 // Specific CAN Protocols
 #include "can_simple.hpp"
 
+int32_t  epos_Controlword(enum Epos_ctrl ctrl);
+int32_t epos_Modes_of_Operation( enum Epos_mode mode);
+int32_t epos_Target_velocity( int32_t enc);
 // Safer context handling via maps instead of arrays
 // #include <unordered_map>
 // std::unordered_map<CAN_HandleTypeDef *, ODriveCAN *> ctxMap;
@@ -23,6 +26,25 @@ ODriveCAN::ODriveCAN(ODriveCAN::Config_t &config, CAN_HandleTypeDef *handle)
 }
 
 void ODriveCAN::can_server_thread() {
+
+    epos_Controlword(CW_SWITCH_ON_DISABLED);
+    vTaskDelay(100);
+    epos_Controlword(CW_DISABLE_VOLTAGE);
+    vTaskDelay(100);
+    epos_Modes_of_Operation(operaton_mode);
+    vTaskDelay(100);
+    epos_Target_velocity(0x00010000);
+    vTaskDelay(100);
+    epos_Controlword(CW_SHUTDOWN);
+    vTaskDelay(100);
+    epos_Controlword(CW_SWITCH_ON);
+    vTaskDelay(100);
+    epos_Controlword(CW_OPERATION_ENABLED);
+    vTaskDelay(100);
+    send_task_ready = true;
+    
+
+  
     for (;;) {
         uint32_t status = HAL_CAN_GetError(handle_);
         if (status == HAL_CAN_ERROR_NONE) {
@@ -57,6 +79,7 @@ static void can_server_thread_wrapper(void *ctx) {
 bool ODriveCAN::start_can_server() {
     HAL_StatusTypeDef status;
 
+
     set_baud_rate(config_.baud_rate);
 
     status = HAL_CAN_Init(handle_);
@@ -77,6 +100,10 @@ bool ODriveCAN::start_can_server() {
     status = HAL_CAN_Start(handle_);
     if (status == HAL_OK)
         status = HAL_CAN_ActivateNotification(handle_, CAN_IT_RX_FIFO0_MSG_PENDING);
+
+    init_can_cmd_timer_list(can_cmd_timer_list,CAN_CMD_NOBR);
+
+    operaton_mode = Cycle_Synchronous_Position;
 
     osThreadDef(can_server_thread_def, can_server_thread_wrapper, osPriorityNormal, 0, stack_size_ / sizeof(StackType_t));
     thread_id_ = osThreadCreate(osThread(can_server_thread_def), this);
@@ -191,6 +218,276 @@ void ODriveCAN::send_heartbeat(Axis *axis) {
         }
     }
 }
+
+
+
+
+struct Sin_t{
+    uint32_t sample_rate;
+    uint32_t output_fre;
+    uint32_t index;
+};
+static struct Sin_t sin_rule = {
+
+    .sample_rate = 1000,
+    .output_fre = 90,
+    .index = 0,
+};
+static void generate_sin_data_to_buf(uint8_t *buf)
+{
+
+    uint32_t sample_rate = sin_rule.sample_rate ;
+    uint32_t output_fre = sin_rule.output_fre;
+    float dt = 1.0f / sample_rate;
+    float amplitude =0x000a0000;
+
+    float phase = 2.0f*M_PI* sin_rule.index * output_fre*dt ;
+    phase = wrap_pm_pi(phase);
+
+    float  sin_data  =   our_arm_sin_f32(phase) * amplitude ;
+
+    int32_t sin_data_int = static_cast<int>(sin_data);
+
+    buf[4] = sin_data_int & 0xff;
+    buf[5] = (sin_data_int>>8) & 0xff;
+    buf[6] = (sin_data_int>>16) & 0xff;
+    buf[7] = (sin_data_int>>24) & 0xff;
+
+
+    sin_rule.index++;
+    if( sin_rule.index > sample_rate/output_fre -1)
+    {
+        sin_rule.index =0;
+    }
+}
+
+void ODriveCAN:: init_speed_can_cmd_timer_list(struct Cia402_Cmd_TimerList * cmd_timer_list, uint32_t size)
+{
+    uint32_t cmd_timer_index = 0;
+
+    cmd_timer_list[cmd_timer_index].enable = true;
+    cmd_timer_list[cmd_timer_index].interval_time = 20;  // 200:10ms  20:1ms
+    cmd_timer_list[cmd_timer_index].timer_cnt =0;
+    cmd_timer_list[cmd_timer_index].txmsg.id = 0x601;
+    cmd_timer_list[cmd_timer_index].txmsg.isExt  =0;
+    cmd_timer_list[cmd_timer_index].txmsg.len = 8;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[0]=0x23;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[1]=MOTOR_TARGET_VELOCITY_WORD & 0xff;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[2]=(MOTOR_TARGET_VELOCITY_WORD>>8) & 0xff;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[3]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[4]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[5]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[6]=0x02;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[7]=0x00;
+    cmd_timer_list[cmd_timer_index].init_buf_f = generate_sin_data_to_buf;
+
+    cmd_timer_index++;
+
+    cmd_timer_list[cmd_timer_index].enable = false;
+    cmd_timer_list[cmd_timer_index].interval_time = 20;
+    cmd_timer_list[cmd_timer_index].timer_cnt =0;
+    cmd_timer_list[cmd_timer_index].txmsg.id = 0x601;
+    cmd_timer_list[cmd_timer_index].txmsg.isExt  =0;
+    cmd_timer_list[cmd_timer_index].txmsg.len = 8;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[0]=0x40;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[1]=0x69;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[2]=0x60;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[3]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[4]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[5]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[6]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[7]=0x00;
+    cmd_timer_list[cmd_timer_index].init_buf_f = nullptr;
+
+    cmd_timer_index++;
+
+    cmd_timer_list[cmd_timer_index].enable = false;
+    cmd_timer_list[cmd_timer_index].interval_time = 10000;
+    cmd_timer_list[cmd_timer_index].timer_cnt =0;
+    cmd_timer_list[cmd_timer_index].txmsg.id = 0x601;
+    cmd_timer_list[cmd_timer_index].txmsg.isExt  =0;
+    cmd_timer_list[cmd_timer_index].txmsg.len = 8;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[0]=0x23;
+    cmd_timer_list[cmd_timer_index].init_buf_f = nullptr;
+
+    cmd_timer_index++;
+
+    if(cmd_timer_index > size)
+    {
+        while(1);
+    }
+}
+
+void ODriveCAN:: init_postion_can_cmd_timer_list(struct Cia402_Cmd_TimerList * cmd_timer_list, uint32_t size)
+{
+    uint32_t cmd_timer_index = 0;
+
+    cmd_timer_list[cmd_timer_index].enable = true;
+    cmd_timer_list[cmd_timer_index].interval_time = 20;  // 200:10ms  20:1ms
+    cmd_timer_list[cmd_timer_index].timer_cnt =0;
+    cmd_timer_list[cmd_timer_index].txmsg.id = 0x601;
+    cmd_timer_list[cmd_timer_index].txmsg.isExt  =0;
+    cmd_timer_list[cmd_timer_index].txmsg.len = 8;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[0]=0x23;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[1] = MOTOR_TARGET_POSITION_WORD & 0xff;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[2] = (MOTOR_TARGET_POSITION_WORD>>8) & 0xff;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[3]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[4]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[5]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[6]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[7]=0x00;
+    cmd_timer_list[cmd_timer_index].init_buf_f = generate_sin_data_to_buf;
+
+    cmd_timer_index++;
+
+    cmd_timer_list[cmd_timer_index].enable = false;
+    cmd_timer_list[cmd_timer_index].interval_time = 20;
+    cmd_timer_list[cmd_timer_index].timer_cnt =0;
+    cmd_timer_list[cmd_timer_index].txmsg.id = 0x601;
+    cmd_timer_list[cmd_timer_index].txmsg.isExt  =0;
+    cmd_timer_list[cmd_timer_index].txmsg.len = 8;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[0]=0x40;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[1]=0x69;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[2]=0x60;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[3]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[4]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[5]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[6]=0x00;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[7]=0x00;
+    cmd_timer_list[cmd_timer_index].init_buf_f = nullptr;
+
+    cmd_timer_index++;
+
+    cmd_timer_list[cmd_timer_index].enable = false;
+    cmd_timer_list[cmd_timer_index].interval_time = 10000;
+    cmd_timer_list[cmd_timer_index].timer_cnt =0;
+    cmd_timer_list[cmd_timer_index].txmsg.id = 0x601;
+    cmd_timer_list[cmd_timer_index].txmsg.isExt  =0;
+    cmd_timer_list[cmd_timer_index].txmsg.len = 8;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[0]=0x23;
+    cmd_timer_list[cmd_timer_index].init_buf_f = nullptr;
+
+    cmd_timer_index++;
+
+    if(cmd_timer_index > size)
+    {
+        while(1);
+    }
+}
+
+
+
+int32_t ODriveCAN::cia_402_send_task(Axis *axis) {
+
+    can_Message_t txmsg;
+    int32_t status = 0;
+    int8_t timer_item = 0;
+    uint32_t high_freq_tick  = axis->loop_counter_;
+
+    uint32_t timer_over = 0;
+
+    if(send_task_ready)
+    {
+        for ( timer_item = 0 ; timer_item < CAN_CMD_NOBR; timer_item++ )    
+        {
+            if(can_cmd_timer_list[timer_item].enable == true )
+            {
+                timer_over = high_freq_tick - can_cmd_timer_list[timer_item].timer_cnt;
+                uint32_t last_transfer_elapsetime = high_freq_tick - last_transfer_stamp; //最小时间mak
+                if( (timer_over > 0 && timer_over < 0x7fffffff) && (last_transfer_elapsetime > 10 && last_transfer_elapsetime < 0x7fffffff) )
+                {
+                    can_cmd_timer_list[timer_item].timer_cnt  = high_freq_tick + can_cmd_timer_list[timer_item].interval_time;
+                    if( can_cmd_timer_list[timer_item].init_buf_f)
+                    {
+                        can_cmd_timer_list[timer_item].init_buf_f(can_cmd_timer_list[timer_item].txmsg.buf);
+                    }
+                    txmsg =  can_cmd_timer_list[timer_item].txmsg;
+                    status = CANSimple::cia_402_send_callback(axis,txmsg);
+                    last_transfer_stamp = high_freq_tick;
+                    break;
+                }
+            }
+
+        }
+    }
+
+
+    return status;
+      
+}
+
+int32_t  epos_Controlword(enum Epos_ctrl ctrl)
+ {
+	can_Message_t txmsg;
+    int32_t status = 0;
+
+    txmsg.id = 0x601;
+	txmsg.isExt = false;
+    txmsg.rtr = false;
+    txmsg.len = 8;
+
+    txmsg.buf[0] = 0x2b;
+    txmsg.buf[1] = 0x40;
+    txmsg.buf[2] = 0x60;
+    txmsg.buf[3] = 0x00;
+    txmsg.buf[4] = ctrl & 0xff;
+    txmsg.buf[5] = (ctrl>>8) & 0xff;
+    txmsg.buf[6] = (ctrl>>16) & 0xff;
+    txmsg.buf[7] = (ctrl>>24) & 0xff;
+
+
+	status = CANSimple::cia_402_send_callback(nullptr,txmsg);
+    return status;
+}
+
+int32_t epos_Modes_of_Operation( enum Epos_mode mode) 
+{
+	can_Message_t txmsg;
+    int32_t status = 0;
+
+    txmsg.id = 0x601;
+	txmsg.isExt = false;
+    txmsg.rtr = false;
+    txmsg.len = 8;
+
+    txmsg.buf[0] = 0x2b;
+    txmsg.buf[1] = 0x60;
+    txmsg.buf[2] = 0x60;
+    txmsg.buf[3] = 0x00;
+    txmsg.buf[4] = mode & 0xff;
+    txmsg.buf[5] = (mode>>8) & 0xff;
+    txmsg.buf[6] = (mode>>16) & 0xff;
+    txmsg.buf[7] = (mode>>24) & 0xff;
+
+
+	status = CANSimple::cia_402_send_callback(nullptr,txmsg);
+    return status;
+}
+
+int32_t epos_Target_velocity( int32_t enc) 
+{
+	can_Message_t txmsg;
+    int32_t status = 0;
+
+    txmsg.id = 0x601;
+	txmsg.isExt = false;
+    txmsg.rtr = false;
+    txmsg.len = 8;
+
+    txmsg.buf[0] = 0x23;
+    txmsg.buf[1] = 0xff;
+    txmsg.buf[2] = 0x60;
+    txmsg.buf[3] = 0x00;
+    txmsg.buf[4] = enc & 0xff;
+    txmsg.buf[5] = (enc>>8) & 0xff;
+    txmsg.buf[6] = (enc>>16) & 0xff;
+    txmsg.buf[7] = (enc>>24) & 0xff;
+
+
+	status = CANSimple::cia_402_send_callback(nullptr,txmsg);
+    return status;
+}
+
 
 void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan) {}
 void HAL_CAN_TxMailbox1CompleteCallback(CAN_HandleTypeDef *hcan) {}

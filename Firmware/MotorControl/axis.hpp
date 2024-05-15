@@ -104,7 +104,7 @@ public:
 
     void watchdog_feed();
     bool watchdog_check();
-
+     int32_t (*cia_402_profile_generate_callback)(void);
     void clear_errors() {
         motor_.error_ = Motor::ERROR_NONE;
         controller_.error_ = Controller::ERROR_NONE;
@@ -143,6 +143,7 @@ public:
     template<typename T>
     void run_control_loop(const T& update_handler) {
         while (requested_state_ == AXIS_STATE_UNDEFINED) {
+
             // look for errors at axis level and also all subcomponents
             bool checks_ok = do_checks();
             // Update all estimators
@@ -158,6 +159,13 @@ public:
                 if (current_state_ != AXIS_STATE_IDLE)
                     break;
             }
+
+
+      //      if( -1 ==  )
+       //     {
+       //             error_ |= ERROR_OVER_TEMP;
+       //     }
+            
 
             // Run main loop function, defer quitting for after wait
             // TODO: change arming logic to arm after waiting
@@ -236,6 +244,9 @@ public:
 
     // watchdog
     uint32_t watchdog_current_value_= 0;
+
+    //cia402 电机协议发送
+    uint32_t send_task_ready = 0;
 };
 
 

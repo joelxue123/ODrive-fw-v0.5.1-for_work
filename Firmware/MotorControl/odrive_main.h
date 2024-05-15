@@ -238,6 +238,7 @@ public:
         return ::get_adc_voltage(get_gpio_port_by_pin(gpio), get_gpio_pin_by_pin(gpio));
     }
 
+    
     int32_t test_function(int32_t delta) override {
         static int cnt = 0;
         return cnt += delta;

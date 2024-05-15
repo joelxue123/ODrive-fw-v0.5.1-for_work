@@ -403,6 +403,44 @@ void CANSimple::send_heartbeat(Axis* axis) {
     odCAN->write(txmsg);
 }
 
+
+
+int32_t  CANSimple::cia_402_send_callback(Axis* axis, can_Message_t& msg) {
+
+        can_Message_t txmsg ;
+        int32_t status = 0;
+
+        txmsg.id = msg.id;
+        txmsg.id += 0;
+        txmsg.isExt = 0;
+        txmsg.len = msg.len;
+
+        uint32_t floatBytes;
+        static_assert(sizeof vbus_voltage == sizeof floatBytes);
+        std::memcpy(&floatBytes, &vbus_voltage, sizeof floatBytes);
+
+        // This also works in principle, but I don't have hardware to verify endianness
+        // std::memcpy(&txmsg.buf[0], &vbus_voltage, sizeof vbus_voltage);
+
+        txmsg.buf[0] = msg.buf[0];
+        txmsg.buf[1] = msg.buf[1];
+        txmsg.buf[2] = msg.buf[2];
+        txmsg.buf[3] = msg.buf[3];
+
+        txmsg.buf[4] = msg.buf[4];
+        txmsg.buf[5] = msg.buf[5];
+        txmsg.buf[6] = msg.buf[6];
+        txmsg.buf[7] = msg.buf[7];
+
+        status = odCAN->write(txmsg);
+        return status;
+
+
+
+ 
+}
+
+
 uint32_t CANSimple::get_node_id(uint32_t msgID) {
     return (msgID >> NUM_CMD_ID_BITS);  // Upper 6 or more bits
 }
@@ -410,3 +448,5 @@ uint32_t CANSimple::get_node_id(uint32_t msgID) {
 uint8_t CANSimple::get_cmd_id(uint32_t msgID) {
     return (msgID & 0x01F);  // Bottom 5 bits
 }
+
+
