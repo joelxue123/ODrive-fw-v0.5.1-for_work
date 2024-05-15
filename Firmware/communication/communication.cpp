@@ -71,6 +71,7 @@ void communication_task(void * ctx) {
         odCAN->start_can_server();
     }
     
+    
     for (;;) {
         osDelay(1000); // nothing to do
     }

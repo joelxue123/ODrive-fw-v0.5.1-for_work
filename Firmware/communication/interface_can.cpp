@@ -14,6 +14,8 @@
 int32_t  epos_Controlword(enum Epos_ctrl ctrl);
 int32_t epos_Modes_of_Operation( enum Epos_mode mode);
 int32_t epos_Target_velocity( int32_t enc);
+int32_t epos_Target_position( int32_t enc);
+int32_t epos_read_SDO( int32_t word);
 // Safer context handling via maps instead of arrays
 // #include <unordered_map>
 // std::unordered_map<CAN_HandleTypeDef *, ODriveCAN *> ctxMap;
@@ -33,14 +35,29 @@ void ODriveCAN::can_server_thread() {
     vTaskDelay(100);
     epos_Modes_of_Operation(operaton_mode);
     vTaskDelay(100);
-    epos_Target_velocity(0x00010000);
+    epos_Modes_of_Operation(operaton_mode);
+    vTaskDelay(100);
+    epos_read_SDO(MOTOR_ACTUAL_POSITION_VALUE_WORD);
+    osSemaphoreWait(sem_can, 0);
+    osSemaphoreWait(sem_can, 0);
+    {
+        can_Message_t rxmsg;
+        osSemaphoreWait(sem_can, 10);  // Poll every 10ms regardless of sempahore status
+        while (available()) {
+            read(rxmsg);
+            CANSimple::handle_can_message(rxmsg);
+        }
+        HAL_CAN_ActivateNotification(handle_, CAN_IT_RX_FIFO0_MSG_PENDING);
+    }
+
+    epos_Target_position(actual_position);
     vTaskDelay(100);
     epos_Controlword(CW_SHUTDOWN);
     vTaskDelay(100);
     epos_Controlword(CW_SWITCH_ON);
     vTaskDelay(100);
     epos_Controlword(CW_OPERATION_ENABLED);
-    vTaskDelay(100);
+    vTaskDelay(3000);
     send_task_ready = true;
     
 
@@ -101,7 +118,7 @@ bool ODriveCAN::start_can_server() {
     if (status == HAL_OK)
         status = HAL_CAN_ActivateNotification(handle_, CAN_IT_RX_FIFO0_MSG_PENDING);
 
-    init_can_cmd_timer_list(can_cmd_timer_list,CAN_CMD_NOBR);
+    init_postion_can_cmd_timer_list(can_cmd_timer_list,CAN_CMD_NOBR);
 
     operaton_mode = Cycle_Synchronous_Position;
 
@@ -220,7 +237,7 @@ void ODriveCAN::send_heartbeat(Axis *axis) {
 }
 
 
-
+#define SAMPLE_FRE 1000
 
 struct Sin_t{
     uint32_t sample_rate;
@@ -229,8 +246,8 @@ struct Sin_t{
 };
 static struct Sin_t sin_rule = {
 
-    .sample_rate = 1000,
-    .output_fre = 90,
+    .sample_rate = SAMPLE_FRE,
+    .output_fre = 25,
     .index = 0,
 };
 static void generate_sin_data_to_buf(uint8_t *buf)
@@ -239,12 +256,12 @@ static void generate_sin_data_to_buf(uint8_t *buf)
     uint32_t sample_rate = sin_rule.sample_rate ;
     uint32_t output_fre = sin_rule.output_fre;
     float dt = 1.0f / sample_rate;
-    float amplitude =0x000a0000;
+    float amplitude =0x00000100 ;
 
     float phase = 2.0f*M_PI* sin_rule.index * output_fre*dt ;
     phase = wrap_pm_pi(phase);
 
-    float  sin_data  =   our_arm_sin_f32(phase) * amplitude ;
+    float  sin_data  =   our_arm_sin_f32(phase) * amplitude  ;
 
     int32_t sin_data_int = static_cast<int>(sin_data);
 
@@ -266,7 +283,7 @@ void ODriveCAN:: init_speed_can_cmd_timer_list(struct Cia402_Cmd_TimerList * cmd
     uint32_t cmd_timer_index = 0;
 
     cmd_timer_list[cmd_timer_index].enable = true;
-    cmd_timer_list[cmd_timer_index].interval_time = 20;  // 200:10ms  20:1ms
+    cmd_timer_list[cmd_timer_index].interval_time = 20*1000/SAMPLE_FRE; // 200:10ms  20:1ms
     cmd_timer_list[cmd_timer_index].timer_cnt =0;
     cmd_timer_list[cmd_timer_index].txmsg.id = 0x601;
     cmd_timer_list[cmd_timer_index].txmsg.isExt  =0;
@@ -323,7 +340,7 @@ void ODriveCAN:: init_postion_can_cmd_timer_list(struct Cia402_Cmd_TimerList * c
     uint32_t cmd_timer_index = 0;
 
     cmd_timer_list[cmd_timer_index].enable = true;
-    cmd_timer_list[cmd_timer_index].interval_time = 20;  // 200:10ms  20:1ms
+    cmd_timer_list[cmd_timer_index].interval_time = 20*1000/SAMPLE_FRE;;  // 200:10ms  20:1ms
     cmd_timer_list[cmd_timer_index].timer_cnt =0;
     cmd_timer_list[cmd_timer_index].txmsg.id = 0x601;
     cmd_timer_list[cmd_timer_index].txmsg.isExt  =0;
@@ -483,10 +500,56 @@ int32_t epos_Target_velocity( int32_t enc)
     txmsg.buf[6] = (enc>>16) & 0xff;
     txmsg.buf[7] = (enc>>24) & 0xff;
 
+	status = CANSimple::cia_402_send_callback(nullptr,txmsg);
+    return status;
+}
+
+int32_t epos_Target_position( int32_t enc) 
+{
+	can_Message_t txmsg;
+    int32_t status = 0;
+
+    txmsg.id = 0x601;
+	txmsg.isExt = false;
+    txmsg.rtr = false;
+    txmsg.len = 8;
+
+    txmsg.buf[0] = 0x23;
+    txmsg.buf[1] = MOTOR_TARGET_POSITION_WORD & 0xff;
+    txmsg.buf[2] = (MOTOR_TARGET_POSITION_WORD>>8) & 0xff;
+    txmsg.buf[3] = 0x00;
+    txmsg.buf[4] = enc & 0xff;
+    txmsg.buf[5] = (enc>>8) & 0xff;
+    txmsg.buf[6] = (enc>>16) & 0xff;
+    txmsg.buf[7] = (enc>>24) & 0xff;
 
 	status = CANSimple::cia_402_send_callback(nullptr,txmsg);
     return status;
 }
+
+int32_t epos_read_SDO( int32_t word) 
+{
+	can_Message_t txmsg;
+    int32_t status = 0;
+
+    txmsg.id = 0x601;
+	txmsg.isExt = false;
+    txmsg.rtr = false;
+    txmsg.len = 8;
+
+    txmsg.buf[0] = 0x40;
+    txmsg.buf[1] = word & 0xff;
+    txmsg.buf[2] = (word>>8) & 0xff;
+    txmsg.buf[3] = 0x00;
+    txmsg.buf[4] = 0x00;
+    txmsg.buf[5] = 0x00;
+    txmsg.buf[6] = 0x00;
+    txmsg.buf[7] = 0x00;
+
+	status = CANSimple::cia_402_send_callback(nullptr,txmsg);
+    return status;
+}
+
 
 
 void HAL_CAN_TxMailbox0CompleteCallback(CAN_HandleTypeDef *hcan) {}

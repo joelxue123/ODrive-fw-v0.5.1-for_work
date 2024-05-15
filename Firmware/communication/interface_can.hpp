@@ -25,6 +25,7 @@ enum{
     MOTOR_CONTROL_WORD = 0x6040,
     MOTOR_STATUS_WORD = 0x6041,
     MOTOR_OPERATION_MODE = 0x6060,
+    MOTOR_ACTUAL_POSITION_VALUE_WORD = 0X6064,
     MOTOR_TARGET_POSITION_WORD = 0x607A,
     MOTOR_TARGET_VELOCITY_WORD = 0x60ff,
 };
@@ -54,7 +55,7 @@ enum Epos_mode {
     Cycle_Synchronous_Velocity =0x09,
 };
 
-enum Epos_mode  operaton_mode;
+
 
 // Anonymous enum for defining the most common CAN baud rates
 enum {
@@ -82,13 +83,19 @@ class ODriveCAN : public ODriveIntf::CanIntf {
     Error error_ = ERROR_NONE;
 
     volatile bool thread_id_valid_ = false;
+    enum Epos_mode  operaton_mode;
+
+
     bool start_can_server();
     void can_server_thread();
     void send_heartbeat(Axis *axis);
     void reinit_can();
     int32_t cia_402_send_task(Axis *axis);
     void set_error(Error error);
-    void init_can_cmd_timer_list(struct Cia402_Cmd_TimerList * cmd_timer_list, uint32_t size);
+
+    void init_speed_can_cmd_timer_list(struct Cia402_Cmd_TimerList * cmd_timer_list, uint32_t size);
+    void init_postion_can_cmd_timer_list(struct Cia402_Cmd_TimerList * cmd_timer_list, uint32_t size);
+
     // I/O Functions
     uint32_t available();
     uint32_t write(can_Message_t &txmsg);
@@ -100,10 +107,14 @@ class ODriveCAN : public ODriveIntf::CanIntf {
 
     const uint32_t atleast_send_interval = 20;
     uint32_t last_transfer_stamp =0;
+
+    volatile int32_t actual_position =0;
 private:
     CAN_HandleTypeDef *handle_ = nullptr;
 
     void set_baud_rate(uint32_t baudRate);
+
+
 };
 
 #endif  // __INTERFACE_CAN_HPP

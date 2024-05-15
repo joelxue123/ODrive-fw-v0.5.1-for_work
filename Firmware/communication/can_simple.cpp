@@ -19,10 +19,23 @@ void CANSimple::handle_can_message(can_Message_t& msg) {
     //     Frame
     // nodeID | CMD
     // 6 bits | 5 bits
+
+    if( msg.id == 0x581 )
+    {
+        if( msg.buf[1]==0x64 && msg.buf[2]==0x60 )
+        {
+            cia_402_send_callback(nullptr,msg);
+            odCAN->actual_position = msg.buf[4] |  (msg.buf[5]<<8) |  (msg.buf[6]<<16) |  (msg.buf[7]<<24);
+        }
+            
+    }
+
+
     uint32_t nodeID = get_node_id(msg.id);
     uint32_t cmd = get_cmd_id(msg.id);
 
     Axis* axis = nullptr;
+
 
     bool validAxis = false;
     for (uint8_t i = 0; i < AXIS_COUNT_USED; i++) {
