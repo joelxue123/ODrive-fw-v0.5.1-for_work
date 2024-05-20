@@ -21,11 +21,12 @@ struct Cia402_Cmd_TimerList
     void (*init_buf_f)( uint8_t *buf);
 };
 
-enum{
+enum Epos_word {
     MOTOR_CONTROL_WORD = 0x6040,
     MOTOR_STATUS_WORD = 0x6041,
     MOTOR_OPERATION_MODE = 0x6060,
     MOTOR_ACTUAL_POSITION_VALUE_WORD = 0X6064,
+    MOTOR_TARGET_CURRENT_WORD = 0x6071,
     MOTOR_TARGET_POSITION_WORD = 0x607A,
     MOTOR_TARGET_VELOCITY_WORD = 0x60ff,
 };
@@ -53,6 +54,7 @@ enum Epos_mode {
 	Step_Direction_Mode = -6,
     Cycle_Synchronous_Position =0x08,
     Cycle_Synchronous_Velocity =0x09,
+    Cycle_Synchronous_Current =0x0a,
 };
 
 
@@ -93,9 +95,8 @@ class ODriveCAN : public ODriveIntf::CanIntf {
     int32_t cia_402_send_task(Axis *axis);
     void set_error(Error error);
 
-    void init_speed_can_cmd_timer_list(struct Cia402_Cmd_TimerList * cmd_timer_list, uint32_t size);
     void init_postion_can_cmd_timer_list(struct Cia402_Cmd_TimerList * cmd_timer_list, uint32_t size);
-
+    void init_can_cmd_timer_list(struct Cia402_Cmd_TimerList * cmd_timer_list, uint32_t size,enum Epos_word motor_control_word);
     // I/O Functions
     uint32_t available();
     uint32_t write(can_Message_t &txmsg);

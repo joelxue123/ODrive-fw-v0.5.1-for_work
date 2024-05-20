@@ -125,6 +125,7 @@ void delay_us(uint32_t us);
 float our_arm_sin_f32(float x);
 float our_arm_cos_f32(float x);
 uint8_t calcCRC(uint8_t * buffer, uint8_t length);
+int32_t sign( float x);
 
 #ifdef __cplusplus
 }

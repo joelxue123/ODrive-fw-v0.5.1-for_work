@@ -232,3 +232,15 @@ void delay_us(uint32_t us)
         __ASM("nop");
     }
 }
+
+int32_t sign( float x)
+{
+    if (x < 0) {
+        return -1; // 负数
+    } else if (x == 0) {
+        return 0; // 零
+    } else {
+        return 1; // 正数
+    }
+
+}

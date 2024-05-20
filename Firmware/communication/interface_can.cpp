@@ -237,19 +237,23 @@ void ODriveCAN::send_heartbeat(Axis *axis) {
 }
 
 
-#define SAMPLE_FRE 1000
+#define SAMPLE_FRE 500
 
 struct Sin_t{
     uint32_t sample_rate;
     uint32_t output_fre;
     uint32_t index;
+    bool is_sin;
 };
 static struct Sin_t sin_rule = {
 
     .sample_rate = SAMPLE_FRE,
-    .output_fre = 25,
+    .output_fre = 35,
     .index = 0,
+    .is_sin = true,
 };
+
+
 static void generate_sin_data_to_buf(uint8_t *buf)
 {
 
@@ -261,9 +265,21 @@ static void generate_sin_data_to_buf(uint8_t *buf)
     float phase = 2.0f*M_PI* sin_rule.index * output_fre*dt ;
     phase = wrap_pm_pi(phase);
 
-    float  sin_data  =   our_arm_sin_f32(phase) * amplitude  ;
+    float  sin_data;
+
+    if( sin_rule.is_sin )
+    {
+        sin_data  =   our_arm_sin_f32(phase) * amplitude  ;
+    }
+    else
+    {
+        sin_data  = ( (phase < 0) ?1:-1 ) * amplitude  ;
+    }
+   
+
 
     int32_t sin_data_int = static_cast<int>(sin_data);
+
 
     buf[4] = sin_data_int & 0xff;
     buf[5] = (sin_data_int>>8) & 0xff;
@@ -278,7 +294,9 @@ static void generate_sin_data_to_buf(uint8_t *buf)
     }
 }
 
-void ODriveCAN:: init_speed_can_cmd_timer_list(struct Cia402_Cmd_TimerList * cmd_timer_list, uint32_t size)
+
+
+void ODriveCAN:: init_can_cmd_timer_list(struct Cia402_Cmd_TimerList * cmd_timer_list, uint32_t size,enum Epos_word motor_control_word)
 {
     uint32_t cmd_timer_index = 0;
 
@@ -288,9 +306,9 @@ void ODriveCAN:: init_speed_can_cmd_timer_list(struct Cia402_Cmd_TimerList * cmd
     cmd_timer_list[cmd_timer_index].txmsg.id = 0x601;
     cmd_timer_list[cmd_timer_index].txmsg.isExt  =0;
     cmd_timer_list[cmd_timer_index].txmsg.len = 8;
-    cmd_timer_list[cmd_timer_index].txmsg.buf[0]=0x23;
-    cmd_timer_list[cmd_timer_index].txmsg.buf[1]=MOTOR_TARGET_VELOCITY_WORD & 0xff;
-    cmd_timer_list[cmd_timer_index].txmsg.buf[2]=(MOTOR_TARGET_VELOCITY_WORD>>8) & 0xff;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[0]=0x2b;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[1]=motor_control_word & 0xff;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[2]=(motor_control_word>>8) & 0xff;
     cmd_timer_list[cmd_timer_index].txmsg.buf[3]=0x00;
     cmd_timer_list[cmd_timer_index].txmsg.buf[4]=0x00;
     cmd_timer_list[cmd_timer_index].txmsg.buf[5]=0x00;
@@ -504,6 +522,7 @@ int32_t epos_Target_velocity( int32_t enc)
     return status;
 }
 
+
 int32_t epos_Target_position( int32_t enc) 
 {
 	can_Message_t txmsg;
@@ -526,6 +545,7 @@ int32_t epos_Target_position( int32_t enc)
 	status = CANSimple::cia_402_send_callback(nullptr,txmsg);
     return status;
 }
+
 
 int32_t epos_read_SDO( int32_t word) 
 {
