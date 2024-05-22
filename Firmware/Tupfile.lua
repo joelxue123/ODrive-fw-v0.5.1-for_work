@@ -215,7 +215,8 @@ build{
         'MotorControl',
         'fibre/cpp/include',
         '.',
-        "doctest"
+        "doctest",
+        "Board/v3/Inc/"
     }
 }
 

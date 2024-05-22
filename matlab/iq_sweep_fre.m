@@ -1,4 +1,4 @@
-    current_iq = importdata("IQ_Fre.csv");
+    current_iq = importdata("output_actual_position.csv");
 
     y = current_iq(1, 1:1:4000);
     x = 1:1:4000;
@@ -7,15 +7,15 @@
     figure;
      plot(x,y); 
 
-current_iq_setpoint = importdata("iq_setpoint.csv");
+current_iq_setpoint = importdata("output_set_position.csv");
     z = current_iq_setpoint(1, 1:1:4000);
     
     % 创建图形窗口
     hold on 
      plot(x,z); 
 
- Fs = 20000;               % 采样频率（Hz）
-T = 0.2;                   % 总时间（秒）
+ Fs = 2000;               % 采样频率（Hz）
+T = 2;                   % 总时间（秒）
 f_start = 100;            % 起始频率（Hz）
 f_end = 1000;             % 结束频率（Hz）
 t = 0/Fs:1/Fs:T-1/Fs;       % 时间向量
@@ -61,7 +61,7 @@ end
 end
 
 figure
- plot(frequencies(1:1:300),10*log(magnitudeResponse(1:1:300))); 
+ plot(frequencies(1:1:300),20*log10(magnitudeResponse(1:1:300))); 
  ylim([-10,1])
 figure
 plot(frequencies(1:1:300), 180*angle_response(1:1:300)/pi);

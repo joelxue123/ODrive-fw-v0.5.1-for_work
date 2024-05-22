@@ -411,22 +411,6 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
         return false; // error set inside enqueue_modulation_timings
     log_timing(TIMING_LOG_FOC_CURRENT);
 
-    if (axis_->axis_num_ == 0) {
-
-        // Edit these to suit your capture needs
-        float trigger_data = ictrl.v_current_control_integral_d;
-        float trigger_threshold = 0.5f;
-        float sample_data = Iq;
-
-        if (capturing_) {
-            oscilloscope[oscilloscope_pos] = sample_data;
-            if (++oscilloscope_pos >= OSCILLOSCOPE_SIZE) {
-                oscilloscope_pos = 0;
-                capturing_ = false;
-            }
-        }
-    }
-
     return true;
 }
 
@@ -437,6 +421,7 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     float current_setpoint = 0.0f;
     phase *= config_.direction;
     phase_vel *= config_.direction;
+
 
     if (config_.motor_type == MOTOR_TYPE_ACIM) {
         current_setpoint = torque_setpoint / (config_.torque_constant * fmax(current_control_.acim_rotor_flux, config_.acim_gain_min_flux));
@@ -484,12 +469,20 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
 
     float pwm_phase = phase + 1.5f * current_meas_period * phase_vel;
 
+    bool res = true;
     // Execute current command
     switch(config_.motor_type){
-        case MOTOR_TYPE_HIGH_CURRENT: return FOC_current(id, iq, phase, pwm_phase); break;
-        case MOTOR_TYPE_ACIM: return FOC_current(id, iq, phase, pwm_phase); break;
-        case MOTOR_TYPE_GIMBAL: return FOC_voltage(id, iq, pwm_phase); break;
+        case MOTOR_TYPE_HIGH_CURRENT: res =  FOC_current(id, iq, phase, pwm_phase); break;
+        case MOTOR_TYPE_ACIM: res = FOC_current(id, iq, phase, pwm_phase); break;
+        case MOTOR_TYPE_GIMBAL: res =FOC_voltage(id, iq, pwm_phase); break;
         default: set_error(ERROR_NOT_IMPLEMENTED_MOTOR_TYPE); return false; break;
     }
-    return true;
+
+    
+
+
+
+
+
+    return res;
 }

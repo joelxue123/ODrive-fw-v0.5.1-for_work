@@ -162,6 +162,7 @@ public:
     float effective_current_lim_ = 10.0f;
     
      bool capturing_ = false;
+     int32_t oscilloscope_div = 0;
 };
 
 #endif // __MOTOR_HPP

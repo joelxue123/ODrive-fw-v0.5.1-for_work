@@ -45,3 +45,31 @@ Untracked files:
 
 no changes added to commit (use "git add" and/or "git commit -a")
 2024-5-22
+On branch modified_pwm
+Your branch is up to date with 'origin/modified_pwm'.
+
+Changes not staged for commit:
+  (use "git add/rm <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+	modified:   Firmware/.vscode/c_cpp_properties.json
+	modified:   Firmware/MotorControl/axis.cpp
+	modified:   Firmware/MotorControl/encoder.cpp
+	modified:   Firmware/MotorControl/encoder.hpp
+	modified:   Firmware/MotorControl/motor.cpp
+	modified:   Firmware/MotorControl/motor.hpp
+	modified:   Firmware/Tupfile.lua
+	modified:   Firmware/odrive-interface.yaml
+	deleted:    matlab/IQ_ID.asv
+	deleted:    matlab/iq_sweep_fre.asv
+	modified:   matlab/iq_sweep_fre.m
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+	matlab/first_sencond_pos.csv
+	matlab/motor_gear_encoder_two_position.m
+	matlab/output_actual_position.csv
+	matlab/output_actual_velocity.csv
+	matlab/output_set_position.csv
+	matlab/output_set_velocity.csv
+
+no changes added to commit (use "git add" and/or "git commit -a")

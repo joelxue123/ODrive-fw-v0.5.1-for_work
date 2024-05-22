@@ -679,7 +679,15 @@ bool Encoder::update() {
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
 {
+    int32_t first_encoder_pos = 0;
+    int32_t second_encoder_pos = 0;
     if(huart->pRxBuffPtr == (uint8_t*)axes[0]->encoder_.abs_485_dma_rx_)
-         axes[0]->encoder_.pos_abs_ =  (axes[0]->encoder_.abs_485_dma_rx_[5]<<8) | (axes[0]->encoder_.abs_485_dma_rx_[4]<<0); 
+    {
+        first_encoder_pos =  (axes[0]->encoder_.abs_485_dma_rx_[5]<<8) | (axes[0]->encoder_.abs_485_dma_rx_[4]<<0); 
+        axes[0]->encoder_.pos_abs_ =  first_encoder_pos;
+        second_encoder_pos = (axes[0]->encoder_.abs_485_dma_rx_[2]<<16) | (axes[0]->encoder_.abs_485_dma_rx_[1]<<8) | (axes[0]->encoder_.abs_485_dma_rx_[0]<<0); 
+        axes[0]->encoder_.sencond_pos_abs_ = (second_encoder_pos >> 6);
+    }
+        
 
 }

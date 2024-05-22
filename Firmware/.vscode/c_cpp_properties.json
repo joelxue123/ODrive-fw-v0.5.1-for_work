@@ -3,7 +3,7 @@
         {
             "name": "Win32",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/"
             ],
             "defines": [
                 "STM32F405xx",
@@ -24,7 +24,7 @@
         {
             "name": "Linux",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/"
             ],
             "defines": [
                 "STM32F405xx",
@@ -44,7 +44,7 @@
         {
             "name": "Mac",
             "includePath": [
-                "${workspaceFolder}/**"
+                "${workspaceFolder}/"
             ],
             "defines": [
                 "STM32F405xx",

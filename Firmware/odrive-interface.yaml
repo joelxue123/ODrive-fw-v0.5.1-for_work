@@ -802,6 +802,7 @@ interfaces:
       vel_estimate_counts: readonly float32
       calib_scan_response: readonly float32
       pos_abs: int32
+      sencond_pos_abs: int32
       spi_error_rate: readonly float32
       config:
         c_is_class: False
