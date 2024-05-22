@@ -160,6 +160,8 @@ public:
     } gate_driver_exported_;
     DRV_SPI_8301_Vars_t gate_driver_regs_; //Local view of DRV registers (initialized by DRV8301_setup)
     float effective_current_lim_ = 10.0f;
+    
+     bool capturing_ = false;
 };
 
 #endif // __MOTOR_HPP

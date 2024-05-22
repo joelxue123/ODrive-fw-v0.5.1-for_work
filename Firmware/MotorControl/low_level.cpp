@@ -490,6 +490,42 @@ static void decode_hall_samples(Encoder& enc, uint16_t GPIO_samples[num_GPIO]) {
     enc.hall_state_ = hall_state;
 }
 
+#define FILTER_SIZE 32
+
+// 用于存储最近的数据点的数组
+
+struct filter_st {
+    int32_t filter_data[FILTER_SIZE];
+    int32_t filter_index; // 索引不需要初始化，因为它将在函数中初始化
+    int32_t filtered_value; // 滤波值不需要初始化
+    int32_t sum; // 总和不需要初始化
+};
+
+struct filter_st dc_current_b, dc_current_c; // 两个滤波器实例
+
+// 函数：平滑滤波处理
+void smooth_filter(uint32_t new_sample, struct filter_st *dc_current) {
+    // 从结构体中获取当前的总和和索引
+    int32_t sum = dc_current->sum;
+    int32_t *filter_data = dc_current->filter_data;
+    int32_t filter_index = dc_current->filter_index;
+
+    // 移除最老的样本，并添加新的样本
+    sum -= filter_data[filter_index]; // 减去最老的样本
+    sum += new_sample; // 加上新的样本
+    filter_data[filter_index] = new_sample; // 更新数组
+
+    // 计算索引以循环使用数组
+    filter_index = (filter_index + 1) % FILTER_SIZE;
+    dc_current->filter_index = filter_index; // 修复了遗漏的分号
+
+    // 计算平均值作为滤波结果
+    dc_current->filtered_value = sum / FILTER_SIZE;
+
+    // 更新总和
+    dc_current->sum = sum;
+}
+
 // This is the callback from the ADC that we expect after the PWM has triggered an ADC conversion.
 // Timing diagram: Firmware/timing_diagram_v3.png
 void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
@@ -527,11 +563,12 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     uint32_t ADCValue_dc_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_1);
     uint32_t ADCValue_b = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_2);
     uint32_t ADCValue_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_2);
-
+    smooth_filter(ADCValue_dc_b, &dc_current_b);
+    smooth_filter(ADCValue_dc_c, &dc_current_c);
     float current_b = axis.motor_.phase_current_from_adcval(ADCValue_b);
     float current_c = axis.motor_.phase_current_from_adcval(ADCValue_c);
-    axis.motor_.DC_calib_.phB = axis.motor_.phase_current_from_adcval(ADCValue_dc_b);
-    axis.motor_.DC_calib_.phC = axis.motor_.phase_current_from_adcval(ADCValue_dc_c);
+    axis.motor_.DC_calib_.phB = axis.motor_.phase_current_from_adcval(dc_current_b.filtered_value);
+    axis.motor_.DC_calib_.phC = axis.motor_.phase_current_from_adcval(dc_current_c.filtered_value);
 
     axis.motor_.current_meas_.phB = current_b - axis.motor_.DC_calib_.phB;
     axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;

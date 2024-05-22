@@ -230,17 +230,110 @@ bool Axis::watchdog_check() {
     }
 }
 
+
+
+#define SAMPLE_FRE 20000
+
+struct Sin_t{
+    uint32_t sample_rate;
+    uint32_t output_fre;
+    uint32_t index;
+    bool is_sin;
+    float phase;
+};
+static struct Sin_t sin_rule = {
+
+    .sample_rate = SAMPLE_FRE,
+    .output_fre = 100,
+    .index = 0,
+    .is_sin = true,
+    .phase=0,
+};
+
+
+static float generate_sin_data_to_buf(float force_amplitude)
+{
+
+    uint32_t sample_rate = sin_rule.sample_rate ;
+    uint32_t output_fre = sin_rule.output_fre;
+    float dt = 1.0f / sample_rate;
+    float amplitude =force_amplitude ;
+
+    float phase = 2.0f*M_PI* sin_rule.index * output_fre*dt ;
+    phase = wrap_pm_pi(phase);
+
+    float  sin_data;
+
+    if( sin_rule.is_sin )
+    {
+        sin_data  =   our_arm_sin_f32(phase) * amplitude  ;
+    }
+    else
+    {
+        sin_data  = ( (phase < 0) ?1:-1 ) * amplitude  ;
+    }
+   
+
+    sin_rule.index++;
+    if( sin_rule.index > sample_rate/output_fre -1)
+    {
+        sin_rule.index =0;
+        sin_rule.output_fre += 10;
+        if(sin_rule.output_fre > 1000)
+            sin_rule.output_fre = 1000;
+    }
+
+    return sin_data;
+}
+
+
+float Axis::qtauChirp(float force_amplitude)
+{
+
+    uint32_t sample_rate = sin_rule.sample_rate ;
+    float dt = 1.0f / sample_rate;
+    float amplitude =force_amplitude ;
+    float f0 = 100;
+    float f1 = 1000;
+    float k = (f1 - f0) / 0.2f;
+    float phase;
+    float t = dt * sin_rule.index++;
+    float phi;
+
+    if (t <= 0.2f) {
+        phi = f0  + k *  t;
+    } else {
+        sin_rule.index =0;
+        phi = 0;
+    }
+
+    phi = f0*t + 0.5f*k*t*t;
+    phase = 2*M_PI * phi;
+    phase = wrap_pm_pi(phase);
+    sin_rule.phase = phase;
+
+    float  sin_data;
+    sin_data  =   our_arm_sin_f32(phase) * amplitude;
+
+    return sin_data;
+}
+
+
+
 bool Axis::run_lockin_spin(const LockinConfig_t &lockin_config) {
     // Spiral up current for softer rotor lock-in
     lockin_state_ = LOCKIN_STATE_RAMP;
     float x = 0.0f;
+    sin_rule.index =0;
+    motor_.capturing_ = true;
+    oscilloscope_pos =0;
     run_control_loop([&]() {
         float phase = 0;
         float torque = 0;
         if(0 == lockin_config.vel)
         {
              phase = wrap_pm_pi(lockin_config.ramp_distance);
-             torque = lockin_config.current * motor_.config_.torque_constant;
+             torque = qtauChirp(lockin_config.current * motor_.config_.torque_constant);
         }
         else
         {

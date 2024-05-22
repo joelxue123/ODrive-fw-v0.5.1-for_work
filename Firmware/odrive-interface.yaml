@@ -537,6 +537,7 @@ interfaces:
       next_timings_3: { type: uint16, c_name: "next_timings_[2]" }
       phase_current_rev_gain: float32
       effective_current_lim: readonly float32
+      capturing: bool
       current_control:
         c_is_class: False
         attributes:
