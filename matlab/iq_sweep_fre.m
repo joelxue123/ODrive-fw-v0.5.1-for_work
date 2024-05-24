@@ -1,4 +1,4 @@
-    current_iq = importdata("output_actual_position.csv");
+    current_iq = importdata("output_actual_velocity_2.csv");
 
     y = current_iq(1, 1:1:4000);
     x = 1:1:4000;
@@ -7,7 +7,7 @@
     figure;
      plot(x,y); 
 
-current_iq_setpoint = importdata("output_set_position.csv");
+current_iq_setpoint = importdata("output_set_velocity_2.csv");
     z = current_iq_setpoint(1, 1:1:4000);
     
     % 创建图形窗口
