@@ -24,3 +24,10 @@ Please refer to the [Developer Guide](https://docs.odriverobotics.com/developer-
  * [Forum](https://discourse.odriverobotics.com/)
  * [Chat](https://discourse.odriverobotics.com/t/come-chat-with-us/281)
 # ODrive-fw-v0.5.1-for_work
+On branch canopen_master
+Your branch is up to date with 'origin/canopen_master'.
+
+Changes to be committed:
+  (use "git restore --staged <file>..." to unstage)
+	modified:   Firmware/communication/interface_can.cpp
+

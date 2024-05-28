@@ -96,7 +96,7 @@ static void can_server_thread_wrapper(void *ctx) {
 bool ODriveCAN::start_can_server() {
     HAL_StatusTypeDef status;
 
-
+config_.baud_rate = CAN_BAUD_1000K;
     set_baud_rate(config_.baud_rate);
 
     status = HAL_CAN_Init(handle_);
@@ -120,7 +120,7 @@ bool ODriveCAN::start_can_server() {
 
     init_postion_can_cmd_timer_list(can_cmd_timer_list,CAN_CMD_NOBR);
 
-    operaton_mode = Cycle_Synchronous_Position;
+    operaton_mode = Cycle_Synchronous_Velocity;
 
     osThreadDef(can_server_thread_def, can_server_thread_wrapper, osPriorityNormal, 0, stack_size_ / sizeof(StackType_t));
     thread_id_ = osThreadCreate(osThread(can_server_thread_def), this);
@@ -237,7 +237,7 @@ void ODriveCAN::send_heartbeat(Axis *axis) {
 }
 
 
-#define SAMPLE_FRE 500
+#define SAMPLE_FRE 1000
 
 struct Sin_t{
     uint32_t sample_rate;
@@ -248,7 +248,7 @@ struct Sin_t{
 static struct Sin_t sin_rule = {
 
     .sample_rate = SAMPLE_FRE,
-    .output_fre = 35,
+    .output_fre = 70,
     .index = 0,
     .is_sin = true,
 };
@@ -260,7 +260,7 @@ static void generate_sin_data_to_buf(uint8_t *buf)
     uint32_t sample_rate = sin_rule.sample_rate ;
     uint32_t output_fre = sin_rule.output_fre;
     float dt = 1.0f / sample_rate;
-    float amplitude =0x00000100 ;
+    float amplitude =0x000a0000 ;
 
     float phase = 2.0f*M_PI* sin_rule.index * output_fre*dt ;
     phase = wrap_pm_pi(phase);
@@ -364,8 +364,8 @@ void ODriveCAN:: init_postion_can_cmd_timer_list(struct Cia402_Cmd_TimerList * c
     cmd_timer_list[cmd_timer_index].txmsg.isExt  =0;
     cmd_timer_list[cmd_timer_index].txmsg.len = 8;
     cmd_timer_list[cmd_timer_index].txmsg.buf[0]=0x23;
-    cmd_timer_list[cmd_timer_index].txmsg.buf[1] = MOTOR_TARGET_POSITION_WORD & 0xff;
-    cmd_timer_list[cmd_timer_index].txmsg.buf[2] = (MOTOR_TARGET_POSITION_WORD>>8) & 0xff;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[1] = MOTOR_TARGET_VELOCITY_WORD & 0xff;
+    cmd_timer_list[cmd_timer_index].txmsg.buf[2] = (MOTOR_TARGET_VELOCITY_WORD>>8) & 0xff;
     cmd_timer_list[cmd_timer_index].txmsg.buf[3]=0x00;
     cmd_timer_list[cmd_timer_index].txmsg.buf[4]=0x00;
     cmd_timer_list[cmd_timer_index].txmsg.buf[5]=0x00;
