@@ -529,6 +529,8 @@ void smooth_filter(uint32_t new_sample, struct filter_st *dc_current) {
 // This is the callback from the ADC that we expect after the PWM has triggered an ADC conversion.
 // Timing diagram: Firmware/timing_diagram_v3.png
 void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
+    Axis& axis = *axes[0];
+    
 #define calib_tau 0.2f  //@TOTO make more easily configurable
     constexpr float calib_filter_k = CURRENT_MEAS_PERIOD / calib_tau;
 
@@ -542,20 +544,17 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     // Motor 1 is on Timer 8, which triggers ADC 2 and 3 on a regular conversion
     // If the corresponding timer is counting up, we just sampled in SVM vector 0, i.e. real current
     // If we are counting down, we just sampled in SVM vector 7, with zero current
-    Axis& axis = *axes[0];
+    
     int axis_num = 0;
 
     axis.encoder_.abs_start_transaction();
     vbus_sense_adc_cb(&hadc1,true);
     
     // Check the timing of the sequencing
-     axis.motor_.log_timing(TIMING_LOG_ADC_CB_I);
-
+     
+axis.motor_.log_timing(TIMING_LOG_ADC_CB_I);
 
     bool update_timings = true;
-
-    
-
 
     // update_brake_current(); todo
     

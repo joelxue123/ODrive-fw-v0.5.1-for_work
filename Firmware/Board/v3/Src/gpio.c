@@ -238,7 +238,7 @@ bool GPIO_subscribe(GPIO_TypeDef* GPIO_port, uint16_t GPIO_pin,
   // Clear any previous triggers
   __HAL_GPIO_EXTI_CLEAR_IT(GPIO_pin);
   // Enable interrupt
-  HAL_NVIC_SetPriority(get_irq_number(GPIO_pin), 0, 0);
+  HAL_NVIC_SetPriority(get_irq_number(GPIO_pin), 6, 0);
   HAL_NVIC_EnableIRQ(get_irq_number(GPIO_pin));
   return true;
 }

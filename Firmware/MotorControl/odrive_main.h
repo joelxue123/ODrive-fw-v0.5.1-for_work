@@ -36,7 +36,7 @@ extern "C" {
 #define PH_CURRENT_MEAS_TIMEOUT 2 // [ms]
 
 // Period in [s]
-static const float current_meas_period = CURRENT_MEAS_PERIOD;
+ extern float current_meas_period;
 
 // Frequency in [Hz]
 static const int current_meas_hz = CURRENT_MEAS_HZ;

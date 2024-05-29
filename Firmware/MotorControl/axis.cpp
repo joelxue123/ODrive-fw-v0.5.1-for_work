@@ -284,21 +284,21 @@ static float generate_sin_data_to_buf(float force_amplitude)
 }
 
 
-float Axis::qtauChirp(float force_amplitude)
+float Axis::qtauChirp(int32_t div, float force_amplitude)
 {
 
     uint32_t sample_rate = sin_rule.sample_rate ;
     float dt = 1.0f / sample_rate;
     float amplitude =force_amplitude ;
-    float f0 = 10;
-    float f1 = 100;
-    float k = (f1 - f0) / 2.0f;
+    float f0 = 1;
+    float f1 = 30;
+    float k = (f1 - f0) / (0.2f * div);
     float phase;
     float t = dt * sin_rule.index;
     float phi;
 
     
-    if (t <= 2.0f) {
+    if (t <= (0.2f * div)) {
         sin_rule.index++;
         phi = f0  + k *  t;
     } else {
@@ -333,7 +333,20 @@ bool Axis::run_lockin_spin(const LockinConfig_t &lockin_config) {
              phase = wrap_pm_pi(lockin_config.ramp_distance);
              torque = lockin_config.current * motor_.config_.torque_constant;
 
+            if (motor_.capturing_) {
+                motor_.oscilloscope_div++;
+                if(motor_.oscilloscope_div == 1) 
+                {    
+                    torque = qtauChirp(motor_.oscilloscope_div,lockin_config.current * motor_.config_.torque_constant);
+                    oscilloscope[oscilloscope_pos] =motor_.current_control_.Iq_measured; //motor_.current_control_.Iq_setpoint  Iq_measured
+                    if (++oscilloscope_pos >= OSCILLOSCOPE_SIZE) {
+                        oscilloscope_pos = 0;
+                        motor_.capturing_ = false;
+                    }
+                    motor_.oscilloscope_div = 0;
+                }
 
+            }
              
         }
         else
@@ -450,7 +463,7 @@ bool Axis::run_closed_loop_control_loop() {
 
     set_step_dir_active(config_.enable_step_dir);
     sin_rule.index =0;
-    //motor_.capturing_ = true;
+    motor_.capturing_ = true;
     oscilloscope_pos =0;
     encoder_.pos_estimate_counts_ = 0;
     encoder_.shadow_count_ = 0;
@@ -461,22 +474,20 @@ bool Axis::run_closed_loop_control_loop() {
                 // Edit these to suit your capture needs
 
 
-              if (motor_.capturing_) {
-                motor_.oscilloscope_div++;
-                if(motor_.oscilloscope_div == 10) 
-                {
-                        motor_.oscilloscope_div = 0;
-                        
-                        controller_.input_vel_ = qtauChirp(5);
-                        oscilloscope[oscilloscope_pos] = encoder_.vel_estimate_;
-                        if (++oscilloscope_pos >= OSCILLOSCOPE_SIZE) {
-                            oscilloscope_pos = 0;
-                            motor_.capturing_ = false;
-                        }
+        if (motor_.capturing_) {
+            motor_.oscilloscope_div++;
+            if(motor_.oscilloscope_div == 10) 
+            {    
+                controller_.input_vel_ = qtauChirp(motor_.oscilloscope_div,5);
+                oscilloscope[oscilloscope_pos] = encoder_.vel_estimate_;                   //encoder_.vel_estimate_;
+                if (++oscilloscope_pos >= OSCILLOSCOPE_SIZE) {
+                    oscilloscope_pos = 0;
+                    motor_.capturing_ = false;
                 }
-
+                motor_.oscilloscope_div = 0;
             }
 
+        }
         
         if (!controller_.update(&torque_setpoint))
             return error_ |= ERROR_CONTROLLER_FAILED, false;

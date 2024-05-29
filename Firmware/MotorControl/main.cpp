@@ -10,6 +10,7 @@
 #include <communication/interface_i2c.h>
 #include <communication/interface_can.hpp>
 
+ float current_meas_period = CURRENT_MEAS_PERIOD;
 ODriveCAN::Config_t can_config;
 Encoder::Config_t encoder_configs[AXIS_COUNT];
 SensorlessEstimator::Config_t sensorless_configs[AXIS_COUNT];
@@ -98,7 +99,7 @@ extern "C" int load_configuration(void) {
     } else {
         odrv.user_config_loaded_ = true;
     }
-    encoder_configs[0].mode = Encoder::MODE_UART_ABS_KING;
+ //   encoder_configs[0].mode = Encoder::MODE_UART_ABS_KING;
     return odrv.user_config_loaded_;
 }
 
@@ -265,7 +266,7 @@ int odrive_main(void) {
     // Set up the CS pins for absolute encoders
     for(auto& axis : axes){
         if(axis->encoder_.config_.mode & Encoder::MODE_FLAG_ABS){
-           // axis->encoder_.abs_spi_cs_pin_init();
+            axis->encoder_.abs_spi_cs_pin_init();
         }
     }
 

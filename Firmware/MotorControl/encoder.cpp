@@ -340,7 +340,7 @@ bool Encoder::abs_spi_init(){
     spi->Init.CLKPolarity = SPI_POLARITY_HIGH;
     spi->Init.CLKPhase = SPI_PHASE_2EDGE;
     spi->Init.NSS = SPI_NSS_SOFT;
-    spi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_32;
+    spi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
     spi->Init.FirstBit = SPI_FIRSTBIT_MSB;
     spi->Init.TIMode = SPI_TIMODE_DISABLE;
     spi->Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -526,12 +526,12 @@ void Encoder::abs_spi_cs_pin_init(){
     // Write pin high
     HAL_GPIO_WritePin(abs_spi_cs_port_, abs_spi_cs_pin_, GPIO_PIN_SET);
 }
-
+static int local_spin_pos = 0;
+static float local_spin_pos_f = 0;
 bool Encoder::update() {
     // update internal encoder state.
     int32_t delta_enc = 0;
     int32_t pos_abs_latched = pos_abs_; //LATCH
-
 
     switch (mode_) {
         case MODE_INCREMENTAL: {
@@ -630,6 +630,7 @@ bool Encoder::update() {
     float pos_cpr_last = pos_cpr_;
     pos_estimate_ = pos_estimate_counts_ / (float)config_.cpr;
     vel_estimate_ = vel_estimate_counts_ / (float)config_.cpr;
+
     pos_cpr_= pos_cpr_counts_ / (float)config_.cpr;
     float delta_pos_cpr = wrap_pm(pos_cpr_ - pos_cpr_last, 0.5f);
     pos_circular_ += delta_pos_cpr;

@@ -192,7 +192,7 @@ public:
     }
 
     void run_state_machine_loop();
-    float qtauChirp(float force_amplitude);
+    float qtauChirp(int32_t div, float force_amplitude);
     int axis_num_;
     const AxisHardwareConfig_t& hw_config_;
     Config_t& config_;
