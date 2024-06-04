@@ -1,0 +1,12 @@
+[
+{
+  "directory": "C:/Users/82057/Desktop/2024-5-8/matlab/ADRC_ert_rtw/build",
+  "command": "C:/MinGW/bin/gcc.exe -DALLOCATIONFCN=0 -DCLASSIC_INTERFACE=0 -DHAVESTDIO -DINTEGER_CODE=0 -DMAT_FILE=0 -DMODEL=ADRC -DMODEL_HAS_DYNAMICALLY_LOADED_SFCNS=0 -DMT=0 -DMULTI_INSTANCE_CODE=0 -DNCSTATES=0 -DNUMST=1 -DONESTEPFCN=1 -DTERMFCN=1 -DTID01EQ=0 @CMakeFiles/ADRC_objects.dir/includes_C.rsp -O3 -DNDEBUG -o CMakeFiles/ADRC_objects.dir/ADRC.c.obj -c C:/Users/82057/Desktop/2024-5-8/matlab/ADRC_ert_rtw/ADRC.c",
+  "file": "C:/Users/82057/Desktop/2024-5-8/matlab/ADRC_ert_rtw/ADRC.c"
+},
+{
+  "directory": "C:/Users/82057/Desktop/2024-5-8/matlab/ADRC_ert_rtw/build",
+  "command": "C:/MinGW/bin/gcc.exe -DALLOCATIONFCN=0 -DCLASSIC_INTERFACE=0 -DHAVESTDIO -DINTEGER_CODE=0 -DMAT_FILE=0 -DMODEL=ADRC -DMODEL_HAS_DYNAMICALLY_LOADED_SFCNS=0 -DMT=0 -DMULTI_INSTANCE_CODE=0 -DNCSTATES=0 -DNUMST=1 -DONESTEPFCN=1 -DTERMFCN=1 -DTID01EQ=0 @CMakeFiles/ADRC.dir/includes_C.rsp -O3 -DNDEBUG -o CMakeFiles/ADRC.dir/ert_main.c.obj -c C:/Users/82057/Desktop/2024-5-8/matlab/ADRC_ert_rtw/ert_main.c",
+  "file": "C:/Users/82057/Desktop/2024-5-8/matlab/ADRC_ert_rtw/ert_main.c"
+}
+]

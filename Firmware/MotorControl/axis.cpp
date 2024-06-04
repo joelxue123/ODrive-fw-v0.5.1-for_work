@@ -201,6 +201,7 @@ bool Axis::do_updates() {
         thermistor->update();
     }
     encoder_.update();
+    
     #if 0
     sensorless_estimator_.update();
     min_endstop_.update();
@@ -240,66 +241,59 @@ struct Sin_t{
     volatile  uint32_t index;
     bool is_sin;
     float phase;
-};
-static struct Sin_t sin_rule = {
+    float (*generate_wave_callback)(struct Sin_t * rule, int32_t div, float force_amplitude);
 
-    .sample_rate = SAMPLE_FRE,
-    .output_fre = 1,
-    .index = 0,
-    .is_sin = true,
-    .phase=0,
 };
 
-
-static float generate_sin_data_to_buf(float force_amplitude)
+static float generateSineWave(struct Sin_t * rule, int32_t div,float force_amplitude)
 {
-
-    uint32_t sample_rate = sin_rule.sample_rate ;
-    uint32_t output_fre = sin_rule.output_fre;
+    struct Sin_t *sin_rule = rule;
+    uint32_t sample_rate = sin_rule->sample_rate ;
+    uint32_t output_fre = sin_rule->output_fre;
     float dt = 1.0f / sample_rate;
     float amplitude =force_amplitude ;
 
-    float phase = 2.0f*M_PI* sin_rule.index * output_fre*dt ;
+    float phase = 2.0f*M_PI* sin_rule->index * output_fre*dt ;
     phase = wrap_pm_pi(phase);
 
     float  sin_data;
 
-    if( sin_rule.is_sin )
+    if( sin_rule->is_sin )
     {
         sin_data  =   our_arm_sin_f32(phase) * amplitude  ;
     }
     else
     {
-        sin_data  = ( (phase < 0) ?1:-1 ) * amplitude  ;
+        sin_data  = ( (phase < 0) ?-1:1 ) * amplitude  ;
     }
    
 
-    sin_rule.index++;
-    if( sin_rule.index > sample_rate/output_fre -1)
+    sin_rule->index++;
+    if( sin_rule->index > sample_rate/output_fre -1)
     {
-        sin_rule.index =0;
+        sin_rule->index =0;
     }
 
     return sin_data;
 }
 
 
-float Axis::qtauChirp(int32_t div, float force_amplitude)
+float qtauChirp(struct Sin_t * rule, int32_t div, float force_amplitude)
 {
-
-    uint32_t sample_rate = sin_rule.sample_rate ;
+    struct Sin_t *sin_rule = rule;
+    uint32_t sample_rate = sin_rule->sample_rate ;
     float dt = 1.0f / sample_rate;
     float amplitude =force_amplitude ;
-    float f0 = 1;
-    float f1 = 30;
+    float f0 = 10;
+    float f1 = 100;
     float k = (f1 - f0) / (0.2f * div);
     float phase;
-    float t = dt * sin_rule.index;
+    float t = dt * sin_rule->index;
     float phi;
 
     
     if (t <= (0.2f * div)) {
-        sin_rule.index++;
+        sin_rule->index++;
         phi = f0  + k *  t;
     } else {
         phi = 0;
@@ -308,13 +302,23 @@ float Axis::qtauChirp(int32_t div, float force_amplitude)
     phi = f0*t + 0.5f*k*t*t;
     phase = 2*M_PI * phi;
     phase = wrap_pm_pi(phase);
-    sin_rule.phase = phase;
+    sin_rule->phase = phase;
 
     float  sin_data;
     sin_data  =   our_arm_sin_f32(phase) * amplitude;
 
     return sin_data;
 }
+
+static struct Sin_t sin_rule = {
+
+    .sample_rate = SAMPLE_FRE,
+    .output_fre = 200,
+    .index = 0,
+    .is_sin = false,
+    .phase=0,
+    .generate_wave_callback = generateSineWave,
+};
 
 
 
@@ -325,6 +329,7 @@ bool Axis::run_lockin_spin(const LockinConfig_t &lockin_config) {
     sin_rule.index =0;
     motor_.capturing_ = true;
     oscilloscope_pos =0;
+
     run_control_loop([&]() {
         float phase = 0;
         float torque = 0;
@@ -337,8 +342,8 @@ bool Axis::run_lockin_spin(const LockinConfig_t &lockin_config) {
                 motor_.oscilloscope_div++;
                 if(motor_.oscilloscope_div == 1) 
                 {    
-                    torque = qtauChirp(motor_.oscilloscope_div,lockin_config.current * motor_.config_.torque_constant);
-                    oscilloscope[oscilloscope_pos] =motor_.current_control_.Iq_measured; //motor_.current_control_.Iq_setpoint  Iq_measured
+                    torque = sin_rule.generate_wave_callback(&sin_rule,motor_.oscilloscope_div,lockin_config.current * motor_.config_.torque_constant);
+                    oscilloscope[oscilloscope_pos] =motor_.current_control_.Iq_measured;//; //  Iq_measured
                     if (++oscilloscope_pos >= OSCILLOSCOPE_SIZE) {
                         oscilloscope_pos = 0;
                         motor_.capturing_ = false;
@@ -463,7 +468,6 @@ bool Axis::run_closed_loop_control_loop() {
 
     set_step_dir_active(config_.enable_step_dir);
     sin_rule.index =0;
-    motor_.capturing_ = true;
     oscilloscope_pos =0;
     encoder_.pos_estimate_counts_ = 0;
     encoder_.shadow_count_ = 0;
@@ -478,7 +482,7 @@ bool Axis::run_closed_loop_control_loop() {
             motor_.oscilloscope_div++;
             if(motor_.oscilloscope_div == 10) 
             {    
-                controller_.input_vel_ = qtauChirp(motor_.oscilloscope_div,5);
+                controller_.input_vel_ = qtauChirp(&sin_rule,motor_.oscilloscope_div,5);
                 oscilloscope[oscilloscope_pos] = encoder_.vel_estimate_;                   //encoder_.vel_estimate_;
                 if (++oscilloscope_pos >= OSCILLOSCOPE_SIZE) {
                     oscilloscope_pos = 0;
