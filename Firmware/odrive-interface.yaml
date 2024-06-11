@@ -538,6 +538,7 @@ interfaces:
       phase_current_rev_gain: float32
       effective_current_lim: readonly float32
       capturing: bool
+      Idq_filter_k: float32
       current_control:
         c_is_class: False
         attributes:
@@ -814,6 +815,7 @@ interfaces:
           abs_spi_cs_gpio_pin:
             { type: uint16, c_setter: set_abs_spi_cs_gpio_pin }
           zero_count_on_find_idx: bool
+          is_high_speed_encode_query_disabled: bool
           cpr: int32
           offset: int32
           pre_calibrated: { type: bool, c_setter: set_pre_calibrated }

@@ -19,6 +19,7 @@ public:
                                     // be determined by run_offset_calibration.
                                     // In this case the encoder will enter ready
                                     // state as soon as the index is found.
+        bool is_high_speed_encode_query_disabled = true;
         bool zero_count_on_find_idx = true;
         int32_t cpr = (16384 * 4);   // Default resolution of CUI-AMT102 encoder,
         int32_t offset = 0;        // Offset between encoder count and rotor electrical phase
@@ -118,6 +119,7 @@ public:
     uint8_t abs_485_dma_rx_[7];
 
     bool abs_spi_pos_updated_ = false;
+    
     Mode mode_ = MODE_INCREMENTAL;
     GPIO_TypeDef* abs_spi_cs_port_;
     uint16_t abs_spi_cs_pin_;

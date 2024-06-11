@@ -45,7 +45,7 @@ public:
 
         float watchdog_timeout = 0.0f; // [s]
         bool enable_watchdog = false;
-
+        
         // Defaults loaded from hw_config in load_configuration in main.cpp
         uint16_t step_gpio_pin = 0;
         uint16_t dir_gpio_pin = 0;

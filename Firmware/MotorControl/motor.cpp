@@ -358,6 +358,15 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     ictrl.Iq_measured += ictrl.I_measured_report_filter_k * (Iq - ictrl.Iq_measured);
     ictrl.Id_measured += ictrl.I_measured_report_filter_k * (Id - ictrl.Id_measured);
 
+    Iq_filter += Idq_filter_k_ * (Iq - Iq_filter);
+    Id_filter += Idq_filter_k_ * (Id - Id_filter);
+    
+    float dec_vd=0, dec_vq=0,dec_bemf=0,pm_flux_linkage=0;
+    pm_flux_linkage =  config_.torque_constant/ (config_.pole_pairs);
+    dec_vd = Iq_filter * m_speed_est_fast * config_.phase_inductance;
+    dec_vq = Id_filter * m_speed_est_fast * config_.phase_inductance;
+    dec_bemf = m_speed_est_fast * pm_flux_linkage;
+
     // Check for violation of current limit
     float I_trip = effective_current_lim() + config_.current_lim_margin;
     if (SQ(Id) + SQ(Iq) > SQ(I_trip)) {
@@ -373,6 +382,10 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     // Apply PI control
     float Vd = ictrl.v_current_control_integral_d + Ierr_d * ictrl.p_gain;
     float Vq = ictrl.v_current_control_integral_q + Ierr_q * ictrl.p_gain;
+
+      Vd -=  dec_vd;
+      Vq +=  dec_vq + dec_bemf;  
+
 
     float mod_to_V = (2.0f / 3.0f) * vbus_voltage;
     float V_to_mod = 1.0f / mod_to_V;
@@ -421,7 +434,7 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     float current_setpoint = 0.0f;
     phase *= config_.direction;
     phase_vel *= config_.direction;
-
+    m_speed_est_fast =  phase_vel; 
 
     if (config_.motor_type == MOTOR_TYPE_ACIM) {
         current_setpoint = torque_setpoint / (config_.torque_constant * fmax(current_control_.acim_rotor_flux, config_.acim_gain_min_flux));

@@ -163,7 +163,7 @@ extern std::array<Axis*, AXIS_COUNT> axes;
 extern ODriveCAN *odCAN;
 
 // if you use the oscilloscope feature you can bump up this value
-#define OSCILLOSCOPE_SIZE 4096
+#define OSCILLOSCOPE_SIZE (16384)
 extern float oscilloscope[OSCILLOSCOPE_SIZE];
 extern size_t oscilloscope_pos;
 

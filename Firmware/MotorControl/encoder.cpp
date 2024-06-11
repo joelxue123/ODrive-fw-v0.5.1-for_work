@@ -393,6 +393,9 @@ void Encoder::abs_485_cs_pin_init(){
 
 bool Encoder::abs_start_transaction(){
 
+    if(config_.is_high_speed_encode_query_disabled)
+    return true;
+
     if (mode_ & MODE_FLAG_485_ABS){
         abs_485_start_transaction();
     }

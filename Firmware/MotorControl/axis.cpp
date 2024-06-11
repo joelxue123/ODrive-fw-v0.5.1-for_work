@@ -201,9 +201,14 @@ bool Axis::do_updates() {
         thermistor->update();
     }
     encoder_.update();
+
+    if(config_.startup_sensorless_control)
+    {
+        sensorless_estimator_.update();
+    }
     
     #if 0
-    sensorless_estimator_.update();
+    
     min_endstop_.update();
     max_endstop_.update();
     #endif
@@ -241,17 +246,19 @@ struct Sin_t{
     volatile  uint32_t index;
     bool is_sin;
     float phase;
+    float start_freq;
+    float end_freq;
     float (*generate_wave_callback)(struct Sin_t * rule, int32_t div, float force_amplitude);
 
 };
 
-static float generateSineWave(struct Sin_t * rule, int32_t div,float force_amplitude)
+static float generateSineWave(struct Sin_t * rule, int32_t div,float wave_amplitude)
 {
     struct Sin_t *sin_rule = rule;
     uint32_t sample_rate = sin_rule->sample_rate ;
     uint32_t output_fre = sin_rule->output_fre;
     float dt = 1.0f / sample_rate;
-    float amplitude =force_amplitude ;
+    float amplitude =wave_amplitude ;
 
     float phase = 2.0f*M_PI* sin_rule->index * output_fre*dt ;
     phase = wrap_pm_pi(phase);
@@ -278,21 +285,24 @@ static float generateSineWave(struct Sin_t * rule, int32_t div,float force_ampli
 }
 
 
-float qtauChirp(struct Sin_t * rule, int32_t div, float force_amplitude)
+
+float qtauChirp(struct Sin_t * rule, int32_t div, float wave_amplitude)
 {
     struct Sin_t *sin_rule = rule;
     uint32_t sample_rate = sin_rule->sample_rate ;
     float dt = 1.0f / sample_rate;
-    float amplitude =force_amplitude ;
-    float f0 = 10;
-    float f1 = 100;
-    float k = (f1 - f0) / (0.2f * div);
+    float amplitude =wave_amplitude ;
+    float f0 = rule->start_freq;
+    float f1 = rule->end_freq;
+    float duration_time = 4096.f/SAMPLE_FRE;
+    float k = (f1 - f0) / duration_time;
+    
     float phase;
     float t = dt * sin_rule->index;
     float phi;
 
     
-    if (t <= (0.2f * div)) {
+    if (t <= duration_time) {
         sin_rule->index++;
         phi = f0  + k *  t;
     } else {
@@ -317,7 +327,9 @@ static struct Sin_t sin_rule = {
     .index = 0,
     .is_sin = false,
     .phase=0,
-    .generate_wave_callback = generateSineWave,
+    .start_freq = 10,
+    .end_freq = 100,
+    .generate_wave_callback = qtauChirp,
 };
 
 
@@ -327,7 +339,6 @@ bool Axis::run_lockin_spin(const LockinConfig_t &lockin_config) {
     lockin_state_ = LOCKIN_STATE_RAMP;
     float x = 0.0f;
     sin_rule.index =0;
-    motor_.capturing_ = true;
     oscilloscope_pos =0;
 
     run_control_loop([&]() {
@@ -340,9 +351,9 @@ bool Axis::run_lockin_spin(const LockinConfig_t &lockin_config) {
 
             if (motor_.capturing_) {
                 motor_.oscilloscope_div++;
-                if(motor_.oscilloscope_div == 1) 
+                if(motor_.oscilloscope_div == 10) 
                 {    
-                    torque = sin_rule.generate_wave_callback(&sin_rule,motor_.oscilloscope_div,lockin_config.current * motor_.config_.torque_constant);
+                    torque = sin_rule.generate_wave_callback(&sin_rule,motor_.oscilloscope_div,config_.general_lockin.current * motor_.config_.torque_constant);
                     oscilloscope[oscilloscope_pos] =motor_.current_control_.Iq_measured;//; //  Iq_measured
                     if (++oscilloscope_pos >= OSCILLOSCOPE_SIZE) {
                         oscilloscope_pos = 0;
@@ -480,10 +491,11 @@ bool Axis::run_closed_loop_control_loop() {
 
         if (motor_.capturing_) {
             motor_.oscilloscope_div++;
-            if(motor_.oscilloscope_div == 10) 
+            if(motor_.oscilloscope_div == 20000/SAMPLE_FRE) 
             {    
+              //  controller_.input_torque_ = qtauChirp();  //input_vel_
                 controller_.input_vel_ = qtauChirp(&sin_rule,motor_.oscilloscope_div,5);
-                oscilloscope[oscilloscope_pos] = encoder_.vel_estimate_;                   //encoder_.vel_estimate_;
+                oscilloscope[oscilloscope_pos] = encoder_.vel_estimate_;//encoder_.vel_estimate_;                   //encoder_.vel_estimate_;
                 if (++oscilloscope_pos >= OSCILLOSCOPE_SIZE) {
                     oscilloscope_pos = 0;
                     motor_.capturing_ = false;
