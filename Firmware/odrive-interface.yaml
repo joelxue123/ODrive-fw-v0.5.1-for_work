@@ -235,7 +235,7 @@ interfaces:
             doc: |
               Confirm that your power leads are connected securely. For initial
               testing a 12V PSU which can supply a couple of amps should be
-              sufficient while the use of low current ‘wall wart’ plug packs may
+              sufficient while the use of low current ‘wall wart�? plug packs may
               lead to inconsistent behaviour and is not recommended.
 
               You can monitor your PSU voltage using liveplotter in odrivetool
@@ -539,6 +539,8 @@ interfaces:
       effective_current_lim: readonly float32
       capturing: bool
       Idq_filter_k: float32
+      Idq_filter_k2: float32
+
       current_control:
         c_is_class: False
         attributes:
@@ -549,6 +551,8 @@ interfaces:
           Ibus: float32
           final_v_alpha: float32
           final_v_beta: float32
+          final_v_d: float32
+          final_v_q: float32
           Id_setpoint: float32
           Iq_setpoint: readonly float32
           Iq_measured: float32

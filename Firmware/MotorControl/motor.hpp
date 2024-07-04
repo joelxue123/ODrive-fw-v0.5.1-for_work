@@ -23,6 +23,10 @@ public:
         // Voltage applied at end of cycle:
         float final_v_alpha; // [V]
         float final_v_beta; // [V]
+
+        float final_v_d; // [V]
+        float final_v_q; // [V]
+
         float Id_setpoint; // [A]
         float Iq_setpoint; // [A]
         float Iq_measured; // [A]
@@ -144,6 +148,8 @@ public:
         .Ibus = 0.0f,
         .final_v_alpha = 0.0f,
         .final_v_beta = 0.0f,
+        .final_v_d = 0.0f,
+        .final_v_q = 0.0f,
         .Id_setpoint = 0.0f,
         .Iq_setpoint = 0.0f,
         .Iq_measured = 0.0f,
@@ -166,6 +172,7 @@ public:
     float Iq_filter = 0;
     float Id_filter = 0;
     float Idq_filter_k_ = 0.4f;
+    float Idq_filter_k2_ = 0.4f;
 };
 
 #endif // __MOTOR_HPP

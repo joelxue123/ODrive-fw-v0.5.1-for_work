@@ -65,7 +65,7 @@ TEST_SUITE("CAN Functions") {
         can_setSignal<uint16_t>(txmsg, 0xABCD, 16, 16, true, 1.0f, 0.0f);
         CHECK(can_getSignal<uint16_t>(txmsg, 0, 16, true, 1.0f, 0.0f) == 0x1234);
         CHECK(can_getSignal<uint16_t>(txmsg, 16, 16, true, 1.0f, 0.0f) == 0xABCD);
-
+ 
         can_setSignal<float>(txmsg, 1234.5678f, 32, 32, true, 1.0f, 0.0f);
         CHECK(can_getSignal<uint16_t>(txmsg, 0, 16, true, 1.0f, 0.0f) == 0x1234);
         CHECK(can_getSignal<uint16_t>(txmsg, 16, 16, true, 1.0f, 0.0f) == 0xABCD);

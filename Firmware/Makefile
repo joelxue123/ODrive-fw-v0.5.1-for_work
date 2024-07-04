@@ -9,6 +9,22 @@ OPENOCD := openocd -f interface/jlink.cfg \
 		$(if $(value PROGRAMMER),-c 'hla_serial $(PROGRAMMER)',) \
 		-f target/stm32f4x.cfg
 
+# Set the include paths for compiling test files
+TEST_INCLUDES = -I. -I./MotorControl -I./fibre/cpp/include -I./Drivers/DRV8301 -I./doctest
+
+# Rule to compile test files
+Tests/%.o: Tests/%.cpp
+	g++ -O3 -std=c++17 $(TEST_INCLUDES) -c $< -o $@
+
+# Rule to link test executable
+Tests/test_runner.exe: $(patsubst %.cpp,%.o,$(wildcard Tests/*.cpp))
+	g++ $^ -o $@
+
+# Rule to run tests
+run_tests: Tests/test_runner.exe
+	$<
+
+
 
 all:
 	@tup --quiet --no-environ-check
@@ -106,5 +122,9 @@ endif
 clean:
 	-rm -fR .dep $(BUILD_DIR)
 
-.PHONY: all flash gdb dfu bmp clean erase_config
+
+
+
+
+.PHONY: all flash gdb dfu bmp clean erase_config run_tests
 

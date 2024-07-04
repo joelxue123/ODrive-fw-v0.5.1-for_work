@@ -387,6 +387,9 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
       Vq +=  dec_vq + dec_bemf;  
 
 
+    ictrl.final_v_d = Vd;
+    ictrl.final_v_q = Vq;
+
     float mod_to_V = (2.0f / 3.0f) * vbus_voltage;
     float V_to_mod = 1.0f / mod_to_V;
     float mod_d = V_to_mod * Vd;
@@ -481,7 +484,8 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     }
 
     float pwm_phase = phase + 1.5f * current_meas_period * phase_vel;
-
+    pwm_phase = wrap_pm_pi(pwm_phase);
+    
     bool res = true;
     // Execute current command
     switch(config_.motor_type){

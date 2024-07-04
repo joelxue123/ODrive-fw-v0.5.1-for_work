@@ -83,3 +83,31 @@ bool SensorlessEstimator::update() {
     vel_estimate_valid_ = true;
     return true;
 };
+
+
+bool SensorlessEstimator::update2()
+{
+    float d_axis_emf = 0;
+    float q_axis_emf = 0;
+   float w_ebase = axis_->motor_.config_.pole_pairs * 100.0f*  2.0f * M_PI;
+    float lambda_s =  0;
+    float alpha_bw_lpf = 0;
+
+    lambda_s =  lambda_ * fsgn(vel_estimate_erad_);
+    alpha_bw_lpf = 0.3f* w_ebase  + 1*2*lambda_*fabs(vel_estimate_erad_);
+    d_axis_emf = axis_->motor_.current_control_.final_v_d - 1*axis_->motor_.config_.phase_resistance*axis_->motor_.current_control_.Id_setpoint + vel_estimate_erad_*1*axis_->motor_.config_.phase_inductance*axis_->motor_.current_control_.Iq_setpoint;
+    q_axis_emf = axis_->motor_.current_control_.final_v_q - 1*axis_->motor_.config_.phase_resistance*axis_->motor_.current_control_.Iq_setpoint - vel_estimate_erad_*1*axis_->motor_.config_.phase_inductance*axis_->motor_.current_control_.Id_setpoint;
+
+    
+    vel_estimate_erad_ += current_meas_period * alpha_bw_lpf * ( (q_axis_emf - lambda_s * d_axis_emf)/ config_.pm_flux_linkage - vel_estimate_erad_);
+
+    vel_estimate_ = vel_estimate_erad_ / (std::max((float)axis_->motor_.config_.pole_pairs, 1.0f) * 2.0f * M_PI);
+    
+    phase_ += current_meas_period * vel_estimate_erad_;
+    while( phase_ > M_PI) phase_ -= 2*M_PI;
+    while( phase_ < -M_PI) phase_ += 2*M_PI;
+
+    vel_estimate_valid_ = true;
+    return true;
+
+}

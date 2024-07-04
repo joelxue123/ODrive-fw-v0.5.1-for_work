@@ -232,3 +232,14 @@ void delay_us(uint32_t us)
         __ASM("nop");
     }
 }
+
+
+int32_t fsgn(float num) {
+    if (num > 0.0f) {
+        return 1;
+    } else if (num < 0.0f) {
+        return -1;
+    } else {
+        return 0;
+    }
+}

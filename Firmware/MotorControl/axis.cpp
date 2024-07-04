@@ -204,7 +204,7 @@ bool Axis::do_updates() {
 
     if(config_.startup_sensorless_control)
     {
-        sensorless_estimator_.update();
+        sensorless_estimator_.update2();
     }
     
     #if 0
@@ -286,12 +286,11 @@ static float generateSineWave(struct Sin_t * rule, int32_t div,float wave_amplit
 
 
 
-float qtauChirp(struct Sin_t * rule, int32_t div, float wave_amplitude)
+float qtauChirp(struct Sin_t * rule, int32_t div, float amplitude)
 {
     struct Sin_t *sin_rule = rule;
     uint32_t sample_rate = sin_rule->sample_rate ;
     float dt = 1.0f / sample_rate;
-    float amplitude =wave_amplitude ;
     float f0 = rule->start_freq;
     float f1 = rule->end_freq;
     float duration_time = 4096.f/SAMPLE_FRE;
@@ -712,7 +711,8 @@ void Axis::run_state_machine_loop() {
             case AXIS_STATE_SENSORLESS_CONTROL: {
                 if (!motor_.is_calibrated_ || motor_.config_.direction==0)
                         goto invalid_state_label;
-                status = run_lockin_spin(config_.sensorless_ramp); // TODO: restart if desired
+                //status = run_lockin_spin(config_.sensorless_ramp); // TODO: restart if desired
+                status = true;
                 if (status) {
                     // call to controller.reset() that happend when arming means that vel_setpoint
                     // is zeroed. So we make the setpoint the spinup target for smooth transition.
