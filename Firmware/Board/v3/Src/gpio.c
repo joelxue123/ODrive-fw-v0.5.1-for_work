@@ -75,6 +75,24 @@
         * EVENT_OUT
         * EXTI
 */
+
+
+
+void soft_exit()
+{
+  uint32_t position = 0;
+  uint32_t ioposition = 0x00U;
+  uint32_t iocurrent = 0x00U;
+  uint32_t temp = 0x00U;
+
+      /* Enable SYSCFG Clock */
+      __HAL_RCC_SYSCFG_CLK_ENABLE();
+
+      EXTI->IMR |= 1<<0;
+      EXTI->EMR |= 1<<0;
+
+
+}
 void MX_GPIO_Init(void)
 {
 
@@ -130,7 +148,8 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(nFAULT_GPIO_Port, &GPIO_InitStruct);
-
+  
+soft_exit();
 }
 
 /* USER CODE BEGIN 2 */
@@ -230,21 +249,22 @@ bool GPIO_subscribe(GPIO_TypeDef* GPIO_port, uint16_t GPIO_pin,
 
   // Set up GPIO
   GPIO_InitTypeDef GPIO_InitStruct;
-  GPIO_InitStruct.Pin = GPIO_pin;
+  GPIO_InitStruct.Pin = GPIO_PIN_0;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_RISING;
   GPIO_InitStruct.Pull = pull_up_down;
   HAL_GPIO_Init(GPIO_port, &GPIO_InitStruct);
 
   // Clear any previous triggers
-  __HAL_GPIO_EXTI_CLEAR_IT(GPIO_pin);
+  __HAL_GPIO_EXTI_CLEAR_IT(GPIO_PIN_0);
   // Enable interrupt
-  HAL_NVIC_SetPriority(get_irq_number(GPIO_pin), 6, 0);
-  HAL_NVIC_EnableIRQ(get_irq_number(GPIO_pin));
+  HAL_NVIC_SetPriority(get_irq_number(GPIO_PIN_0), 6, 0);
+  HAL_NVIC_EnableIRQ(get_irq_number(GPIO_PIN_0));
   return true;
 }
 
 void GPIO_unsubscribe(GPIO_TypeDef* GPIO_port, uint16_t GPIO_pin) {
   bool is_pin_in_use = false;
+  return ;
   for (size_t i = 0; i < n_subscriptions; ++i) {
     if (subscriptions[i].GPIO_port == GPIO_port &&
         subscriptions[i].GPIO_pin == GPIO_pin) {

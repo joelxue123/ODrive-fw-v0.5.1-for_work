@@ -284,10 +284,8 @@ int odrive_main(void) {
     for(auto& axis : axes){
         axis->setup();
     }
-
     // Start PWM and enable adc interrupts/callbacks
     start_adc_pwm();
-
     // This delay serves two purposes:
     //  - Let the current sense calibration converge (the current
     //    sense interrupts are firing in background by now)

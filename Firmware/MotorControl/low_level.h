@@ -42,6 +42,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected);
 void vbus_sense_adc_cb(ADC_HandleTypeDef* hadc, bool injected);
 void tim_update_cb(TIM_HandleTypeDef* htim);
 void pwm_in_cb(int channel, uint32_t timestamp);
+void send_notification(void);
 }
 
 // Initalisation

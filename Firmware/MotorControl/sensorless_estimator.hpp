@@ -28,7 +28,7 @@ public:
     float flux_state_[2] = {0.0f, 0.0f};        // [Vs]
     float V_alpha_beta_memory_[2] = {0.0f, 0.0f}; // [V]
     bool estimator_good_ = false;
-    const float lambda_ = 2.0f;
+    const float lambda_ = 1.0f;
 };
 
 #endif /* __SENSORLESS_ESTIMATOR_HPP */

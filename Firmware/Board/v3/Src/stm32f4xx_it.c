@@ -505,14 +505,18 @@ void I2C1_ER_IRQHandler(void)
   HAL_I2C_ER_IRQHandler(&hi2c1);
 }
 
+
+ void send_notification();
+
+
+void EXTI0_IRQHandler(void)
+{
+    HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
+}
+
 /**
 * @brief This function handles EXTI line0 interrupt.
 */
-void EXTI0_IRQHandler(void)
-{
-  HAL_GPIO_EXTI_IRQHandler(GPIO_PIN_0);
-}
-
 /**
 * @brief This function handles EXTI line2 interrupt.
 */
@@ -567,5 +571,10 @@ void EXTI15_10_IRQHandler(void)
 /* USER CODE END 1 */
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/
 
+
+void OTG_HS_IRQHandler(void)
+{
+  send_notification();
+}
 
 #endif

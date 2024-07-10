@@ -223,10 +223,11 @@ bool Motor::measure_phase_resistance(float test_current, float max_voltage) {
         if (test_voltage > max_voltage || test_voltage < -max_voltage)
             return set_error(ERROR_PHASE_RESISTANCE_OUT_OF_RANGE), false;
 
+
+        log_timing(TIMING_LOG_MEAS_R);
         // Test voltage along phase A
         if (!enqueue_voltage_timings(test_voltage, 0.0f))
             return false; // error set inside enqueue_voltage_timings
-        log_timing(TIMING_LOG_MEAS_R);
 
         return ++i < num_test_cycles;
     });
@@ -252,6 +253,11 @@ bool Motor::measure_phase_inductance(float voltage_low, float voltage_high) {
         int i = t & 1;
         Ialphas[i] += -current_meas_.phB - current_meas_.phC;
 
+        log_timing(TIMING_LOG_MEAS_L);
+        while( timing_log_[TIMING_LOG_MEAS_L] < 7000)
+        {
+            log_timing(TIMING_LOG_MEAS_L);
+        }
         // Test voltage along phase A
         if (!enqueue_voltage_timings(test_voltages[i], 0.0f))
             return false; // error set inside enqueue_voltage_timings
@@ -318,9 +324,11 @@ bool Motor::enqueue_voltage_timings(float v_alpha, float v_beta) {
     float vfactor = 1.0f / ((2.0f / 3.0f) * vbus_voltage);  // float vfactor = 1.0f / ((2.0f / 3.0f) * vbus_voltage);
     float mod_alpha = vfactor * v_alpha;
     float mod_beta = vfactor * v_beta;
+
+    log_timing(TIMING_LOG_FOC_VOLTAGE);
+
     if (!enqueue_modulation_timings(mod_alpha, mod_beta))
         return false;
-    log_timing(TIMING_LOG_FOC_VOLTAGE);
     return true;
 }
 
@@ -485,7 +493,7 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
 
     float pwm_phase = phase + 1.5f * current_meas_period * phase_vel;
     pwm_phase = wrap_pm_pi(pwm_phase);
-    
+
     bool res = true;
     // Execute current command
     switch(config_.motor_type){

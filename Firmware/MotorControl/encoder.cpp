@@ -402,6 +402,7 @@ bool Encoder::abs_start_transaction(){
     else if(mode_ & MODE_FLAG_ABS)
     {
         abs_spi_start_transaction();
+        abs_spi_pos_updated_ = false;
     }
     else
     {
@@ -535,7 +536,7 @@ bool Encoder::update() {
     // update internal encoder state.
     int32_t delta_enc = 0;
     int32_t pos_abs_latched = pos_abs_; //LATCH
-
+    axis_->motor_.log_timing(TIMING_LOG_ENC_CALIB);
     switch (mode_) {
         case MODE_INCREMENTAL: {
             //TODO: use count_in_cpr_ instead as shadow_count_ can overflow
@@ -657,6 +658,7 @@ bool Encoder::update() {
         if (interpolation_ > 1.0f) interpolation_ = 1.0f;
         if (interpolation_ < 0.0f) interpolation_ = 0.0f;
     }
+    interpolation_ = current_meas_period * vel_estimate_counts_;
     float interpolated_enc = corrected_enc + interpolation_;
 
     //// compute electrical phase

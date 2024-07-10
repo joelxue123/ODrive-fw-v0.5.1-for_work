@@ -204,7 +204,10 @@ bool Axis::do_updates() {
 
     if(config_.startup_sensorless_control)
     {
-        sensorless_estimator_.update2();
+
+            sensorless_estimator_.update2();
+
+        
     }
     
     #if 0

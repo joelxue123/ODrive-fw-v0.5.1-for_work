@@ -89,12 +89,12 @@ bool SensorlessEstimator::update2()
 {
     float d_axis_emf = 0;
     float q_axis_emf = 0;
-   float w_ebase = axis_->motor_.config_.pole_pairs * 100.0f*  2.0f * M_PI;
+   float w_ebase = axis_->motor_.config_.pole_pairs * 60.0f*  2.0f * M_PI;
     float lambda_s =  0;
     float alpha_bw_lpf = 0;
 
     lambda_s =  lambda_ * fsgn(vel_estimate_erad_);
-    alpha_bw_lpf = 0.3f* w_ebase  + 1*2*lambda_*fabs(vel_estimate_erad_);
+    alpha_bw_lpf = 0.6f* w_ebase  + 1.0f*2*lambda_*fabs(vel_estimate_erad_);
     d_axis_emf = axis_->motor_.current_control_.final_v_d - 1*axis_->motor_.config_.phase_resistance*axis_->motor_.current_control_.Id_setpoint + vel_estimate_erad_*1*axis_->motor_.config_.phase_inductance*axis_->motor_.current_control_.Iq_setpoint;
     q_axis_emf = axis_->motor_.current_control_.final_v_q - 1*axis_->motor_.config_.phase_resistance*axis_->motor_.current_control_.Iq_setpoint - vel_estimate_erad_*1*axis_->motor_.config_.phase_inductance*axis_->motor_.current_control_.Id_setpoint;
 

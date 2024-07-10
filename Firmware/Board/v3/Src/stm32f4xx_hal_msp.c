@@ -50,7 +50,8 @@
 #include "stm32f4xx_hal.h"
 extern void _Error_Handler(char *, int);
 /* USER CODE BEGIN 0 */
-
+#define ControlLoop_IRQHandler OTG_HS_IRQHandler
+#define ControlLoop_IRQn OTG_HS_IRQn
 /* USER CODE END 0 */
 /**
   * Initializes the Global MSP.
@@ -81,6 +82,8 @@ void HAL_MspInit(void)
   HAL_NVIC_SetPriority(PendSV_IRQn, 15, 0);
   /* SysTick_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(SysTick_IRQn, 15, 0);
+
+
 
   /* USER CODE BEGIN MspInit 1 */
 

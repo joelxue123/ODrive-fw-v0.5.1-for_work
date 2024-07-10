@@ -373,7 +373,7 @@ void MX_TIM8_Init(void)
   }
 
   HAL_TIM_MspPostInit(&htim8);
-
+__HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(&htim8);
 }
 /* TIM13 init function */
 void MX_TIM13_Init(void)

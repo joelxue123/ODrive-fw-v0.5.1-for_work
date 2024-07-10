@@ -21,6 +21,9 @@
 
 #include "odrive_main.h"
 
+#define ControlLoop_IRQHandler OTG_HS_IRQHandler
+#define ControlLoop_IRQn OTG_HS_IRQn
+
 /* Private defines -----------------------------------------------------------*/
 
 // #define DEBUG_PRINT
@@ -218,14 +221,13 @@ void start_adc_pwm() {
 
     start_pwm(&htim1);
     start_pwm(&htim8);
-    // TODO: explain why this offset
-    sync_timers(&htim1, &htim8, TIM_1_8_PERIOD_CLOCKS/2, TIM_1_8_PERIOD_CLOCKS,
-            &htim13);
 
+    // TODO: explain why this offset
+    sync_timers(&htim1, &htim8, TIM_CLOCKSOURCE_ITR0, TIM_1_8_PERIOD_CLOCKS,
+            &htim13);
 
     // Motor output starts in the disabled state
     __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(&htim1);
-    __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(&htim8);
 
     // Enable the update interrupt (used to coherently sample GPIO)
     __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);
@@ -238,9 +240,10 @@ void start_adc_pwm() {
     HAL_TIM_PWM_Start(&htim2, TIM_CHANNEL_4);
 
     // Disarm motors and arm brake resistor
-    for (size_t i = 0; i < AXIS_COUNT; ++i) {
-        safety_critical_disarm_motor_pwm(axes[i]->motor_);
-    }
+
+    safety_critical_disarm_motor_pwm(axes[0]->motor_);
+    safety_critical_disarm_motor_pwm(axes[1]->motor_);
+    __HAL_TIM_MOE_ENABLE(&htim8); 
     safety_critical_arm_brake_resistor();
 }
 
@@ -250,14 +253,19 @@ void start_pwm(TIM_HandleTypeDef* htim) {
     htim->Instance->CCR1 = half_load-0;
     htim->Instance->CCR2 = half_load+0;
     htim->Instance->CCR3 = half_load+0;
+    if(htim == &htim1) {
+            // This hardware obfustication layer really is getting on my nerves
+        HAL_TIM_PWM_Start(htim, TIM_CHANNEL_1);
+        HAL_TIMEx_PWMN_Start(htim, TIM_CHANNEL_1);
+        HAL_TIM_PWM_Start(htim, TIM_CHANNEL_2);
+        HAL_TIMEx_PWMN_Start(htim, TIM_CHANNEL_2);
+        HAL_TIM_PWM_Start(htim, TIM_CHANNEL_3);
+        HAL_TIMEx_PWMN_Start(htim, TIM_CHANNEL_3);
+        
+    } else {
+       HAL_TIM_PWM_Start(htim, TIM_CHANNEL_1);
+    }
 
-    // This hardware obfustication layer really is getting on my nerves
-    HAL_TIM_PWM_Start(htim, TIM_CHANNEL_1);
-    HAL_TIMEx_PWMN_Start(htim, TIM_CHANNEL_1);
-    HAL_TIM_PWM_Start(htim, TIM_CHANNEL_2);
-    HAL_TIMEx_PWMN_Start(htim, TIM_CHANNEL_2);
-    HAL_TIM_PWM_Start(htim, TIM_CHANNEL_3);
-    HAL_TIMEx_PWMN_Start(htim, TIM_CHANNEL_3);
 
     htim->Instance->CCR4 = 1;
     HAL_TIM_PWM_Start_IT(htim, TIM_CHANNEL_4);
@@ -313,7 +321,7 @@ void sync_timers(TIM_HandleTypeDef* htim_a, TIM_HandleTypeDef* htim_b,
     htim_b->Instance->CR1 |= CMS_store_b;
     // set counter offset
     htim_a->Instance->CNT = count_offset;
-    htim_b->Instance->CNT = 0;
+    htim_b->Instance->CNT = count_offset/2;
     // Set and start reference timebase timer (if used)
     if (htim_refbase) {
         htim_refbase->Instance->CNT = count_offset;
@@ -526,14 +534,24 @@ void smooth_filter(uint32_t new_sample, struct filter_st *dc_current) {
     dc_current->sum = sum;
 }
 
+#include <stm32f405xx.h>
+#include <stm32f4xx_hal.h>  // Sets up the correct chip specifc defines required by arm_math
 // This is the callback from the ADC that we expect after the PWM has triggered an ADC conversion.
 // Timing diagram: Firmware/timing_diagram_v3.png
+static float this_sample_time = 0;
+static float last_sample_time = 0;
 void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     Axis& axis = *axes[0];
     
 #define calib_tau 0.2f  //@TOTO make more easily configurable
     constexpr float calib_filter_k = CURRENT_MEAS_PERIOD / calib_tau;
+    
 
+    this_sample_time = 2 * htim13.Instance->CNT;
+    axis.motor_.timing_log_[TIMING_LOG_ADC_CB_I] = (8400.f+this_sample_time - last_sample_time);
+   // current_meas_period = CURRENT_MEAS_PERIOD * (8400.f+this_sample_time - last_sample_time)/8400.0f;  
+    last_sample_time = this_sample_time;   
+   // HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_0);
     // Ensure ADCs are expected ones to simplify the logic below
     if (!(hadc == &hadc2 || hadc == &hadc3)) {
         low_level_fault(Motor::ERROR_ADC_FAILED);
@@ -546,13 +564,12 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     // If we are counting down, we just sampled in SVM vector 7, with zero current
     
     int axis_num = 0;
-
     axis.encoder_.abs_start_transaction();
     vbus_sense_adc_cb(&hadc1,true);
     
     // Check the timing of the sequencing
      
-axis.motor_.log_timing(TIMING_LOG_ADC_CB_I);
+    
 
     bool update_timings = true;
 
@@ -572,13 +589,18 @@ axis.motor_.log_timing(TIMING_LOG_ADC_CB_I);
     axis.motor_.current_meas_.phB = current_b - axis.motor_.DC_calib_.phB;
     axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
 
-
-
-
-    axis.signal_current_meas();
+   NVIC->STIR = ControlLoop_IRQn;
    
       
 }
+
+void send_notification(void)
+{
+    Axis& axis = *axes[0];
+    axis.signal_current_meas(); 
+}
+
+
 
 void tim_update_cb(TIM_HandleTypeDef* htim) {
     
