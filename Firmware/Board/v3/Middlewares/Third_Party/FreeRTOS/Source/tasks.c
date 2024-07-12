@@ -4457,7 +4457,6 @@ TickType_t uxReturn;
 	UBaseType_t uxSavedInterruptStatus;
 
 		configASSERT( xTaskToNotify );
-HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET); //用于485 ，丑陋的代码
 		/* RTOS ports that support interrupt nesting have the concept of a
 		maximum	system call (or maximum API call) interrupt priority.
 		Interrupts that are	above the maximum system call priority are keep

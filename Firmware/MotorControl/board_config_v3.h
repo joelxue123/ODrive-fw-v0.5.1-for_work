@@ -37,7 +37,8 @@ typedef struct {
     uint16_t hallB_pin;
     GPIO_TypeDef* hallC_port;
     uint16_t hallC_pin;
-    SPI_HandleTypeDef* spi;
+    SPI_HandleTypeDef* motor_spi;
+    SPI_HandleTypeDef* GearboxOutputEncoder_spi;
   //  UART_HandleTypeDef *uart;
 
 } EncoderHardwareConfig_t;
@@ -85,15 +86,16 @@ const BoardHardwareConfig_t hw_configs[2] = { {
     },
     .encoder_config = {
         .timer = &htim3,
-        .index_port = M0_ENC_Z_GPIO_Port,
-        .index_pin = M0_ENC_Z_Pin,
-        .hallA_port = M0_ENC_A_GPIO_Port,
-        .hallA_pin = M0_ENC_A_Pin,
-        .hallB_port = M0_ENC_B_GPIO_Port,
-        .hallB_pin = M0_ENC_B_Pin,
-        .hallC_port = M0_ENC_Z_GPIO_Port,
-        .hallC_pin = M0_ENC_Z_Pin,
-        .spi = &hspi3,
+        .index_port = GPIO_3_GPIO_Port,
+        .index_pin = GPIO_3_Pin,
+        .hallA_port = GPIO_3_GPIO_Port,
+        .hallA_pin = GPIO_3_Pin,
+        .hallB_port = GPIO_3_GPIO_Port,
+        .hallB_pin = GPIO_3_Pin,
+        .hallC_port = GPIO_3_GPIO_Port,
+        .hallC_pin = GPIO_3_Pin,
+        .motor_spi = &hspi3,
+        .GearboxOutputEncoder_spi = &hspi1,
     //    .uart = &huart4,
     },
     .motor_config = {
@@ -130,15 +132,15 @@ const BoardHardwareConfig_t hw_configs[2] = { {
     },
     .encoder_config = {
         .timer = &htim4,
-        .index_port = M1_ENC_Z_GPIO_Port,
-        .index_pin = M1_ENC_Z_Pin,
-        .hallA_port = M1_ENC_A_GPIO_Port,
-        .hallA_pin = M1_ENC_A_Pin,
-        .hallB_port = M1_ENC_B_GPIO_Port,
-        .hallB_pin = M1_ENC_B_Pin,
-        .hallC_port = M1_ENC_Z_GPIO_Port,
-        .hallC_pin = M1_ENC_Z_Pin,
-        .spi = &hspi3,
+        .index_port = GPIO_3_GPIO_Port,
+        .index_pin = GPIO_3_Pin,
+        .hallA_port = GPIO_3_GPIO_Port,
+        .hallA_pin = GPIO_3_Pin,
+        .hallB_port = GPIO_3_GPIO_Port,
+        .hallB_pin = GPIO_3_Pin,
+        .hallC_port = GPIO_3_GPIO_Port,
+        .hallC_pin = GPIO_3_Pin,
+        .motor_spi = &hspi3,
     },
     .motor_config = {
         .timer = &htim8,
@@ -159,8 +161,8 @@ const BoardHardwareConfig_t hw_configs[2] = { {
         // Note: this board has the EN_Gate pin shared!
         .enable_port = EN_GATE_GPIO_Port,
         .enable_pin = EN_GATE_Pin,
-        .nCS_port = M1_nCS_GPIO_Port,
-        .nCS_pin = M1_nCS_Pin,
+        .nCS_port = M0_nCS_GPIO_Port,
+        .nCS_pin = M0_nCS_Pin,
         .nFAULT_port = nFAULT_GPIO_Port, // the nFAULT pin is shared between both motors
         .nFAULT_pin = nFAULT_Pin,
     }

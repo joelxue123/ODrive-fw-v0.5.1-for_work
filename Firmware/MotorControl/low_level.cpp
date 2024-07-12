@@ -228,7 +228,7 @@ void start_adc_pwm() {
 
     // Motor output starts in the disabled state
     __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(&htim1);
-
+    __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(&htim8);
     // Enable the update interrupt (used to coherently sample GPIO)
     __HAL_TIM_ENABLE_IT(&htim1, TIM_IT_UPDATE);
     __HAL_TIM_ENABLE_IT(&htim8, TIM_IT_UPDATE);
@@ -243,7 +243,6 @@ void start_adc_pwm() {
 
     safety_critical_disarm_motor_pwm(axes[0]->motor_);
     safety_critical_disarm_motor_pwm(axes[1]->motor_);
-    __HAL_TIM_MOE_ENABLE(&htim8); 
     safety_critical_arm_brake_resistor();
 }
 
@@ -461,12 +460,45 @@ float get_adc_voltage_channel(uint16_t channel)
 //--------------------------------
 // IRQ Callbacks
 //--------------------------------
+#define FILTER_SIZE 32
+struct filter_st {
+    int32_t filter_data[FILTER_SIZE];
+    int32_t filter_index; // 索引不需要初始化，因为它将在函数中初始化
+    int32_t filtered_value; // 滤波值不需要初始化
+    int32_t sum; // 总和不需要初始化
+};
+
+struct filter_st dc_current_b, dc_current_c,vbus_voltage_filter; // 两个滤波器实例
+
+
+void smooth_filter(uint32_t new_sample, struct filter_st *dc_current) {
+    // 从结构体中获取当前的总和和索引
+    int32_t sum = dc_current->sum;
+    int32_t *filter_data = dc_current->filter_data;
+    int32_t filter_index = dc_current->filter_index;
+
+    // 移除最老的样本，并添加新的样本
+    sum -= filter_data[filter_index]; // 减去最老的样本
+    sum += new_sample; // 加上新的样本
+    filter_data[filter_index] = new_sample; // 更新数组
+
+    // 计算索引以循环使用数组
+    filter_index = (filter_index + 1) % FILTER_SIZE;
+    dc_current->filter_index = filter_index; // 修复了遗漏的分号
+
+    // 计算平均值作为滤波结果
+    dc_current->filtered_value = sum / FILTER_SIZE;
+
+    // 更新总和
+    dc_current->sum = sum;
+}
 
 void vbus_sense_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     constexpr float voltage_scale = adc_ref_voltage * VBUS_S_DIVIDER_RATIO / adc_full_scale;
     // Only one conversion in sequence, so only rank1
     uint32_t ADCValue = HAL_ADCEx_InjectedGetValue(hadc, ADC_INJECTED_RANK_1);
-    vbus_voltage = ADCValue * voltage_scale;
+    smooth_filter(ADCValue , &vbus_voltage_filter);
+    vbus_voltage = vbus_voltage_filter.filtered_value * voltage_scale;
 }
 
 static void decode_hall_samples(Encoder& enc, uint16_t GPIO_samples[num_GPIO]) {
@@ -498,41 +530,14 @@ static void decode_hall_samples(Encoder& enc, uint16_t GPIO_samples[num_GPIO]) {
     enc.hall_state_ = hall_state;
 }
 
-#define FILTER_SIZE 32
+
 
 // 用于存储最近的数据点的数组
 
-struct filter_st {
-    int32_t filter_data[FILTER_SIZE];
-    int32_t filter_index; // 索引不需要初始化，因为它将在函数中初始化
-    int32_t filtered_value; // 滤波值不需要初始化
-    int32_t sum; // 总和不需要初始化
-};
 
-struct filter_st dc_current_b, dc_current_c; // 两个滤波器实例
 
 // 函数：平滑滤波处理
-void smooth_filter(uint32_t new_sample, struct filter_st *dc_current) {
-    // 从结构体中获取当前的总和和索引
-    int32_t sum = dc_current->sum;
-    int32_t *filter_data = dc_current->filter_data;
-    int32_t filter_index = dc_current->filter_index;
 
-    // 移除最老的样本，并添加新的样本
-    sum -= filter_data[filter_index]; // 减去最老的样本
-    sum += new_sample; // 加上新的样本
-    filter_data[filter_index] = new_sample; // 更新数组
-
-    // 计算索引以循环使用数组
-    filter_index = (filter_index + 1) % FILTER_SIZE;
-    dc_current->filter_index = filter_index; // 修复了遗漏的分号
-
-    // 计算平均值作为滤波结果
-    dc_current->filtered_value = sum / FILTER_SIZE;
-
-    // 更新总和
-    dc_current->sum = sum;
-}
 
 #include <stm32f405xx.h>
 #include <stm32f4xx_hal.h>  // Sets up the correct chip specifc defines required by arm_math

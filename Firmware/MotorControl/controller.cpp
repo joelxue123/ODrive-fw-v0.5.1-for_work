@@ -132,7 +132,6 @@ bool Controller::update(float* torque_setpoint_output) {
         // non-blocking
         anticogging_calibration(axis_->encoder_.pos_estimate_, axis_->encoder_.vel_estimate_);
     }
-    HAL_GPIO_WritePin(GPIOA, GPIO_PIN_2, GPIO_PIN_RESET); //用于485
     // TODO also enable circular deltas for 2nd order filter, etc.
     if (config_.circular_setpoints) {
         // Keep pos setpoint from drifting

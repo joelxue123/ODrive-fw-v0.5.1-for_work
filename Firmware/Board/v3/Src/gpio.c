@@ -78,21 +78,6 @@
 
 
 
-void soft_exit()
-{
-  uint32_t position = 0;
-  uint32_t ioposition = 0x00U;
-  uint32_t iocurrent = 0x00U;
-  uint32_t temp = 0x00U;
-
-      /* Enable SYSCFG Clock */
-      __HAL_RCC_SYSCFG_CLK_ENABLE();
-
-      EXTI->IMR |= 1<<0;
-      EXTI->EMR |= 1<<0;
-
-
-}
 void MX_GPIO_Init(void)
 {
 
@@ -106,29 +91,21 @@ void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOC, M0_nCS_Pin|M1_nCS_Pin, GPIO_PIN_SET);
+  HAL_GPIO_WritePin(M0_nCS_GPIO_Port, M0_nCS_Pin, GPIO_PIN_SET);
 
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(EN_GATE_GPIO_Port, EN_GATE_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pins : PCPin PCPin */
-  GPIO_InitStruct.Pin = M0_nCS_Pin|M1_nCS_Pin;
+  GPIO_InitStruct.Pin = M0_nCS_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
+  HAL_GPIO_Init(M0_nCS_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PCPin PCPin PCPin */
-  GPIO_InitStruct.Pin = M1_ENC_Z_Pin|GPIO_5_Pin|M0_ENC_Z_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-  /*Configure GPIO pins : PBPin PBPin */
-  GPIO_InitStruct.Pin = GPIO_6_Pin|GPIO_8_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+
+
 
   /*Configure GPIO pin : PtPin */
   GPIO_InitStruct.Pin = EN_GATE_Pin;
@@ -137,11 +114,7 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(EN_GATE_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : PtPin */
-  GPIO_InitStruct.Pin = GPIO_7_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_INPUT;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  HAL_GPIO_Init(GPIO_7_GPIO_Port, &GPIO_InitStruct);
+
 
   /*Configure GPIO pin : PtPin */
   GPIO_InitStruct.Pin = nFAULT_Pin;
@@ -149,7 +122,6 @@ void MX_GPIO_Init(void)
   GPIO_InitStruct.Pull = GPIO_PULLUP;
   HAL_GPIO_Init(nFAULT_GPIO_Port, &GPIO_InitStruct);
   
-soft_exit();
 }
 
 /* USER CODE BEGIN 2 */

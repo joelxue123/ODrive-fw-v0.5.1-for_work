@@ -62,7 +62,7 @@
 /* USER CODE END Includes */
 
 extern SPI_HandleTypeDef hspi3;
-
+extern SPI_HandleTypeDef hspi1;
 /* USER CODE BEGIN Private defines */
 
 /* USER CODE END Private defines */
@@ -70,7 +70,8 @@ extern SPI_HandleTypeDef hspi3;
 extern void _Error_Handler(char *, int);
 
 void MX_SPI3_Init(void);
-
+void MX_SPI1_Init(void);
+void transmit_spi(SPI_HandleTypeDef* spiHandle,uint8_t *tx_buf, uint8_t *rx_buf, uint16_t len);
 /* USER CODE BEGIN Prototypes */
 
 /* USER CODE END Prototypes */

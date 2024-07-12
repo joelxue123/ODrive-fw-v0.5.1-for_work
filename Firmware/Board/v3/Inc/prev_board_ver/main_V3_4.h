@@ -53,8 +53,8 @@
 #define AUX_L_GPIO_Port GPIOB
 #define AUX_H_Pin GPIO_PIN_11
 #define AUX_H_GPIO_Port GPIOB
-#define EN_GATE_Pin GPIO_PIN_12
-#define EN_GATE_GPIO_Port GPIOB
+#define EN_GATE_Pin GPIO_PIN_15
+#define EN_GATE_GPIO_Port GPIOA
 #define M0_AL_Pin GPIO_PIN_13
 #define M0_AL_GPIO_Port GPIOB
 #define M0_BL_Pin GPIO_PIN_14
@@ -75,10 +75,8 @@
 #define M0_BH_GPIO_Port GPIOA
 #define M0_CH_Pin GPIO_PIN_10
 #define M0_CH_GPIO_Port GPIOA
-#define M0_ENC_Z_Pin GPIO_PIN_15
-#define M0_ENC_Z_GPIO_Port GPIOA
-#define nFAULT_Pin GPIO_PIN_2
-#define nFAULT_GPIO_Port GPIOD
+#define nFAULT_Pin GPIO_PIN_3
+#define nFAULT_GPIO_Port GPIOB
 #define M1_ENC_Z_Pin GPIO_PIN_3
 #define M1_ENC_Z_GPIO_Port GPIOB
 #define M0_ENC_A_Pin GPIO_PIN_4

@@ -115,14 +115,25 @@ public:
     void abs_485_cs_pin_init();
     uint8_t abs_spi_dma_tx_[4] = {0xA6,0x00,0x00,0x00};
     uint8_t abs_spi_dma_rx_[4];
+
+    uint8_t GearboxOutputEncoder_spi_dma_tx_[4] = {0xA6,0x00,0x00,0x00};
+    uint8_t GearboxOutputEncoder_spi_dma_rx_[4];
+
     uint8_t abs_485_dma_tx_[4] = {0xA6,0x00,0x00,0x00};
     uint8_t abs_485_dma_rx_[7];
 
     bool abs_spi_pos_updated_ = false;
     
     Mode mode_ = MODE_INCREMENTAL;
-    GPIO_TypeDef* abs_spi_cs_port_;
-    uint16_t abs_spi_cs_pin_;
+
+    GPIO_TypeDef* motor_spi_cs_port_;
+    uint16_t motor_spi_cs_pin_;
+
+    GPIO_TypeDef* GearboxOutputEncoder_spi_cs_port_;
+    uint16_t GearboxOutputEncoder_spi_cs_pin_;
+
+
+
     uint32_t abs_spi_cr1;
     uint32_t abs_spi_cr2;
   

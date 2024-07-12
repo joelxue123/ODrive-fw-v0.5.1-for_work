@@ -185,12 +185,12 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
     PC5     ------> ADC1_IN15 
     */
     GPIO_InitStruct.Pin = M0_IB_Pin|M0_IC_Pin|M1_IC_Pin|M1_IB_Pin 
-                          |AUX_TEMP_Pin|M0_TEMP_Pin;
+                          |AUX_TEMP_Pin|M0_TEMP_Pin|VBUS_S_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = M1_TEMP_Pin|AUX_I_Pin|VBUS_S_Pin;
+    GPIO_InitStruct.Pin = M1_TEMP_Pin|AUX_I_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -241,12 +241,12 @@ void HAL_ADC_MspInit(ADC_HandleTypeDef* adcHandle)
     PC5     ------> ADC2_IN15 
     */
     GPIO_InitStruct.Pin = M0_IB_Pin|M0_IC_Pin|M1_IC_Pin|M1_IB_Pin 
-                          |AUX_TEMP_Pin|M0_TEMP_Pin;
+                          |AUX_TEMP_Pin|M0_TEMP_Pin|VBUS_S_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
-    GPIO_InitStruct.Pin = M1_TEMP_Pin|AUX_I_Pin|VBUS_S_Pin;
+    GPIO_InitStruct.Pin = M1_TEMP_Pin|AUX_I_Pin;
     GPIO_InitStruct.Mode = GPIO_MODE_ANALOG;
     GPIO_InitStruct.Pull = GPIO_NOPULL;
     HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
@@ -309,9 +309,9 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
     PC5     ------> ADC1_IN15 
     */
     HAL_GPIO_DeInit(GPIOC, M0_IB_Pin|M0_IC_Pin|M1_IC_Pin|M1_IB_Pin 
-                          |AUX_TEMP_Pin|M0_TEMP_Pin);
+                          |AUX_TEMP_Pin|M0_TEMP_Pin|VBUS_S_Pin);
 
-    HAL_GPIO_DeInit(GPIOA, M1_TEMP_Pin|AUX_I_Pin|VBUS_S_Pin);
+    HAL_GPIO_DeInit(GPIOA, M1_TEMP_Pin|AUX_I_Pin);
 
     /* ADC1 interrupt Deinit */
   /* USER CODE BEGIN ADC1:ADC_IRQn disable */
@@ -346,9 +346,9 @@ void HAL_ADC_MspDeInit(ADC_HandleTypeDef* adcHandle)
     PC5     ------> ADC2_IN15 
     */
     HAL_GPIO_DeInit(GPIOC, M0_IB_Pin|M0_IC_Pin|M1_IC_Pin|M1_IB_Pin 
-                          |AUX_TEMP_Pin|M0_TEMP_Pin);
+                          |AUX_TEMP_Pin|M0_TEMP_Pin|VBUS_S_Pin);
 
-    HAL_GPIO_DeInit(GPIOA, M1_TEMP_Pin|AUX_I_Pin|VBUS_S_Pin);
+    HAL_GPIO_DeInit(GPIOA, M1_TEMP_Pin|AUX_I_Pin);
 
     /* ADC2 interrupt Deinit */
   /* USER CODE BEGIN ADC2:ADC_IRQn disable */

@@ -86,6 +86,7 @@ void MX_DMA_Init(void)
   HAL_NVIC_SetPriority(DMA1_Stream5_IRQn, 6, 0);
   HAL_NVIC_EnableIRQ(DMA1_Stream5_IRQn);
 
+  /* DMA2_Stream0_IRQn interrupt configuration */
 
   
   HAL_NVIC_SetPriority(ControlLoop_IRQn, 5, 0);
@@ -93,8 +94,11 @@ void MX_DMA_Init(void)
   /* DMA2_Stream0_IRQn interrupt configuration */
   // Dear STM, no we _don't_ want to fire an interrupt for this DMA
   // (it's not possible to deselect this in CubeMX)
-  //HAL_NVIC_SetPriority(DMA2_Stream0_IRQn, 5, 0);
-  //HAL_NVIC_EnableIRQ(DMA2_Stream0_IRQn);
+  HAL_NVIC_SetPriority(DMA2_Stream2_IRQn, 6, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream2_IRQn);
+  HAL_NVIC_SetPriority(DMA2_Stream3_IRQn, 6, 0);
+  HAL_NVIC_EnableIRQ(DMA2_Stream3_IRQn);
+
 
 }
 

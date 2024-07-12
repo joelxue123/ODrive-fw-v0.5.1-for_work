@@ -333,7 +333,7 @@ bool Encoder::abs_spi_init(){
     if ((mode_ & MODE_FLAG_ABS) == 0x0)
         return false;
 
-    SPI_HandleTypeDef * spi = hw_config_.spi;
+    SPI_HandleTypeDef * spi = hw_config_.motor_spi;
     spi->Init.Mode = SPI_MODE_MASTER;
     spi->Init.Direction = SPI_DIRECTION_2LINES;
     spi->Init.DataSize = SPI_DATASIZE_8BIT;
@@ -350,6 +350,26 @@ bool Encoder::abs_spi_init(){
     }
     HAL_SPI_DeInit(spi);
     HAL_SPI_Init(spi);
+
+    spi = hw_config_.GearboxOutputEncoder_spi;
+    spi->Init.Mode = SPI_MODE_MASTER;
+    spi->Init.Direction = SPI_DIRECTION_2LINES;
+    spi->Init.DataSize = SPI_DATASIZE_8BIT;
+    spi->Init.CLKPolarity = SPI_POLARITY_HIGH;
+    spi->Init.CLKPhase = SPI_PHASE_2EDGE;
+    spi->Init.NSS = SPI_NSS_SOFT;
+    spi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+    spi->Init.FirstBit = SPI_FIRSTBIT_MSB;
+    spi->Init.TIMode = SPI_TIMODE_DISABLE;
+    spi->Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
+    spi->Init.CRCPolynomial = 7;
+    if (mode_ == MODE_SPI_ABS_AEAT) {
+        spi->Init.CLKPolarity = SPI_POLARITY_HIGH;
+    }
+    HAL_SPI_DeInit(spi);
+    HAL_SPI_Init(spi);
+    __HAL_SPI_ENABLE(spi);
+
     return true;
 }
 
@@ -441,12 +461,16 @@ bool Encoder::abs_485_start_transaction(){
 bool Encoder::abs_spi_start_transaction(){
     if (mode_ & MODE_FLAG_ABS){
         axis_->motor_.log_timing(TIMING_LOG_SPI_START);
-        if(hw_config_.spi->State != HAL_SPI_STATE_READY){
+        if(hw_config_.motor_spi->State != HAL_SPI_STATE_READY){  
             set_error(ERROR_ABS_SPI_NOT_READY);
             return false;
         }
-        HAL_GPIO_WritePin(abs_spi_cs_port_, abs_spi_cs_pin_, GPIO_PIN_RESET);
-        HAL_SPI_TransmitReceive_DMA(hw_config_.spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
+        HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_, GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_RESET);
+      //  HAL_SPI_TransmitReceive_DMA(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 3);
+      transmit_spi(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 4);
+        HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_RESET);
+        HAL_SPI_TransmitReceive_DMA(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
+        
     }
     return true;
 }
@@ -467,8 +491,8 @@ uint8_t cui_parity(uint16_t v) {
 }
 
 void Encoder::abs_spi_cb(){
-    HAL_GPIO_WritePin(abs_spi_cs_port_, abs_spi_cs_pin_, GPIO_PIN_SET);
-
+    HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_, GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_SET);
     axis_->motor_.log_timing(TIMING_LOG_SPI_END);
 
     uint32_t pos;
@@ -497,7 +521,8 @@ void Encoder::abs_spi_cb(){
           //  pos = (rawVal >> 2) & 0x3fff;
           uint32_t rawVal = *(uint32_t *)&abs_spi_dma_rx_[0];
           pos = ((rawVal & 0x0000ff00)) | ( (rawVal & 0x00ff0000)>>16 ) ;
-
+          rawVal = *(uint32_t *)&GearboxOutputEncoder_spi_dma_rx_[0];
+          sencond_pos_abs_ =  ((rawVal & 0x0000ff00)<<8) | ( (rawVal & 0x00ff0000)>>8 )| ( (rawVal & 0xff000000)>>24 )  ;
         } break;
 
         default: {
@@ -515,20 +540,26 @@ void Encoder::abs_spi_cb(){
 
 void Encoder::abs_spi_cs_pin_init(){
     // Decode cs pin
-    abs_spi_cs_port_ = get_gpio_port_by_pin(config_.abs_spi_cs_gpio_pin);
-    abs_spi_cs_pin_ = get_gpio_pin_by_pin(config_.abs_spi_cs_gpio_pin);
-
+    motor_spi_cs_port_ = MU128_1_GPIO_Port;
+    motor_spi_cs_pin_ = MU128_1_Pin;
+    GearboxOutputEncoder_spi_cs_port_ = MU128_2_GPIO_Port;
+    GearboxOutputEncoder_spi_cs_pin_ = MU128_2_Pin;
     // Init cs pin
-    HAL_GPIO_DeInit(abs_spi_cs_port_, abs_spi_cs_pin_);
+    HAL_GPIO_DeInit(motor_spi_cs_port_, motor_spi_cs_pin_);
+    HAL_GPIO_DeInit(GearboxOutputEncoder_spi_cs_port_, GearboxOutputEncoder_spi_cs_pin_);
     GPIO_InitTypeDef GPIO_InitStruct;
-    GPIO_InitStruct.Pin = abs_spi_cs_pin_;
+    GPIO_InitStruct.Pin = motor_spi_cs_pin_;
     GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
     GPIO_InitStruct.Pull = GPIO_PULLUP;
     GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-    HAL_GPIO_Init(abs_spi_cs_port_, &GPIO_InitStruct);
+    HAL_GPIO_Init(motor_spi_cs_port_, &GPIO_InitStruct);
+
+    GPIO_InitStruct.Pin = GearboxOutputEncoder_spi_cs_pin_;
+    HAL_GPIO_Init(GearboxOutputEncoder_spi_cs_port_, &GPIO_InitStruct);
 
     // Write pin high
-    HAL_GPIO_WritePin(abs_spi_cs_port_, abs_spi_cs_pin_, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_, GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_SET);
 }
 static int local_spin_pos = 0;
 static float local_spin_pos_f = 0;
