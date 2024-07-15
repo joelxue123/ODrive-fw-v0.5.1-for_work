@@ -216,7 +216,7 @@ bool Axis::do_updates() {
     max_endstop_.update();
     #endif
     bool ret = check_for_errors();
-    odCAN->send_heartbeat(this);
+   // odCAN->send_heartbeat(this);
     return ret;
 }
 
