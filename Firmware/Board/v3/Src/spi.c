@@ -148,6 +148,7 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
     GPIO_InitStruct.Alternate = GPIO_AF6_SPI3;
     HAL_GPIO_Init(GPIOC, &GPIO_InitStruct);
 
+
     /* SPI3 DMA Init */
     /* SPI3_TX Init */
     hdma_spi3_tx.Instance = DMA1_Stream5;
@@ -198,8 +199,13 @@ void HAL_SPI_MspInit(SPI_HandleTypeDef* spiHandle)
     __HAL_LINKDMA(spiHandle,hdmarx,hdma_spi3_rx);
 
     /* SPI3 interrupt Init */
-    HAL_NVIC_SetPriority(SPI3_IRQn, 6, 0);
-    HAL_NVIC_EnableIRQ(SPI3_IRQn);
+   // HAL_NVIC_SetPriority(SPI3_IRQn, 6, 0);
+   // HAL_NVIC_EnableIRQ(SPI3_IRQn);
+
+
+
+    
+
   /* USER CODE BEGIN SPI3_MspInit 1 */
 
   /* USER CODE END SPI3_MspInit 1 */
@@ -310,6 +316,10 @@ void transmit_spi(SPI_HandleTypeDef* spiHandle,uint8_t *tx_buf, uint8_t *rx_buf,
     __HAL_DMA_DISABLE(spiHandle->hdmarx);
     __HAL_DMA_CLEAR_FLAG(spiHandle->hdmatx,DMA_FLAG_TCIF3_7|DMA_FLAG_TEIF3_7|DMA_FLAG_HTIF3_7);
     __HAL_DMA_CLEAR_FLAG(spiHandle->hdmarx,DMA_FLAG_TCIF2_6 |DMA_FLAG_TEIF2_6|DMA_FLAG_HTIF2_6);
+
+    __HAL_DMA_CLEAR_FLAG(spiHandle->hdmarx,DMA_FLAG_TCIF0_4|DMA_FLAG_TEIF0_4|DMA_FLAG_HTIF0_4|DMA_FLAG_FEIF0_4);
+    __HAL_DMA_CLEAR_FLAG(spiHandle->hdmatx,DMA_FLAG_TCIF1_5 |DMA_FLAG_TEIF1_5|DMA_FLAG_HTIF1_5|DMA_FLAG_FEIF1_5);
+
     SET_BIT(spiHandle->Instance->CR2, SPI_CR2_RXDMAEN);
     SET_BIT(spiHandle->Instance->CR2, SPI_CR2_TXDMAEN);
     DMA_SetConfig(spiHandle->hdmatx, (uint32_t)tx_buf, (uint32_t)&spiHandle->Instance->DR, len);

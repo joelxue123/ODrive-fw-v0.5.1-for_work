@@ -350,6 +350,7 @@ bool Encoder::abs_spi_init(){
     }
     HAL_SPI_DeInit(spi);
     HAL_SPI_Init(spi);
+    __HAL_SPI_ENABLE(spi);
 
     spi = hw_config_.GearboxOutputEncoder_spi;
     spi->Init.Mode = SPI_MODE_MASTER;
@@ -422,7 +423,7 @@ bool Encoder::abs_start_transaction(){
     else if(mode_ & MODE_FLAG_ABS)
     {
         abs_spi_start_transaction();
-        abs_spi_pos_updated_ = false;
+        //abs_spi_pos_updated_ = false;
     }
     else
     {
@@ -465,11 +466,14 @@ bool Encoder::abs_spi_start_transaction(){
             set_error(ERROR_ABS_SPI_NOT_READY);
             return false;
         }
-        HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_, GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_RESET);
-      //  HAL_SPI_TransmitReceive_DMA(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 3);
-      transmit_spi(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 4);
         HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_RESET);
-        HAL_SPI_TransmitReceive_DMA(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
+        HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_, GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_RESET);
+        
+      //  HAL_SPI_TransmitReceive_DMA(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 3);
+        transmit_spi(hw_config_.motor_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 4);
+        
+      //  HAL_SPI_TransmitReceive_DMA(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
+        transmit_spi(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3); 
         
     }
     return true;
@@ -606,6 +610,13 @@ bool Encoder::update() {
         case MODE_SPI_ABS_AMS:
         case MODE_SPI_ABS_CUI: 
         case MODE_SPI_ABS_AEAT: {
+            HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_SET);
+            HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_, GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_SET);
+            uint32_t rawVal = *(uint32_t *)&abs_spi_dma_rx_[0];
+            pos_abs_  = ((rawVal & 0x0000ff00)) | ( (rawVal & 0x00ff0000)>>16 ) ;
+            rawVal = *(uint32_t *)&GearboxOutputEncoder_spi_dma_rx_[0];
+            sencond_pos_abs_ =  ((rawVal & 0x0000ff00)<<8) | ( (rawVal & 0x00ff0000)>>8 )| ( (rawVal & 0xff000000)>>24 )  ;
+            abs_spi_pos_updated_ = true;
             if (abs_spi_pos_updated_ == false) {
                 // Low pass filter the error
                 spi_error_rate_ += current_meas_period * (1.0f - spi_error_rate_);
