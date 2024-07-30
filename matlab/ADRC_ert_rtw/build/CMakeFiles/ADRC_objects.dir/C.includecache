@@ -1,0 +1,24 @@
+#IncludeRegexLine: ^[ 	]*[#%][ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+C:/Users/82057/Desktop/2024-5-8/matlab/ADRC_ert_rtw/ADRC.c
+ADRC.h
+C:/Users/82057/Desktop/2024-5-8/matlab/ADRC_ert_rtw/ADRC.h
+rtwtypes.h
+C:/Users/82057/Desktop/2024-5-8/matlab/ADRC_ert_rtw/rtwtypes.h
+
+C:/Users/82057/Desktop/2024-5-8/matlab/ADRC_ert_rtw/ADRC.h
+rtwtypes.h
+C:/Users/82057/Desktop/2024-5-8/matlab/ADRC_ert_rtw/rtwtypes.h
+ADRC_types.h
+C:/Users/82057/Desktop/2024-5-8/matlab/ADRC_ert_rtw/ADRC_types.h
+
+C:/Users/82057/Desktop/2024-5-8/matlab/ADRC_ert_rtw/ADRC_types.h
+
+C:/Users/82057/Desktop/2024-5-8/matlab/ADRC_ert_rtw/rtwtypes.h
+
