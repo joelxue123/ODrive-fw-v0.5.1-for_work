@@ -973,6 +973,7 @@ valuetypes:
       TorqueControl:
       VelocityControl:
       PositionControl:
+      PvtControl:
 
   ODrive.Controller.InputMode:
     values:

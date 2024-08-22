@@ -23,6 +23,8 @@ public:
         InputMode input_mode = INPUT_MODE_PASSTHROUGH;             //see: InputMode_t
         float pos_gain = 20.0f;                  // [(turn/s) / turn]
         float vel_gain = 1.0f / 6.0f;            // [Nm/(turn/s)]
+        float kp;
+        float kd;
         // float vel_gain = 0.2f / 200.0f,       // [Nm/(rad/s)] <sensorless example>
         float vel_integrator_gain = 2.0f / 6.0f; // [Nm/(turn/s * s)]
         float vel_limit = 2.0f;                  // [turn/s] Infinity to disable.
@@ -103,6 +105,8 @@ public:
 
     // custom setters
     void set_input_pos(float value) { input_pos_ = value; input_pos_updated(); }
+    void update_pvt_parm(int16_t kp, int16_t kd, int16_t pos_setpoint_output, int16_t vel_setpoint_output, int16_t torque_setpoint_output);
+
 
 };
 
