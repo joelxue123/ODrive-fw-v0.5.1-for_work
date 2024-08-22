@@ -107,6 +107,14 @@ void Controller::update_filter_gains() {
     input_filter_ki_ = 2.0f * bandwidth;  // basic conversion to discrete time
     input_filter_kp_ = 0.25f * (input_filter_ki_ * input_filter_ki_); // Critically damped
 }
+void Controller:: update_pvt_parm(int16_t kp, int16_t kd, int16_t pos_setpoint_output, int16_t vel_setpoint_output, int16_t torque_setpoint_output)
+{
+    config_.kp = kp;
+    config_.kd = kd;
+    pos_setpoint_ = pos_setpoint_output;
+    vel_setpoint_ = vel_setpoint_output;
+    input_torque_ = torque_setpoint_output;
+}
 
 static float limitVel(const float vel_limit, const float vel_estimate, const float vel_gain, const float torque) {
     float Tmax = (vel_limit - vel_estimate) * vel_gain;
@@ -115,6 +123,10 @@ static float limitVel(const float vel_limit, const float vel_estimate, const flo
 }
 
 bool Controller::update(float* torque_setpoint_output) {
+
+    float torque =0;
+    bool limited = false;
+
     float* pos_estimate_linear = (pos_estimate_valid_src_ && *pos_estimate_valid_src_)
             ? pos_estimate_linear_src_ : nullptr;
     float* pos_estimate_circular = (pos_estimate_valid_src_ && *pos_estimate_valid_src_)
@@ -136,6 +148,27 @@ bool Controller::update(float* torque_setpoint_output) {
     if (config_.circular_setpoints) {
         // Keep pos setpoint from drifting
         input_pos_ = fmodf_pos(input_pos_, config_.circular_setpoint_range);
+    }
+
+    if( CONTROL_MODE_PVT_CONTROL == config_.control_mode )
+    {
+        float kp = config_.kp;
+        float kd = config_.kd;
+        torque = kp*(pos_setpoint_ - *pos_estimate_circular) + input_torque_ + kd*(vel_setpoint_ - *vel_estimate_src);
+
+        // Torque limiting
+        
+        float Tlim = axis_->motor_.max_available_torque();
+        if (torque > Tlim) {
+            limited = true;
+            torque = Tlim;
+        }
+        if (torque < -Tlim) {
+            limited = true;
+            torque = -Tlim;
+        }
+        if (torque_setpoint_output) *torque_setpoint_output = torque;
+        return true;
     }
 
     // Update inputs
@@ -283,7 +316,7 @@ bool Controller::update(float* torque_setpoint_output) {
     }
 
     // Velocity control
-    float torque = torque_setpoint_;
+    torque = torque_setpoint_;
 
     // Anti-cogging is enabled after calibration
     // We get the current position and apply a current feed-forward
@@ -315,17 +348,7 @@ bool Controller::update(float* torque_setpoint_output) {
         torque = limitVel(config_.vel_limit, *vel_estimate_src, vel_gain, torque);
     }
 
-    // Torque limiting
-    bool limited = false;
-    float Tlim = axis_->motor_.max_available_torque();
-    if (torque > Tlim) {
-        limited = true;
-        torque = Tlim;
-    }
-    if (torque < -Tlim) {
-        limited = true;
-        torque = -Tlim;
-    }
+
 
     // Velocity integrator (behaviour dependent on limiting)
     if (config_.control_mode < CONTROL_MODE_VELOCITY_CONTROL) {
@@ -340,6 +363,17 @@ bool Controller::update(float* torque_setpoint_output) {
         }
     }
 
+    // Torque limiting
+
+    float Tlim = axis_->motor_.max_available_torque();
+    if (torque > Tlim) {
+        limited = true;
+        torque = Tlim;
+    }
+    if (torque < -Tlim) {
+        limited = true;
+        torque = -Tlim;
+    }
     if (torque_setpoint_output) *torque_setpoint_output = torque;
     return true;
 }
