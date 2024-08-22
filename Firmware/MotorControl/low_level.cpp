@@ -537,11 +537,7 @@ static void decode_hall_samples(Encoder& enc, uint16_t GPIO_samples[num_GPIO]) {
 
 
 // 函数：平滑滤波处理
-int16_t adc2_data[1024];
-int16_t adc3_data[1024];
 
-#define ADC_INDEX_MAX 1024 
-volatile uint16_t adc_index = 0;
 
 #include <stm32f405xx.h>
 #include <stm32f4xx_hal.h>  // Sets up the correct chip specifc defines required by arm_math
@@ -560,6 +556,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     axis.motor_.timing_log_[TIMING_LOG_ADC_CB_I] = (8400.f+this_sample_time - last_sample_time);
    // current_meas_period = CURRENT_MEAS_PERIOD * (8400.f+this_sample_time - last_sample_time)/8400.0f;  
     last_sample_time = this_sample_time;   
+   // HAL_GPIO_TogglePin(GPIOA, GPIO_PIN_0);
     // Ensure ADCs are expected ones to simplify the logic below
     if (!(hadc == &hadc2 || hadc == &hadc3)) {
         low_level_fault(Motor::ERROR_ADC_FAILED);
@@ -598,14 +595,8 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
 
    NVIC->STIR = ControlLoop_IRQn;
-#ifdef ADC_TEST
-   adc2_data[adc_index] = hadc2.Instance->JDR2;
-   adc3_data[adc_index++] = hadc3.Instance->JDR2;
-   if(ADC_INDEX_MAX == adc_index)
-   {
-    adc_index = 0;
-   }
-#endif  
+   
+      
 }
 
 void send_notification(void)
