@@ -16,7 +16,7 @@
 #if HW_VERSION_MINOR <= 3
 #define SHUNT_RESISTANCE (675e-6f)
 #else
-#define SHUNT_RESISTANCE (500e-6f)
+#define SHUNT_RESISTANCE (2000e-6f)
 #endif
 #endif
 
@@ -51,6 +51,7 @@ typedef struct {
     const float* const coeffs;
     size_t num_coeffs;
     size_t adc_ch;
+    size_t aux_temp;
 } ThermistorHardwareConfig_t;
 typedef struct {
     SPI_HandleTypeDef* spi;
@@ -74,7 +75,9 @@ extern const BoardHardwareConfig_t hw_configs[2];
 //TODO stick this in a C file
 #ifdef __MAIN_CPP__
 const float fet_thermistor_poly_coeffs[] =
-    {363.93910201f, -462.15369634f, 307.55129571f, -27.72569531f};
+    {257.61f, -324.08f,  258.34f, -23.12f};  //3300 Ohm
+const float fet_thermistor_poly_coeffs2[] =
+    {447.04f ,-646.84f, 404.97f , -71.47f};  //10000 Ohm
 const size_t fet_thermistor_num_coeffs = sizeof(fet_thermistor_poly_coeffs)/sizeof(fet_thermistor_poly_coeffs[1]);
 
 const BoardHardwareConfig_t hw_configs[2] = { {
@@ -107,6 +110,7 @@ const BoardHardwareConfig_t hw_configs[2] = { {
         .coeffs = &fet_thermistor_poly_coeffs[0],
         .num_coeffs = fet_thermistor_num_coeffs,
         .adc_ch = 15,
+        .aux_temp = 14,
     },
     .gate_driver_config = {
         .spi = &hspi3,

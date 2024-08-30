@@ -84,6 +84,27 @@ static void step_cb_wrapper(void* ctx) {
     reinterpret_cast<Axis*>(ctx)->step_cb();
 }
 
+void Axis::get_axis_state(axis_state_t* state)
+{
+    state->erro = 0;
+    state->pos = encoder_.sencond_pos_abs_;
+    state->vel = encoder_.vel_estimate_;
+    state->cur = motor_.current_control_.Iq_measured;
+    state->motor_temperature = 0;
+    state->mos_temperature = fet_thermistor_.temperature_;
+
+}
+
+void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
+{
+    controller_.config_.kp = axis_pvt_parm->kp;
+    controller_.config_.kd = axis_pvt_parm->kd;
+    controller_.pos_setpoint_ = axis_pvt_parm->pos_setpoint;
+    controller_.vel_setpoint_ = axis_pvt_parm->vel_setpoint;
+    controller_.input_torque_ = axis_pvt_parm->torque_setpoint;
+} 
+
+
 
 // @brief Does Nothing
 void Axis::setup() {

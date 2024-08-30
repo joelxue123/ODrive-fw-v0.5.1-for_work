@@ -51,6 +51,9 @@ public:
         void set_input_filter_bandwidth(float value) { input_filter_bandwidth = value; parent->update_filter_gains(); }
     };
 
+
+    
+
     explicit Controller(Config_t& config);
     void reset();
     void set_error(Error error);
@@ -105,7 +108,7 @@ public:
 
     // custom setters
     void set_input_pos(float value) { input_pos_ = value; input_pos_updated(); }
-    void update_pvt_parm(int16_t kp, int16_t kd, int16_t pos_setpoint_output, int16_t vel_setpoint_output, int16_t torque_setpoint_output);
+    
 
 
 };

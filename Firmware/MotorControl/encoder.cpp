@@ -374,6 +374,38 @@ bool Encoder::abs_spi_init(){
     return true;
 }
 
+
+
+void Encoder::set_spi_enable(void)
+{
+    SPI_HandleTypeDef * spi;
+    if (config_.is_high_speed_encode_query_enabled == true) 
+    {
+        abs_spi_cs_pin_init();
+        abs_spi_init();
+
+    } 
+    else 
+    {
+        
+        spi= hw_config_.motor_spi;
+        HAL_SPI_DeInit(spi);
+        spi = hw_config_.GearboxOutputEncoder_spi;
+        HAL_SPI_DeInit(spi);
+
+        motor_spi_cs_port_ = MU128_1_GPIO_Port;
+        motor_spi_cs_pin_ = MU128_1_Pin;
+        GearboxOutputEncoder_spi_cs_port_ = MU128_2_GPIO_Port;
+        GearboxOutputEncoder_spi_cs_pin_ = MU128_2_Pin;
+        // Init cs pin
+        HAL_GPIO_DeInit(motor_spi_cs_port_, motor_spi_cs_pin_);
+        HAL_GPIO_DeInit(GearboxOutputEncoder_spi_cs_port_, GearboxOutputEncoder_spi_cs_pin_);
+
+    }
+
+
+}
+
 bool Encoder::abs_485_init()
 {
   //UART_HandleTypeDef *encode_uart = &huart4;
@@ -414,7 +446,7 @@ void Encoder::abs_485_cs_pin_init(){
 
 bool Encoder::abs_start_transaction(){
 
-    if(config_.is_high_speed_encode_query_disabled)
+    if(config_.is_high_speed_encode_query_enabled == false)
     return true;
 
     if (mode_ & MODE_FLAG_485_ABS){

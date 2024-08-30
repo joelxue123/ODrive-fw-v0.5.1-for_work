@@ -22,8 +22,8 @@ enum {
 class ODriveCAN : public ODriveIntf::CanIntf {
    public:
     struct Config_t {
-        uint32_t baud_rate = CAN_BAUD_250K;
-        Protocol protocol = PROTOCOL_SIMPLE;
+        uint32_t baud_rate = CAN_BAUD_1M;
+        Protocol protocol = PROTOCOL_ENCOS;
     };
 
     ODriveCAN(ODriveCAN::Config_t &config, CAN_HandleTypeDef *handle);

@@ -10,6 +10,7 @@
 class Motor : public ODriveIntf::MotorIntf {
 public:
     struct Iph_BC_t {
+        float phA;
         float phB;
         float phC;
     };
@@ -137,8 +138,8 @@ public:
     // It is for exclusive use by the safety_critical_... functions.
     ArmedState armed_state_ = ARMED_STATE_DISARMED; 
     bool is_calibrated_ = config_.pre_calibrated;
-    Iph_BC_t current_meas_ = {0.0f, 0.0f};
-    Iph_BC_t DC_calib_ = {0.0f, 0.0f};
+    Iph_BC_t current_meas_ = {0.0f,0.0f, 0.0f};
+    Iph_BC_t DC_calib_ = {0.0f,0.0f, 0.0f};
     float phase_current_rev_gain_ = 0.0f; // Reverse gain for ADC to Amps (to be set by DRV8301_setup)
     CurrentControl_t current_control_ = {
         .p_gain = 0.0f,        // [V/A] should be auto set after resistance and inductance measurement

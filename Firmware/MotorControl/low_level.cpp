@@ -468,7 +468,7 @@ struct filter_st {
     int32_t sum; // 总和不需要初始化
 };
 
-struct filter_st dc_current_b, dc_current_c,vbus_voltage_filter; // 两个滤波器实例
+struct filter_st dc_current_a, dc_current_c,vbus_voltage_filter; // 两个滤波器实例
 
 
 void smooth_filter(uint32_t new_sample, struct filter_st *dc_current) {
@@ -583,19 +583,20 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
 
     // update_brake_current(); todo
     
-    uint32_t ADCValue_dc_b = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_1);
+    uint32_t ADCValue_dc_a = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_1);
     uint32_t ADCValue_dc_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_1);
-    uint32_t ADCValue_b = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_2);
+    uint32_t ADCValue_a = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_2);
     uint32_t ADCValue_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_2);
-    smooth_filter(ADCValue_dc_b, &dc_current_b);
+    smooth_filter(ADCValue_dc_a, &dc_current_a);
     smooth_filter(ADCValue_dc_c, &dc_current_c);
-    float current_b = axis.motor_.phase_current_from_adcval(ADCValue_b);
+    float current_a = axis.motor_.phase_current_from_adcval(ADCValue_a);
     float current_c = axis.motor_.phase_current_from_adcval(ADCValue_c);
-    axis.motor_.DC_calib_.phB = axis.motor_.phase_current_from_adcval(dc_current_b.filtered_value);
+    axis.motor_.DC_calib_.phA = axis.motor_.phase_current_from_adcval(dc_current_a.filtered_value);
     axis.motor_.DC_calib_.phC = axis.motor_.phase_current_from_adcval(dc_current_c.filtered_value);
 
-    axis.motor_.current_meas_.phB = current_b - axis.motor_.DC_calib_.phB;
+    axis.motor_.current_meas_.phA = current_a - axis.motor_.DC_calib_.phA;
     axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
+    axis.motor_.current_meas_.phB =  0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC ;
 
    NVIC->STIR = ControlLoop_IRQn;
 #ifdef ADC_TEST

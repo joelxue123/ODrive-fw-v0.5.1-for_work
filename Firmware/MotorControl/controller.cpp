@@ -107,14 +107,7 @@ void Controller::update_filter_gains() {
     input_filter_ki_ = 2.0f * bandwidth;  // basic conversion to discrete time
     input_filter_kp_ = 0.25f * (input_filter_ki_ * input_filter_ki_); // Critically damped
 }
-void Controller:: update_pvt_parm(int16_t kp, int16_t kd, int16_t pos_setpoint_output, int16_t vel_setpoint_output, int16_t torque_setpoint_output)
-{
-    config_.kp = kp;
-    config_.kd = kd;
-    pos_setpoint_ = pos_setpoint_output;
-    vel_setpoint_ = vel_setpoint_output;
-    input_torque_ = torque_setpoint_output;
-}
+
 
 static float limitVel(const float vel_limit, const float vel_estimate, const float vel_gain, const float torque) {
     float Tmax = (vel_limit - vel_estimate) * vel_gain;
@@ -377,3 +370,4 @@ bool Controller::update(float* torque_setpoint_output) {
     if (torque_setpoint_output) *torque_setpoint_output = torque;
     return true;
 }
+

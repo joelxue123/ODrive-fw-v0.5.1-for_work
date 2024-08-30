@@ -19,7 +19,7 @@ public:
                                     // be determined by run_offset_calibration.
                                     // In this case the encoder will enter ready
                                     // state as soon as the index is found.
-        bool is_high_speed_encode_query_disabled = true;
+        bool is_high_speed_encode_query_enabled = true;
         bool zero_count_on_find_idx = true;
         int32_t cpr = (16384 * 4);   // Default resolution of CUI-AMT102 encoder,
         int32_t offset = 0;        // Offset between encoder count and rotor electrical phase
@@ -45,6 +45,7 @@ public:
         void set_abs_spi_cs_gpio_pin(uint16_t value) { abs_spi_cs_gpio_pin = value; parent->abs_spi_cs_pin_init(); }
         void set_pre_calibrated(bool value) { pre_calibrated = value; parent->check_pre_calibrated(); }
         void set_bandwidth(float value) { bandwidth = value; parent->update_pll_gains(); }
+        void set_is_high_speed_encode_query_enabled (bool value) { is_high_speed_encode_query_enabled = value; parent->set_spi_enable(); }
 
     };
 
@@ -59,7 +60,7 @@ public:
     void set_idx_subscribe(bool override_enable = false);
     void update_pll_gains();
     void check_pre_calibrated();
-
+    void set_spi_enable();
     void set_linear_count(int32_t count);
     void set_circular_count(int32_t count, bool update_offset);
     bool calib_enc_offset(float voltage_magnitude);

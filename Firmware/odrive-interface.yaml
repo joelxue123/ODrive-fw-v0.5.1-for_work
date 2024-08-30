@@ -530,6 +530,7 @@ interfaces:
       is_calibrated: readonly bool
       current_meas_phB: { type: readonly float32, c_name: current_meas_.phB }
       current_meas_phC: { type: readonly float32, c_name: current_meas_.phC }
+      DC_calib_phA: { type: float32, c_name: DC_calib_.phA }
       DC_calib_phB: { type: float32, c_name: DC_calib_.phB }
       DC_calib_phC: { type: float32, c_name: DC_calib_.phC }
       next_timings_1: { type: uint16, c_name: "next_timings_[0]" }
@@ -819,7 +820,7 @@ interfaces:
           abs_spi_cs_gpio_pin:
             { type: uint16, c_setter: set_abs_spi_cs_gpio_pin }
           zero_count_on_find_idx: bool
-          is_high_speed_encode_query_disabled: bool
+          is_high_speed_encode_query_enabled: { type: bool, c_setter: set_is_high_speed_encode_query_enabled }
           cpr: int32
           offset: int32
           pre_calibrated: { type: bool, c_setter: set_pre_calibrated }
@@ -882,7 +883,7 @@ interfaces:
 
 valuetypes:
   ODrive.Can.Protocol:
-    values: { Simple }
+    values: { Simple, Encos }
 
   ODrive.Axis.AxisState: # TODO: remove redundant "Axis" in name
     values:

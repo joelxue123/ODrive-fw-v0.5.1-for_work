@@ -10,6 +10,7 @@
 
 // Specific CAN Protocols
 #include "can_simple.hpp"
+#include "can_encos.hpp"
 
 // Safer context handling via maps instead of arrays
 // #include <unordered_map>
@@ -34,6 +35,9 @@ void ODriveCAN::can_server_thread() {
                 switch (config_.protocol) {
                     case PROTOCOL_SIMPLE:
                         CANSimple::handle_can_message(rxmsg);
+                        break;
+                    case PROTOCOL_ENCOS:
+                        CANEncos::handle_can_message(rxmsg);
                         break;
                 }
             }
@@ -78,7 +82,7 @@ bool ODriveCAN::start_can_server() {
     if (status == HAL_OK)
         status = HAL_CAN_ActivateNotification(handle_, CAN_IT_RX_FIFO0_MSG_PENDING);
 
-    osThreadDef(can_server_thread_def, can_server_thread_wrapper, osPriorityNormal, 0, stack_size_ / sizeof(StackType_t));
+    osThreadDef(can_server_thread_def, can_server_thread_wrapper, osPriorityRealtime, 0, stack_size_ / sizeof(StackType_t));
     thread_id_ = osThreadCreate(osThread(can_server_thread_def), this);
     thread_id_valid_ = true;
 

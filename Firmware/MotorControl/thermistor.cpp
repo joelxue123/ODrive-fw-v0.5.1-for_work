@@ -20,7 +20,7 @@ ThermistorCurrentLimiter::ThermistorCurrentLimiter(uint16_t adc_channel,
 }
 
 void ThermistorCurrentLimiter::update() {
-    const float voltage = get_adc_voltage_channel(adc_channel_);
+    const float voltage = get_adc_voltage_channel(14);
     const float normalized_voltage = voltage / adc_ref_voltage;
     temperature_ = horner_fma(normalized_voltage, coefficients_, num_coeffs_);
 }

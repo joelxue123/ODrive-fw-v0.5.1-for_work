@@ -56,7 +56,7 @@ public:
         uint32_t can_node_id = 0; // Both axes will have the same id to start
         bool can_node_id_extended = false;
         uint32_t can_heartbeat_rate_ms = 100;
-
+        uint32_t offset;
         // custom setters
         Axis* parent = nullptr;
         void set_step_gpio_pin(uint16_t value) { step_gpio_pin = value; parent->decode_step_dir_pins(); }
@@ -66,6 +66,36 @@ public:
     struct Homing_t {
         bool is_homed = false;
     };
+
+    struct axis_state_t {
+        
+        uint8_t erro;
+        uint16_t pos;
+        uint16_t vel;
+        uint16_t cur;
+        uint8_t motor_temperature;
+        uint8_t mos_temperature;
+    };
+    void get_axis_state(axis_state_t* state);
+
+    struct axis_pvt_parm_t {
+        
+        int16_t kp;
+        int16_t kd;
+        int16_t pos_setpoint;
+        int16_t vel_setpoint;
+        int16_t torque_setpoint;
+    };
+
+void set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm);
+
+bool set_offset(void) {
+    config_.offset = 0; //TODO: 将当前位置设置为零点
+    return true;
+};
+bool set_nodeID(uint32_t id) { config_.can_node_id = id; return true; };
+bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
+
 
     enum thread_signals {
         M_SIGNAL_PH_CURRENT_MEAS = 1u << 0
@@ -231,6 +261,7 @@ public:
     AxisState& current_state_ = task_chain_.front();
     uint32_t loop_counter_ = 0;
     LockinState lockin_state_ = LOCKIN_STATE_INACTIVE;
+    axis_state_t axis_state_;
     Homing_t homing_;
     uint32_t last_heartbeat_ = 0;
 
