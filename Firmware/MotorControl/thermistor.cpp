@@ -4,12 +4,14 @@
 
 ThermistorCurrentLimiter::ThermistorCurrentLimiter(uint16_t adc_channel,
                                                    const float* const coefficients,
+                                                   const float* const aux_coefficients,
                                                    size_t num_coeffs,
                                                    const float& temp_limit_lower,
                                                    const float& temp_limit_upper,
                                                    const bool& enabled) :
     adc_channel_(adc_channel),
     coefficients_(coefficients),
+    aux_coefficients_(aux_coefficients),
     num_coeffs_(num_coeffs),
     temperature_(NAN),
     temp_limit_lower_(temp_limit_lower),
@@ -20,9 +22,13 @@ ThermistorCurrentLimiter::ThermistorCurrentLimiter(uint16_t adc_channel,
 }
 
 void ThermistorCurrentLimiter::update() {
-    const float voltage = get_adc_voltage_channel(14);
-    const float normalized_voltage = voltage / adc_ref_voltage;
+    float voltage = get_adc_voltage_channel(14);
+    float normalized_voltage = voltage / adc_ref_voltage;
     temperature_ = horner_fma(normalized_voltage, coefficients_, num_coeffs_);
+    voltage = get_adc_voltage_channel(15);
+    normalized_voltage = voltage / adc_ref_voltage;
+    aux_temperature_ = horner_fma(normalized_voltage, aux_coefficients_, num_coeffs_);
+
 }
 
 bool ThermistorCurrentLimiter::do_checks() {
@@ -52,6 +58,7 @@ float ThermistorCurrentLimiter::get_current_limit(float base_current_lim) const 
 OnboardThermistorCurrentLimiter::OnboardThermistorCurrentLimiter(const ThermistorHardwareConfig_t& hw_config, Config_t& config) :
     ThermistorCurrentLimiter(hw_config.adc_ch,
                              hw_config.coeffs,
+                             hw_config.aux_coefficients,
                              hw_config.num_coeffs,
                              config.temp_limit_lower,
                              config.temp_limit_upper,
@@ -63,6 +70,7 @@ OnboardThermistorCurrentLimiter::OnboardThermistorCurrentLimiter(const Thermisto
 OffboardThermistorCurrentLimiter::OffboardThermistorCurrentLimiter(Config_t& config) :
     ThermistorCurrentLimiter(UINT16_MAX,
                              &config.thermistor_poly_coeffs[0],
+                             &config.thermistor_poly_coeffs2[0],
                              num_coeffs_,
                              config.temp_limit_lower,
                              config.temp_limit_upper,

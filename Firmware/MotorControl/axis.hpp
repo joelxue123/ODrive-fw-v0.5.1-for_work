@@ -53,7 +53,7 @@ public:
         LockinConfig_t calibration_lockin = default_calibration();
         LockinConfig_t sensorless_ramp = default_sensorless();
         LockinConfig_t general_lockin;
-        uint32_t can_node_id = 0; // Both axes will have the same id to start
+        uint32_t can_node_id = 1; // Both axes will have the same id to start
         bool can_node_id_extended = false;
         uint32_t can_heartbeat_rate_ms = 100;
         uint32_t offset;

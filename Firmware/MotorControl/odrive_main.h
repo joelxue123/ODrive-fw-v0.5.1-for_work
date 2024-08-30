@@ -157,7 +157,7 @@ class Axis;
 class Motor;
 class ODriveCAN;
 
-constexpr size_t AXIS_COUNT = 1;
+constexpr size_t AXIS_COUNT = 2;
 const size_t AXIS_COUNT_USED = 1;
 extern std::array<Axis*, AXIS_COUNT> axes;
 extern ODriveCAN *odCAN;

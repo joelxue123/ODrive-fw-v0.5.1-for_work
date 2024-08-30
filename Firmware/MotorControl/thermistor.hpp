@@ -11,6 +11,7 @@ public:
 
     ThermistorCurrentLimiter(uint16_t adc_channel,
                              const float* const coefficients,
+                             const float* const aux_coefficients,
                              size_t num_coeffs,
                              const float& temp_limit_lower,
                              const float& temp_limit_upper,
@@ -22,8 +23,10 @@ public:
 
     uint16_t adc_channel_;
     const float* const coefficients_;
+    const float* const aux_coefficients_;
     const size_t num_coeffs_;
     float temperature_;
+    float aux_temperature_;
     const float& temp_limit_lower_;
     const float& temp_limit_upper_;
     const bool& enabled_;
@@ -51,7 +54,7 @@ public:
 
     struct Config_t {
         float thermistor_poly_coeffs[num_coeffs_];
-
+        float thermistor_poly_coeffs2[num_coeffs_];
         uint16_t gpio_pin = 4;
         float temp_limit_lower = 100;
         float temp_limit_upper = 120;

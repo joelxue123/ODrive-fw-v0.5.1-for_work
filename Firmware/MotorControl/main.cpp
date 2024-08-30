@@ -91,7 +91,7 @@ extern "C" int load_configuration(void) {
             axis_configs[i] = Axis::Config_t();
             // Default step/dir pins are different, so we need to explicitly load them
             Axis::load_default_step_dir_pin_config(hw_configs[i].axis_config, &axis_configs[i]);
-            Axis::load_default_can_id(i, axis_configs[i]);
+         //   Axis::load_default_can_id(i, axis_configs[i]);
             min_endstop_configs[i] = Endstop::Config_t();
             max_endstop_configs[i] = Endstop::Config_t();
             controller_configs[i].load_encoder_axis = i;

@@ -90,8 +90,8 @@ void Axis::get_axis_state(axis_state_t* state)
     state->pos = encoder_.sencond_pos_abs_;
     state->vel = encoder_.vel_estimate_;
     state->cur = motor_.current_control_.Iq_measured;
-    state->motor_temperature = 0;
-    state->mos_temperature = fet_thermistor_.temperature_;
+    state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
+    state->mos_temperature = (int32_t)fet_thermistor_.temperature_ *2 + 50;
 
 }
 

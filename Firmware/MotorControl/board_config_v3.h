@@ -49,6 +49,7 @@ typedef struct {
 } MotorHardwareConfig_t;
 typedef struct {
     const float* const coeffs;
+    const float* const aux_coefficients;
     size_t num_coeffs;
     size_t adc_ch;
     size_t aux_temp;
@@ -77,7 +78,7 @@ extern const BoardHardwareConfig_t hw_configs[2];
 const float fet_thermistor_poly_coeffs[] =
     {257.61f, -324.08f,  258.34f, -23.12f};  //3300 Ohm
 const float fet_thermistor_poly_coeffs2[] =
-    {447.04f ,-646.84f, 404.97f , -71.47f};  //10000 Ohm
+    {447.04f,-646.84f, 404.97f, -71.47f};  //10000 Ohm
 const size_t fet_thermistor_num_coeffs = sizeof(fet_thermistor_poly_coeffs)/sizeof(fet_thermistor_poly_coeffs[1]);
 
 const BoardHardwareConfig_t hw_configs[2] = { {
@@ -108,6 +109,7 @@ const BoardHardwareConfig_t hw_configs[2] = { {
     },
     .thermistor_config = {
         .coeffs = &fet_thermistor_poly_coeffs[0],
+        .aux_coefficients = &fet_thermistor_poly_coeffs2[0],
         .num_coeffs = fet_thermistor_num_coeffs,
         .adc_ch = 15,
         .aux_temp = 14,
@@ -153,6 +155,7 @@ const BoardHardwareConfig_t hw_configs[2] = { {
     },
     .thermistor_config = {
         .coeffs = &fet_thermistor_poly_coeffs[0],
+        .aux_coefficients = &fet_thermistor_poly_coeffs2[0],
         .num_coeffs = fet_thermistor_num_coeffs,
 #if HW_VERSION_MAJOR == 3 && HW_VERSION_MINOR >= 3
         .adc_ch = 4,
