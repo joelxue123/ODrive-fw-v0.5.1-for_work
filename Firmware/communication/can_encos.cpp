@@ -37,7 +37,11 @@ void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
                     can_Message_t txmsg;
                     
                     axis->get_axis_state(&state);
-                    
+                    state.pos = pvt_parm.pos_setpoint;
+                    state.vel = pvt_parm.vel_setpoint;
+                    state.cur = pvt_parm.torque_setpoint;
+
+
                     txmsg.id = axis->config_.can_node_id;
                     txmsg.isExt = axis->config_.can_node_id_extended;
                     txmsg.len = 8;

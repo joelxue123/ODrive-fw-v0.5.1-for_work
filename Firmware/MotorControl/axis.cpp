@@ -87,8 +87,8 @@ static void step_cb_wrapper(void* ctx) {
 void Axis::get_axis_state(axis_state_t* state)
 {
     state->erro = 0;
-    state->pos = encoder_.sencond_pos_abs_;
-    state->vel = encoder_.vel_estimate_;
+    state->pos = (int16_t)encoder_.sencond_pos_abs_;
+    state->vel = ( ( (int16_t)encoder_.vel_estimate_ / motor_.config_.gear_ratio_ ) >> 4 );
     state->cur = motor_.current_control_.Iq_measured;
     state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
     state->mos_temperature = (int32_t)fet_thermistor_.temperature_ *2 + 50;
