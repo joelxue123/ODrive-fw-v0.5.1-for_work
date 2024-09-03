@@ -112,6 +112,7 @@ function GCCToolchain(prefix, builddir, compiler_flags, linker_flags)
             -- create *.hex and *.bin output formats
             tup.frule{inputs={output_name..'.elf'}, command=prefix..'objcopy -O ihex %f %o', outputs={output_name..'.hex'}}
             tup.frule{inputs={output_name..'.elf'}, command=prefix..'objcopy -O binary -S %f %o', outputs={output_name..'.bin'}}
+
         end
     }
 end

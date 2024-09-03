@@ -10,7 +10,7 @@ Encoder::Encoder(const EncoderHardwareConfig_t& hw_config,
     update_pll_gains();
 
     if (config.pre_calibrated) {
-        if (config.mode == Encoder::MODE_HALL || config.mode == Encoder::MODE_SINCOS)
+        if (config.mode == Encoder::MODE_HALL || config.mode == Encoder::MODE_SINCOS || config.mode == Encoder::MODE_SPI_ABS_RLS )
             is_ready_ = true;
         if (motor_config.motor_type == Motor::MOTOR_TYPE_ACIM)
             is_ready_ = true;
@@ -502,10 +502,10 @@ bool Encoder::abs_spi_start_transaction(){
         HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_, GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_RESET);
         
       //  HAL_SPI_TransmitReceive_DMA(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 3);
-        transmit_spi(hw_config_.motor_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 4);
+        transmit_spi(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
         
       //  HAL_SPI_TransmitReceive_DMA(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
-        transmit_spi(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3); 
+        transmit_spi(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 4); 
         
     }
     return true;
@@ -601,7 +601,7 @@ static int local_spin_pos = 0;
 static float local_spin_pos_f = 0;
 bool Encoder::update() {
     // update internal encoder state.
-    int32_t delta_enc = 0;
+    int32_t delta_enc = 0,gear_delta_enc = 0;
     int32_t pos_abs_latched = pos_abs_; //LATCH
     axis_->motor_.log_timing(TIMING_LOG_ENC_CALIB);
     switch (mode_) {
@@ -648,6 +648,7 @@ bool Encoder::update() {
             pos_abs_  = ((rawVal & 0x0000ff00)) | ( (rawVal & 0x00ff0000)>>16 ) ;
             rawVal = *(uint32_t *)&GearboxOutputEncoder_spi_dma_rx_[0];
             sencond_pos_abs_ =  ((rawVal & 0x0000ff00)<<8) | ( (rawVal & 0x00ff0000)>>8 )| ( (rawVal & 0xff000000)>>24 )  ;
+            sencond_pos_abs_ >>= 6;
             abs_spi_pos_updated_ = true;
             if (abs_spi_pos_updated_ == false) {
                 // Low pass filter the error
@@ -658,13 +659,26 @@ bool Encoder::update() {
                 // Low pass filter the error
                 spi_error_rate_ += current_meas_period * (0.0f - spi_error_rate_);
             }
-
+            pos_abs_latched = pos_abs_;
             abs_spi_pos_updated_ = false;
             delta_enc = pos_abs_latched - count_in_cpr_; //LATCH
             delta_enc = mod(delta_enc, config_.cpr);
             if (delta_enc > config_.cpr/2) {
                 delta_enc -= config_.cpr;
             }
+
+            gear_delta_enc =  sencond_pos_abs_ - GearboxOutputEncoder_count_in_cpr_; //LATCH
+            if (gear_delta_enc > config_.GearboxOutputEncoder_cpr/2) {
+                GearboxOutputEncoder_turns_ -=  1;
+            }
+            else if (gear_delta_enc < -config_.GearboxOutputEncoder_cpr/2) {
+                GearboxOutputEncoder_turns_ +=  1;
+            }
+            else
+            {}
+            GearboxOutputEncoder_counts = GearboxOutputEncoder_turns_*config_.GearboxOutputEncoder_cpr+ sencond_pos_abs_;
+            
+            
 
         }break;
         default: {
@@ -683,7 +697,12 @@ bool Encoder::update() {
     count_in_cpr_ = mod(count_in_cpr_, config_.cpr);
 
     if( (mode_ & MODE_FLAG_ABS) | (mode_ & MODE_FLAG_485_ABS) )
+    {
         count_in_cpr_ = pos_abs_latched;
+        GearboxOutputEncoder_count_in_cpr_ = sencond_pos_abs_;
+
+    }
+        
 
     //// run pll (for now pll is in units of encoder counts)
     // Predict current pos

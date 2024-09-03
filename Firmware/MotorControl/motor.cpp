@@ -373,7 +373,7 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     pm_flux_linkage =  config_.torque_constant/ (config_.pole_pairs);
     dec_vd = Iq_filter * m_speed_est_fast * config_.phase_inductance;
     dec_vq = Id_filter * m_speed_est_fast * config_.phase_inductance;
-    dec_bemf = m_speed_est_fast * pm_flux_linkage;
+    //dec_bemf = m_speed_est_fast * pm_flux_linkage;
 
     // Check for violation of current limit
     float I_trip = effective_current_lim() + config_.current_lim_margin;

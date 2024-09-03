@@ -37,7 +37,7 @@ public:
         uint16_t sincos_gpio_pin_cos = 4;
 
         uint16_t abs_485_cs_gpio_pin = 2;
-
+        int32_t GearboxOutputEncoder_cpr = (1<<18);
         // custom setters
         Encoder* parent = nullptr;
         void set_use_index(bool value) { use_index = value; parent->set_idx_subscribe(); }
@@ -80,8 +80,12 @@ public:
     bool is_ready_ = false;
     int32_t shadow_count_ = 0;
     int32_t count_in_cpr_ = 0;
+    int32_t GearboxOutputEncoder_count_in_cpr_ = 0;
+    int32_t GearboxOutputEncoder_turns_ = 0;
+    int32_t GearboxOutputEncoder_counts = 0;
     float interpolation_ = 0.0f;
     float phase_ = 0.0f;        // [count]
+    float GearboxOutputEncoder_phase_ = 0.0f;        // [count]
     float pos_estimate_counts_ = 0.0f;  // [count]
     float pos_cpr_counts_ = 0.0f;  // [count]
     float vel_estimate_counts_ = 0.0f;  // [count/s]
