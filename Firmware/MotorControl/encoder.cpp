@@ -667,17 +667,39 @@ bool Encoder::update() {
                 delta_enc -= config_.cpr;
             }
 
-            gear_delta_enc =  sencond_pos_abs_ - GearboxOutputEncoder_count_in_cpr_; //LATCH
-            if (gear_delta_enc > config_.GearboxOutputEncoder_cpr/2) {
+            gear_single_turn_abs_ = sencond_pos_abs_;
+            while(gear_single_turn_abs_ > HALF_CPR) {
+                gear_single_turn_abs_ -= 2 * HALF_CPR;
+            } 
+            while(gear_single_turn_abs_ < -HALF_CPR) {
+                gear_single_turn_abs_ += 2 * HALF_CPR;
+            }
+            gear_single_turn_abs_ = gear_single_turn_abs_ - config_.Gearoffset;
+            while(gear_single_turn_abs_ > HALF_CPR) {
+                gear_single_turn_abs_ -= 2 * HALF_CPR;
+            }
+            while(gear_single_turn_abs_ < -HALF_CPR) {
+                gear_single_turn_abs_ += 2 * HALF_CPR;
+            }
+
+            if(first_init_ == true)
+            {
+                GearboxOutputEncoder_count_in_cpr_ = gear_single_turn_abs_;
+                first_init_ = false;
+            }
+
+            gear_delta_enc =  gear_single_turn_abs_ - GearboxOutputEncoder_count_in_cpr_; //LATCH
+            GearboxOutputEncoder_count_in_cpr_ = gear_single_turn_abs_;
+            if (gear_delta_enc > HALF_CPR) {
                 GearboxOutputEncoder_turns_ -=  1;
             }
-            else if (gear_delta_enc < -config_.GearboxOutputEncoder_cpr/2) {
+            else if (gear_delta_enc < -HALF_CPR) {
                 GearboxOutputEncoder_turns_ +=  1;
             }
             else
             {}
-            GearboxOutputEncoder_counts = GearboxOutputEncoder_turns_*config_.GearboxOutputEncoder_cpr+ sencond_pos_abs_;
-            
+            GearboxOutputEncoder_counts = GearboxOutputEncoder_turns_*2*HALF_CPR+ gear_single_turn_abs_;
+            gearboxpos_ = GearboxOutputEncoder_counts /  config_.GearboxOutputEncoder_cpr;
             
 
         }break;
@@ -699,7 +721,7 @@ bool Encoder::update() {
     if( (mode_ & MODE_FLAG_ABS) | (mode_ & MODE_FLAG_485_ABS) )
     {
         count_in_cpr_ = pos_abs_latched;
-        GearboxOutputEncoder_count_in_cpr_ = sencond_pos_abs_;
+        
 
     }
         

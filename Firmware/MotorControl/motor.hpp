@@ -39,7 +39,7 @@ public:
         float async_phase_vel; // [rad/s electrical]
         float async_phase_offset; // [rad electrical]
     };
-
+    static constexpr int32_t NUM_LINEARITY_SEG = 20;
     // NOTE: for gimbal motors, all units of Nm are instead V.
     // example: vel_gain is [V/(turn/s)] instead of [Nm/(turn/s)]
     // example: current_lim and calibration_current will instead determine the maximum voltage applied to the motor.
@@ -72,6 +72,8 @@ public:
         float acim_autoflux_attack_gain = 10.0f;
         float acim_autoflux_decay_gain = 1.0f;
 
+        float Torque_LINEARITY_[NUM_LINEARITY_SEG];
+        float CURRENT_LINEARITY_[NUM_LINEARITY_SEG];
 
 
         // custom property setters
@@ -113,7 +115,8 @@ public:
     bool FOC_voltage(float v_d, float v_q, float pwm_phase);
     bool FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_phase);
     bool update(float current_setpoint, float phase, float phase_vel);
-
+    void pos_linearity_ini(void);
+    float current_Correct(int32_t Torque_Org);
     const MotorHardwareConfig_t& hw_config_;
     const GateDriverHardwareConfig_t gate_driver_config_;
     Config_t& config_;
@@ -178,6 +181,10 @@ public:
     float Id_filter = 0;
     float Idq_filter_k_ = 0.4f;
     float Idq_filter_k2_ = 0.4f;
+    float L_Slop_Array_[NUM_LINEARITY_SEG];
+    void setting_motor_CURRENT_LINEARITY(int32_t index, float value);
+    void setting_motor_Torque_LINEARITY_(int32_t index, float value);
+    void get_torque_slope(int32_t index);
 };
 
 #endif // __MOTOR_HPP

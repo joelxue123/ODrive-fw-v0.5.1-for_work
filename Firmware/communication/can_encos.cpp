@@ -16,9 +16,9 @@ typedef struct __attribute__((packed)) {
 } encos_cmd_pvt_t;
 
 typedef struct __attribute__((packed)) {
-    uint8_t mode     :3;
-    uint8_t          :3;
     uint8_t ack_type :2;
+    uint8_t          :3;
+    uint8_t mode     :3;
 } encos_curr_brake_cmd_t;
 
 void encos_ack_type_1(Axis* &axis)
@@ -73,6 +73,14 @@ void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
         case 3:
             {
                 encos_curr_brake_cmd_t *cmd = (encos_curr_brake_cmd_t *)&(msg.buf[0]);
+                 switch (cmd->mode) {
+                    case 3:// 手册描述能耗制动，但实际测试用来设置电流
+                        axis->set_axis_current((msg.buf[1] << 8) + msg.buf[2]);
+                        break;
+                    default:
+                        break;
+                }
+                
                 switch (cmd->ack_type) {
                     case 1:
                         encos_ack_type_1(axis);

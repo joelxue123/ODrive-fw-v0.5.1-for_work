@@ -10,6 +10,7 @@ class Encoder : public ODriveIntf::EncoderIntf {
 public:
     static constexpr uint32_t MODE_FLAG_ABS = 0x100;
     static constexpr uint32_t MODE_FLAG_485_ABS = 0x200;
+    static constexpr float HALF_CPR =  (1<<18) / 2.0f;
 
     struct Config_t {
         Mode mode = MODE_INCREMENTAL;
@@ -38,6 +39,7 @@ public:
 
         uint16_t abs_485_cs_gpio_pin = 2;
         int32_t GearboxOutputEncoder_cpr = (1<<18);
+        int32_t Gearoffset = 0;
         // custom setters
         Encoder* parent = nullptr;
         void set_use_index(bool value) { use_index = value; parent->set_idx_subscribe(); }
@@ -83,6 +85,7 @@ public:
     int32_t GearboxOutputEncoder_count_in_cpr_ = 0;
     int32_t GearboxOutputEncoder_turns_ = 0;
     int32_t GearboxOutputEncoder_counts = 0;
+    int32_t gear_single_turn_abs_=0;
     float interpolation_ = 0.0f;
     float phase_ = 0.0f;        // [count]
     float GearboxOutputEncoder_phase_ = 0.0f;        // [count]
@@ -101,6 +104,8 @@ public:
     float pos_cpr_ = 0.0f;      // [turn]
     float pos_circular_ = 0.0f; // [turn]
 
+    float gearboxpos_ = 0;
+    
     bool pos_estimate_valid_ = false;
     bool vel_estimate_valid_ = false;
 
@@ -128,7 +133,8 @@ public:
     uint8_t abs_485_dma_rx_[7];
 
     bool abs_spi_pos_updated_ = false;
-    
+    bool first_init_ = true;
+
     Mode mode_ = MODE_INCREMENTAL;
 
     GPIO_TypeDef* motor_spi_cs_port_;

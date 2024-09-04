@@ -86,10 +86,11 @@ static void step_cb_wrapper(void* ctx) {
 
 void Axis::get_axis_state(axis_state_t* state)
 {
+
     state->erro = 0;
-    state->pos = (int16_t)encoder_.sencond_pos_abs_;
-    state->vel = ( ( (int16_t)encoder_.vel_estimate_ / motor_.config_.gear_ratio_ ) >> 4 );
-    state->cur = motor_.current_control_.Iq_measured;
+    state->pos = (int16_t)(2 * M_PI*encoder_.gearboxpos_/POS_BASE *65535);
+    state->vel = (int16_t)(2 * M_PI*encoder_.vel_estimate_ / (motor_.config_.gear_ratio_*SPEED_BASE) * 4095);
+    state->cur = (int16_t)(motor_.current_control_.Iq_measured/CURRENT_BASE*4095);
     state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
     state->mos_temperature = (int32_t)fet_thermistor_.temperature_ *2 + 50;
 
@@ -99,16 +100,22 @@ void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
 {
     float torque_setpoint=0;
 
-    controller_.config_.kp = axis_pvt_parm->kp;
-    controller_.config_.kd = axis_pvt_parm->kd;
-    controller_.pos_setpoint_ = axis_pvt_parm->pos_setpoint;
-    controller_.vel_setpoint_ = axis_pvt_parm->vel_setpoint;
+    controller_.config_.kp = 500.f*axis_pvt_parm->kp/4096.f;
+    controller_.config_.kd = 5.f*axis_pvt_parm->kd/512.f;
+    controller_.pos_setpoint_ = POS_BASE*axis_pvt_parm->pos_setpoint / (65535.f);
+    controller_.vel_setpoint_ = SPEED_BASE*axis_pvt_parm->vel_setpoint/(4095.f);
 
     torque_setpoint = axis_pvt_parm->torque_setpoint - 2048;
 
     controller_.input_torque_ = torque_setpoint*motor_.config_.motor_torque_base/2048;
 } 
 
+void Axis::set_axis_current(int16_t current)
+{
+    controller_.config_.kp = 0;
+    controller_.config_.kd = 0;
+    controller_.input_torque_ = current *motor_.config_.gear_ratio_* motor_.config_.torque_constant/ 100;
+}
 
 
 // @brief Does Nothing

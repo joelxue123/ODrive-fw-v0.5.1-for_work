@@ -21,6 +21,11 @@ public:
         bool finish_on_enc_idx = false;
     };
 
+    static constexpr float POS_BASE = 12.5f;
+    static constexpr float SPEED_BASE = 18.0f;
+    static constexpr float CURRENT_BASE = 60.0f;
+
+
     static LockinConfig_t default_calibration();
     static LockinConfig_t default_sensorless();
     static LockinConfig_t default_lockin();
@@ -88,8 +93,11 @@ public:
     };
 
 void set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm);
-
+void set_axis_current(int16_t current); // 单位 0.01A
 bool set_offset(void) {
+    
+    encoder_.config_.Gearoffset = encoder_.gear_single_turn_abs_;
+    encoder_.first_init_ = true;
     config_.offset = 0; //TODO: 将当前位置设置为零点
     return true;
 };
