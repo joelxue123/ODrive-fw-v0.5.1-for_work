@@ -577,21 +577,31 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     else {
         current_setpoint = torque_setpoint / config_.torque_constant;
     }
-#if 0 
-    uint32_t idex = floor(fabs(torque_setpoint *config_.gear_ratio_) /2.2f + 0.5f);
-    if( idex < NUM_LINEARITY_SEG)
+
+    
+    if( using_old_torque_constant_ ==  true)
     {
-        torque_constant = L_Slop_Array_[idex] / config_.gear_ratio_ ;
+        current_setpoint = torque_setpoint / config_.torque_constant;
     }
     else
     {
-        torque_constant = L_Slop_Array_[NUM_LINEARITY_SEG -1] / config_.gear_ratio_;
+#if 1 
+        uint32_t idex = floor(fabs(torque_setpoint *config_.gear_ratio_) /2.2f + 0.5f);
+        if( idex < NUM_LINEARITY_SEG)
+        {
+            torque_constant = L_Slop_Array_[idex] / config_.gear_ratio_;
+        }
+        else
+        {
+            torque_constant = L_Slop_Array_[NUM_LINEARITY_SEG -1] / config_.gear_ratio_;
+        }
+
+        current_setpoint = torque_setpoint / torque_constant;
+
+#endif
+
     }
 
-    current_setpoint = torque_setpoint / torque_constant;
-
-    #endif
-    
     current_setpoint *= config_.direction;
 
     // TODO: 2-norm vs independent clamping (current could be sqrt(2) bigger)

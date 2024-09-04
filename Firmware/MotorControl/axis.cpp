@@ -88,9 +88,9 @@ void Axis::get_axis_state(axis_state_t* state)
 {
 
     state->erro = 0;
-    state->pos = (int16_t)(2 * M_PI*encoder_.gearboxpos_/POS_BASE *65535);
-    state->vel = (int16_t)(2 * M_PI*encoder_.vel_estimate_ / (motor_.config_.gear_ratio_*SPEED_BASE) * 4095);
-    state->cur = (int16_t)(motor_.current_control_.Iq_measured/CURRENT_BASE*4095);
+    state->pos = (int16_t)(2 * M_PI*encoder_.gearboxpos_/POS_BASE *32768 +32768) ;
+    state->vel = (int16_t)(2 * M_PI*encoder_.vel_estimate_ / (motor_.config_.gear_ratio_*SPEED_BASE) * 2048 + 2048);
+    state->cur = (int16_t)(motor_.current_control_.Iq_measured/CURRENT_BASE*2048 + 2048);
     state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
     state->mos_temperature = (int32_t)fet_thermistor_.temperature_ *2 + 50;
 
@@ -99,6 +99,8 @@ void Axis::get_axis_state(axis_state_t* state)
 void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
 {
     float torque_setpoint=0;
+
+    motor_.using_old_torque_constant_ = false;
 
     controller_.config_.kp = 500.f*axis_pvt_parm->kp/4096.f;
     controller_.config_.kd = 5.f*axis_pvt_parm->kd/512.f;
@@ -112,9 +114,11 @@ void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
 
 void Axis::set_axis_current(int16_t current)
 {
+    motor_.using_old_torque_constant_ = true;
     controller_.config_.kp = 0;
     controller_.config_.kd = 0;
     controller_.input_torque_ = current *motor_.config_.gear_ratio_* motor_.config_.torque_constant/ 100;
+
 }
 
 

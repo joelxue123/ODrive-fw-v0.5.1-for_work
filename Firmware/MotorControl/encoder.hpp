@@ -84,7 +84,7 @@ public:
     int32_t count_in_cpr_ = 0;
     int32_t GearboxOutputEncoder_count_in_cpr_ = 0;
     int32_t GearboxOutputEncoder_turns_ = 0;
-    int32_t GearboxOutputEncoder_counts = 0;
+    float GearboxOutputEncoder_counts = 0;
     int32_t gear_single_turn_abs_=0;
     float interpolation_ = 0.0f;
     float phase_ = 0.0f;        // [count]

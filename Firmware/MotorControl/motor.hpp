@@ -182,7 +182,10 @@ public:
     float Id_filter = 0;
     float Idq_filter_k_ = 0.4f;
     float Idq_filter_k2_ = 0.4f;
-    float L_Slop_Array_[NUM_LINEARITY_SEG];
+    bool using_old_torque_constant_ = false;
+    float L_Slop_Array_[NUM_LINEARITY_SEG] = {1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f};
+
+
     void setting_motor_current_linearity(uint32_t index, float value);
     void setting_motor_torque_linearity(uint32_t index, float value);
     float get_motor_current_linearity(uint32_t index);
