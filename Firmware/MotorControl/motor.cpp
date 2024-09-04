@@ -199,10 +199,10 @@ void Motor::log_timing(TimingLog_t log_idx) {
 }
 
 
-void Motor::pos_linearity_ini(void)
+void Motor::pos_linearity_init(void)
 {
 	int16_t i = 0;
-	for(i=0;i<NUM_LINEARITY_SEG;i++)
+	for(i=0;i<NUM_LINEARITY_SEG-1;i++)
 	{
 		L_Slop_Array_[i] = (config_.CURRENT_LINEARITY_[i+1] - config_.CURRENT_LINEARITY_[i]) / (config_.Torque_LINEARITY_[i+1] - config_.Torque_LINEARITY_[i]);
 	}
@@ -211,12 +211,11 @@ void Motor::pos_linearity_ini(void)
 float Motor::current_Correct(int32_t Torque_Org)
 {
 	float slopTotall = 0;
-	int32_t Index_A,Index_B = 0;
+	int32_t Index_A = 0,Index_B = NUM_LINEARITY_SEG-1;
 	int32_t i = 0;
     float current_Corrected = 0;
-	if(Torque_Org>=config_.Torque_LINEARITY_[0] && Torque_Org<config_.Torque_LINEARITY_[NUM_LINEARITY_SEG])//��Ҫ�ж�������һ��
+	if(Torque_Org>=config_.Torque_LINEARITY_[0] && Torque_Org<config_.Torque_LINEARITY_[NUM_LINEARITY_SEG-1])//��Ҫ�ж�������һ��
 	{
-		Index_A = 0;Index_B = NUM_LINEARITY_SEG;
 		while(1)
 		{
 			if(Index_B-Index_A == 1)
@@ -233,7 +232,7 @@ float Motor::current_Correct(int32_t Torque_Org)
 				Index_A = i;
 			}
 		}
-		current_Corrected = ((Torque_Org - config_.Torque_LINEARITY_[Index_A])* L_Slop_Array_[Index_A]) + config_.Torque_LINEARITY_[Index_A];	
+		current_Corrected = ((Torque_Org - config_.Torque_LINEARITY_[Index_A])* L_Slop_Array_[Index_A]) + config_.CURRENT_LINEARITY_[Index_A];	
 	}
 	else if(Torque_Org<config_.Torque_LINEARITY_[0])
 	{
@@ -260,27 +259,51 @@ float Motor::current_Correct(int32_t Torque_Org)
 
 
 
-void Motor::setting_motor_CURRENT_LINEARITY(int32_t index, float value)
+void Motor::setting_motor_current_linearity(uint32_t index, float value)
 {
-    if( (0 <= index) && (index < NUM_LINEARITY_SEG) )
+    if( index < NUM_LINEARITY_SEG )
     {
         config_.CURRENT_LINEARITY_[index] = value;
     }
 	
 }
 
-void Motor::setting_motor_Torque_LINEARITY_(int32_t index, float value)
+float Motor::get_motor_current_linearity(uint32_t index)
 {
-    if( (0 <= index) && (index < NUM_LINEARITY_SEG) )
+    if( index < NUM_LINEARITY_SEG )
+    {
+        return config_.CURRENT_LINEARITY_[index];
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+void Motor::setting_motor_torque_linearity(uint32_t index, float value)
+{
+    if(index < NUM_LINEARITY_SEG )
     {
         config_.Torque_LINEARITY_[index] = value;
     }
 	
 }
 
-float Motor::get_torque_slope(int32_t index)
+float Motor::get_motor_torque_linearity(uint32_t index)
 {
-    if( (0 <= index) && (index < NUM_LINEARITY_SEG) )
+    if( index < NUM_LINEARITY_SEG )
+    {
+        return config_.Torque_LINEARITY_[index];
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+float Motor::get_torque_slope(uint32_t index)
+{
+    if(index < NUM_LINEARITY_SEG)
     {
         return L_Slop_Array_[index];
     }
@@ -290,6 +313,13 @@ float Motor::get_torque_slope(int32_t index)
     }
 }
 
+void  Motor::setting_torque_slope(uint32_t index, float value)
+{
+    if(index < NUM_LINEARITY_SEG )
+    {
+        L_Slop_Array_[index] = value;
+    }
+}
 
 float Motor::phase_current_from_adcval(uint32_t ADCValue) {
     int adcval_bal = (int)ADCValue - (1 << 11);
@@ -536,6 +566,7 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
 // phase_vel [rad/s electrical]
 bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     float current_setpoint = 0.0f;
+    float torque_constant = 0.087f;
     phase *= config_.direction;
     phase_vel *= config_.direction;
     m_speed_est_fast =  phase_vel; 
@@ -546,6 +577,21 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     else {
         current_setpoint = torque_setpoint / config_.torque_constant;
     }
+#if 0 
+    uint32_t idex = floor(fabs(torque_setpoint *config_.gear_ratio_) /2.2f + 0.5f);
+    if( idex < NUM_LINEARITY_SEG)
+    {
+        torque_constant = L_Slop_Array_[idex] / config_.gear_ratio_ ;
+    }
+    else
+    {
+        torque_constant = L_Slop_Array_[NUM_LINEARITY_SEG -1] / config_.gear_ratio_;
+    }
+
+    current_setpoint = torque_setpoint / torque_constant;
+
+    #endif
+    
     current_setpoint *= config_.direction;
 
     // TODO: 2-norm vs independent clamping (current could be sqrt(2) bigger)

@@ -648,7 +648,13 @@ interfaces:
           acim_autoflux_attack_gain: float32
           acim_autoflux_decay_gain: float32
     functions:
-      
+      setting_motor_current_linearity: { in: { index: uint32, value: float32 } }
+      get_motor_current_linearity: { in: { index: uint32 }, out: { value: float32 } }
+      setting_motor_torque_linearity: { in: { index: uint32, value: float32 } }
+      get_motor_torque_linearity: { in: { index: uint32 }, out: { value: float32 } }
+      get_torque_slope: { in: { index: uint32 }, out: { slope: float32 } }
+      setting_torque_slope: { in: { index: uint32, value: float32 } }
+
 
 
 

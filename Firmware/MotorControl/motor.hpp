@@ -95,6 +95,7 @@ public:
     void disarm();
     void setup() {
         DRV8301_setup();
+
     }
     void reset_current_control();
 
@@ -182,9 +183,13 @@ public:
     float Idq_filter_k_ = 0.4f;
     float Idq_filter_k2_ = 0.4f;
     float L_Slop_Array_[NUM_LINEARITY_SEG];
-    void setting_motor_CURRENT_LINEARITY(int32_t index, float value);
-    void setting_motor_Torque_LINEARITY_(int32_t index, float value);
-    void get_torque_slope(int32_t index);
+    void setting_motor_current_linearity(uint32_t index, float value);
+    void setting_motor_torque_linearity(uint32_t index, float value);
+    float get_motor_current_linearity(uint32_t index);
+    float get_motor_torque_linearity(uint32_t index);
+    void setting_torque_slope(uint32_t index, float value);
+    float get_torque_slope(uint32_t index);
+    void pos_linearity_init(void);
 };
 
 #endif // __MOTOR_HPP
