@@ -47,6 +47,7 @@ public:
         bool pre_calibrated = false; // can be set to true to indicate that all values here are valid
         int32_t pole_pairs = 21;
         int32_t gear_ratio_ = 16;
+        float motor_torque_base = 60.0f; // [Nm]
         float calibration_current = 10.0f;    // [A]
         float resistance_calib_max_voltage = 2.0f; // [V] - You may need to increase this if this voltage isn't sufficient to drive calibration_current through the motor.
         float phase_inductance = 0.000055f;        // to be set by measure_phase_inductance
@@ -70,6 +71,8 @@ public:
         bool acim_autoflux_enable = false;
         float acim_autoflux_attack_gain = 10.0f;
         float acim_autoflux_decay_gain = 1.0f;
+
+
 
         // custom property setters
         Motor* parent = nullptr;

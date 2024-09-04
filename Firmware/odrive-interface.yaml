@@ -190,6 +190,7 @@ interfaces:
     functions:
       test_function: { in: { delta: int32 }, out: { cnt: int32 } }
       get_oscilloscope_val: { in: { index: uint32 }, out: { val: float32 } }
+      set_motor_torque_coeff: { in: { index: uint32 }, out: { val: float32 } }
       get_adc_voltage: { in: { gpio: uint32 }, out: { voltage: float32 } }
       save_configuration:
       erase_configuration:
@@ -624,6 +625,7 @@ interfaces:
         attributes:
           pre_calibrated: { type: bool, c_setter: set_pre_calibrated }
           pole_pairs: int32
+          motor_torque_base: float32
           calibration_current: float32
           resistance_calib_max_voltage: float32
           phase_inductance: { type: float32, c_setter: set_phase_inductance }
@@ -686,6 +688,8 @@ interfaces:
       config:
         c_is_class: False
         attributes:
+          kp: float32
+          kd: float32
           gain_scheduling_width: float32
           enable_vel_limit: bool
           enable_current_mode_vel_limit:

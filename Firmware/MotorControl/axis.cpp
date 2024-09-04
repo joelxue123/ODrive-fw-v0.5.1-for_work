@@ -97,11 +97,16 @@ void Axis::get_axis_state(axis_state_t* state)
 
 void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
 {
+    float torque_setpoint=0;
+
     controller_.config_.kp = axis_pvt_parm->kp;
     controller_.config_.kd = axis_pvt_parm->kd;
     controller_.pos_setpoint_ = axis_pvt_parm->pos_setpoint;
     controller_.vel_setpoint_ = axis_pvt_parm->vel_setpoint;
-    controller_.input_torque_ = axis_pvt_parm->torque_setpoint;
+
+    torque_setpoint = axis_pvt_parm->torque_setpoint - 2048;
+
+    controller_.input_torque_ = torque_setpoint*motor_.config_.motor_torque_base/2048;
 } 
 
 

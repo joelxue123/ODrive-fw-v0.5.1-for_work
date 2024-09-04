@@ -222,6 +222,7 @@ void start_adc_pwm() {
     start_pwm(&htim1);
     start_pwm(&htim8);
 
+  
     // TODO: explain why this offset
     sync_timers(&htim1, &htim8, TIM_CLOCKSOURCE_ITR0, TIM_1_8_PERIOD_CLOCKS,
             &htim13);

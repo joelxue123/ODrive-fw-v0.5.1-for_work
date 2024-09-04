@@ -15,6 +15,36 @@ typedef struct __attribute__((packed)) {
     uint8_t tor_l :8;
 } encos_cmd_pvt_t;
 
+typedef struct __attribute__((packed)) {
+    uint8_t mode     :3;
+    uint8_t          :3;
+    uint8_t ack_type :2;
+} encos_curr_brake_cmd_t;
+
+void encos_ack_type_1(Axis* &axis)
+{
+    Axis::axis_state_t state;
+    can_Message_t txmsg;
+
+    axis->get_axis_state(&state);
+
+    txmsg.id = axis->config_.can_node_id;
+    txmsg.isExt = axis->config_.can_node_id_extended;
+    txmsg.len = 8;
+    txmsg.buf[0] = state.erro & ((1 << 5) - 1);
+    txmsg.buf[0] |= 1 << 5;
+    txmsg.buf[1] = state.pos >> 8;
+    txmsg.buf[2] = state.pos & 0xFF;
+    txmsg.buf[3] = state.vel >> 4;
+    txmsg.buf[4] = state.vel << 4;
+    txmsg.buf[4] |= state.cur >> 8;
+    txmsg.buf[5] = state.cur & 0xFF;
+    txmsg.buf[6] = state.motor_temperature;
+    txmsg.buf[7] = state.mos_temperature;
+
+    odCAN->write(txmsg);
+}
+
 void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
 {
     switch (msg.len) {
@@ -32,37 +62,25 @@ void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
                     pvt_parm.torque_setpoint = (cmd->tor_h << 8) + cmd->tor_l;
                     axis->set_axis_pvt_parm(&pvt_parm);
 
-                    // acknowledge
-                    Axis::axis_state_t state;
-                    can_Message_t txmsg;
-                    
-                    axis->get_axis_state(&state);
-                    state.pos = pvt_parm.pos_setpoint;
-                    state.vel = pvt_parm.vel_setpoint;
-                    state.cur = pvt_parm.torque_setpoint;
+                    encos_ack_type_1(axis);
 
-
-                    txmsg.id = axis->config_.can_node_id;
-                    txmsg.isExt = axis->config_.can_node_id_extended;
-                    txmsg.len = 8;
-                    txmsg.buf[0] = state.erro & ((1 << 5) - 1);
-                    txmsg.buf[0] |= 1 << 5;
-                    txmsg.buf[1] = state.pos >> 8;
-                    txmsg.buf[2] = state.pos & 0xFF;
-                    txmsg.buf[3] = state.vel >> 4;
-                    txmsg.buf[4] = state.vel << 4;
-                    txmsg.buf[4] |= state.cur >> 8;
-                    txmsg.buf[5] = state.cur & 0xFF;
-                    txmsg.buf[6] = state.motor_temperature;
-                    txmsg.buf[7] = state.mos_temperature;
-
-                    odCAN->write(txmsg);
                 }
                 break;
             default:
                 break;
             }
             break;
+        case 3:
+            {
+                encos_curr_brake_cmd_t *cmd = (encos_curr_brake_cmd_t *)&(msg.buf[0]);
+                switch (cmd->ack_type) {
+                    case 1:
+                        encos_ack_type_1(axis);
+                        break;
+                    default:
+                        break;
+                }
+            }
         case 4:
             if (0x7FF == msg.id) {
                 if (0xFF == msg.buf[0] && 0xFF == msg.buf[1] && 0x00 == msg.buf[2] && 0x82 == msg.buf[3]) {

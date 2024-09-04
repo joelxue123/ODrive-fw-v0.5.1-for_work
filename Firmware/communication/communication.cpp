@@ -52,7 +52,7 @@ void init_communication(void) {
         osDelay(1);
 }
 
-
+float motor_torque_coeff[48] = {0};
 
 float oscilloscope[OSCILLOSCOPE_SIZE] = {0};
 size_t oscilloscope_pos = 0;
