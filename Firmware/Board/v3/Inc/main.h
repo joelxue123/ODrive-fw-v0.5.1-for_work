@@ -133,6 +133,14 @@
 #define MU128_2_GPIO_Port GPIOA
 
 
+#define LED_R_PIN GPIO_PIN_0
+#define LED_R_GPIO_Port GPIOB
+#define LED_G_PIN GPIO_PIN_1
+#define LED_G_GPIO_Port GPIOB
+#define LED_B_PIN GPIO_PIN_2
+#define LED_B_GPIO_Port GPIOB
+
+
 /* ########################## Assert Selection ############################## */
 /**
   * @brief Uncomment the line below to expanse the "assert_param" macro in the 
