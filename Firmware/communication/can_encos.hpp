@@ -7,6 +7,8 @@ class CANEncos {
 public:
    static void handle_can_message(can_Message_t& msg);
 
+
+
 private:
 };
 

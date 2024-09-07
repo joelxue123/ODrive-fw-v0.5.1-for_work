@@ -21,6 +21,18 @@ public:
         bool finish_on_enc_idx = false;
     };
 
+
+   enum ENCOS_ERRO
+   {
+      ENCOS_ERROR_NONE = 0,
+      ENCOS_ERROR_OVER_TEMP = 1,
+      ENCOS_ERROR_CURRENT_LIMIT_VIOLATION =2,
+      ENCOS_ERROR_DC_BUS_UNDER_VOLTAGE =3,
+      ENCOS_ERROR_ABS_SPI_COM_FAIL=4,
+      ENCOS_ERROR_DC_BUS_OVER_VOLTAGE =6,
+      ENCOS_ERROR_DRV_FAULT=7,
+   };
+
     static constexpr float POS_BASE = 1.9894367886f;
     static constexpr float SPEED_BASE = 3.0f;
     static constexpr float CURRENT_BASE = 60.0f;

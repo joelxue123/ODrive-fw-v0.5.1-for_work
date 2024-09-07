@@ -148,6 +148,7 @@ void Motor::set_error(Motor::Error error){
 bool Motor::do_checks() {
     if (!check_DRV_fault()) {
         set_error(ERROR_DRV_FAULT);
+        axis_->axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_DRV_FAULT;
         return false;
     }
 
@@ -502,6 +503,7 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     float I_trip = effective_current_lim() + config_.current_lim_margin;
     if (SQ(Id) + SQ(Iq) > SQ(I_trip)) {
         set_error(ERROR_CURRENT_LIMIT_VIOLATION);
+        axis_->axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_CURRENT_LIMIT_VIOLATION;
         return false;
     }
 

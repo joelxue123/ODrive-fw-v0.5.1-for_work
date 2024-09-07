@@ -654,7 +654,11 @@ bool Encoder::update() {
                 // Low pass filter the error
                 spi_error_rate_ += current_meas_period * (1.0f - spi_error_rate_);
                 if (spi_error_rate_ > 0.005f)
+                {
+                    axis_->axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_ABS_SPI_COM_FAIL;
                     set_error(ERROR_ABS_SPI_COM_FAIL);
+                }
+                    
             } else {
                 // Low pass filter the error
                 spi_error_rate_ += current_meas_period * (0.0f - spi_error_rate_);
