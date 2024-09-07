@@ -23,8 +23,8 @@ public:
         InputMode input_mode = INPUT_MODE_PASSTHROUGH;             //see: InputMode_t
         float pos_gain = 20.0f;                  // [(turn/s) / turn]
         float vel_gain = 1.0f / 6.0f;            // [Nm/(turn/s)]
-        float kp;
-        float kd;
+        float kp = 0.01f;
+        float kd = 0.f;
         // float vel_gain = 0.2f / 200.0f,       // [Nm/(rad/s)] <sensorless example>
         float vel_integrator_gain = 2.0f / 6.0f; // [Nm/(turn/s * s)]
         float vel_limit = 2.0f;                  // [turn/s] Infinity to disable.

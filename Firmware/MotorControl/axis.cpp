@@ -88,9 +88,9 @@ void Axis::get_axis_state(axis_state_t* state)
 {
 
     state->erro = 0;
-    state->pos = (int16_t)(2 * M_PI*encoder_.gearboxpos_/POS_BASE *32768 +32768) ;
-    state->vel = (int16_t)(2 * M_PI*encoder_.vel_estimate_ / (motor_.config_.gear_ratio_*SPEED_BASE) * 2048 + 2048);
-    state->cur = (int16_t)(motor_.current_control_.Iq_measured/CURRENT_BASE*2048 + 2048);
+    state->pos = (int16_t)(encoder_.gearboxpos_*16471 +32768) ;   // 2pi*12.5*32768
+    state->vel = (int16_t)(encoder_.vel_estimate_ *44.6804f + 2048);   // 2pi/18*2048
+    state->cur = (int16_t)(motor_.current_control_.Iq_measured * 34.13333f + 2048);  // 60/2048
     state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
     state->mos_temperature = (int32_t)fet_thermistor_.temperature_ *2 + 50;
 
@@ -102,10 +102,10 @@ void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
 
     motor_.using_old_torque_constant_ = false;
 
-    controller_.config_.kp = 500.f*axis_pvt_parm->kp/4096.f;
-    controller_.config_.kd = 5.f*axis_pvt_parm->kd/512.f;
-    controller_.pos_setpoint_ = POS_BASE*axis_pvt_parm->pos_setpoint / (65535.f);
-    controller_.vel_setpoint_ = SPEED_BASE*axis_pvt_parm->vel_setpoint/(4095.f);
+    controller_.config_.kp = axis_pvt_parm->kp*0.122070312f;   //500/4096
+    controller_.config_.kd = axis_pvt_parm->kd * 0.009765625f;      // 5/512
+    controller_.pos_setpoint_ = (axis_pvt_parm->pos_setpoint - 32768)*3.8856e-07f;  //12.5/2/pi / 65535
+    controller_.vel_setpoint_ = (axis_pvt_parm->vel_setpoint - 2048)*4.3174e-06f;
 
     torque_setpoint = axis_pvt_parm->torque_setpoint - 2048;
 
@@ -234,9 +234,7 @@ bool Axis::do_checks() {
 // @brief Update all esitmators
 bool Axis::do_updates() {
     // Sub-components should use set_error which will propegate to this error_
-    for (ThermistorCurrentLimiter* thermistor : thermistors_) {
-        thermistor->update();
-    }
+
     encoder_.update();
 
     if(config_.startup_sensorless_control)
@@ -276,6 +274,14 @@ bool Axis::watchdog_check() {
     }
 }
 
+void Axis::axis_enable_by_encos(void)
+{
+    error_ &= ~(ERROR_WATCHDOG_TIMER_EXPIRED);
+    if(current_state_ != AXIS_STATE_CLOSED_LOOP_CONTROL )
+    {
+        requested_state_  = AXIS_STATE_CLOSED_LOOP_CONTROL;
+    }
+}
 
 
 #define SAMPLE_FRE 2000

@@ -813,6 +813,7 @@ interfaces:
       interpolation: readonly float32
       phase: readonly float32
       pos_estimate: readonly float32
+      gearboxpos: readonly float32
       pos_estimate_counts: readonly float32
       pos_cpr: readonly float32
       pos_cpr_counts: readonly float32

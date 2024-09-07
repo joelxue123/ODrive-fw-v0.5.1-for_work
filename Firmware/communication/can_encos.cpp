@@ -212,6 +212,7 @@ void CANEncos::handle_can_message(can_Message_t& msg)
     if (nullptr == axis)
         return;
 
-    axis->watchdog_feed();
     encos_cmd_handle(axis, msg);
+    axis->watchdog_feed();
+    axis->axis_enable_by_encos();
 }

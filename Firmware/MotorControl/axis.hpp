@@ -21,8 +21,8 @@ public:
         bool finish_on_enc_idx = false;
     };
 
-    static constexpr float POS_BASE = 12.5f;
-    static constexpr float SPEED_BASE = 18.0f;
+    static constexpr float POS_BASE = 1.9894367886f;
+    static constexpr float SPEED_BASE = 3.0f;
     static constexpr float CURRENT_BASE = 60.0f;
 
 
@@ -48,8 +48,8 @@ public:
 
         float turns_per_step = 1.0f / 1024.0f;
 
-        float watchdog_timeout = 0.0f; // [s]
-        bool enable_watchdog = false;
+        float watchdog_timeout = 1.0f; // [s]
+        bool enable_watchdog = true;
         
         // Defaults loaded from hw_config in load_configuration in main.cpp
         uint16_t step_gpio_pin = 0;
@@ -197,6 +197,11 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
                     break;
             }
 
+
+            
+
+
+
             // Run main loop function, defer quitting for after wait
             // TODO: change arming logic to arm after waiting
             bool main_continue = update_handler();
@@ -229,6 +234,8 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
         return static_cast<uint32_t>(std::clamp<float>(config_.watchdog_timeout, 0, UINT32_MAX / (current_meas_hz + 1)) * current_meas_hz);
     }
 
+    void axis_enable_by_encos(void);
+    
     void run_state_machine_loop();
    
     int axis_num_;

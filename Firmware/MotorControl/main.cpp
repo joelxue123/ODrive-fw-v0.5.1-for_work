@@ -242,6 +242,10 @@ void vApplicationIdleHook(void) {
         odrv.system_stats_.stack_usage_usb_irq = stack_size_usb_irq_thread - odrv.system_stats_.min_stack_space_usb_irq;
         odrv.system_stats_.stack_usage_startup = stack_size_default_task - odrv.system_stats_.min_stack_space_startup;
         odrv.system_stats_.stack_usage_can = odCAN->stack_size_ - odrv.system_stats_.min_stack_space_can;
+        for (ThermistorCurrentLimiter* thermistor : axes[0]->thermistors_) {
+            thermistor->update();
+    }
+
     }
 }
 }
