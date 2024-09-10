@@ -36,7 +36,9 @@ public:
     static constexpr float POS_BASE = 12.5f;
     static constexpr float SPEED_BASE = 3.0f;
     static constexpr float CURRENT_BASE = 60.0f;
-    static constexpr float speed_coeff_motor2encos = 2*3.14159265358979323846f*32768/POS_BASE;
+    static constexpr float pos_coeff_motor2encos = 2*3.14159265358979323846f*32768/POS_BASE;
+    static constexpr float pos_coeff_encos2motor = POS_BASE/2/3.14159265358979323846f/32768;
+
 
 
     static LockinConfig_t default_calibration();
