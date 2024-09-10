@@ -479,8 +479,11 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     }
 
     // Clarke transform
-    float Ialpha = -current_meas_.phB - current_meas_.phC;
+    // float Ialpha = -current_meas_.phB - current_meas_.phC;
+    // float Ibeta = one_by_sqrt3 * (current_meas_.phB - current_meas_.phC);
+    float Ialpha = current_meas_.phA;
     float Ibeta = one_by_sqrt3 * (current_meas_.phB - current_meas_.phC);
+  //  float Ibeta = one_by_sqrt3 * (-current_meas_.phA - current_meas_.phC  - current_meas_.phC);
 
     // Park transform
     float c_I = our_arm_cos_f32(I_phase);

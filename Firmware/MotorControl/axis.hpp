@@ -33,9 +33,10 @@ public:
       ENCOS_ERROR_DRV_FAULT=7,
    };
 
-    static constexpr float POS_BASE = 1.9894367886f;
+    static constexpr float POS_BASE = 12.5f;
     static constexpr float SPEED_BASE = 3.0f;
     static constexpr float CURRENT_BASE = 60.0f;
+    static constexpr float speed_coeff_motor2encos = 2*3.14159265358979323846f*32768/POS_BASE;
 
 
     static LockinConfig_t default_calibration();

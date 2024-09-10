@@ -596,7 +596,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
 
     axis.motor_.current_meas_.phA = current_a - axis.motor_.DC_calib_.phA;
     axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
-    axis.motor_.current_meas_.phB =  1.1f*(0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC) ;
+    axis.motor_.current_meas_.phB =  1.2f*(0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC) ;
 
    NVIC->STIR = ControlLoop_IRQn;
 #ifdef ADC_TEST
