@@ -322,11 +322,11 @@ void  Motor::setting_torque_slope(uint32_t index, float value)
     }
 }
 
-float Motor::phase_current_from_adcval(uint32_t ADCValue) {
+float Motor::phase_current_from_adcval(uint32_t ADCValue, float phase_current_gain_coeff) {
     int adcval_bal = (int)ADCValue - (1 << 11);
     float amp_out_volt = (3.3f / (float)(1 << 12)) * (float)adcval_bal;
     float shunt_volt = amp_out_volt * phase_current_rev_gain_;
-    float current = shunt_volt * hw_config_.shunt_conductance;
+    float current = shunt_volt * hw_config_.shunt_conductance * phase_current_gain_coeff;
     return current;
 }
 
@@ -587,23 +587,20 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     }
     else
     {
-#if 1 
-        uint32_t idex = floor(fabs(torque_setpoint *config_.gear_ratio_) /2.2f + 0.5f);
+        uint32_t idex = floor(fabs(torque_setpoint *config_.gear_ratio_) *0.3333333f);
         if( idex < NUM_LINEARITY_SEG)
         {
-            torque_constant = L_Slop_Array_[idex] / config_.gear_ratio_;
+            torque_constant = L_Slop_Array_[idex]*0.0625f;
         }
         else
         {
-            torque_constant = L_Slop_Array_[NUM_LINEARITY_SEG -1] / config_.gear_ratio_;
+            torque_constant = L_Slop_Array_[NUM_LINEARITY_SEG -1] *0.0625f;
         }
 
         current_setpoint = torque_setpoint / torque_constant;
 
-#endif
 
     }
-
     current_setpoint *= config_.direction;
 
     // TODO: 2-norm vs independent clamping (current could be sqrt(2) bigger)

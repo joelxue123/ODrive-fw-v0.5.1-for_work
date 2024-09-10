@@ -589,14 +589,14 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     uint32_t ADCValue_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_2);
     smooth_filter(ADCValue_dc_a, &dc_current_a);
     smooth_filter(ADCValue_dc_c, &dc_current_c);
-    float current_a = axis.motor_.phase_current_from_adcval(ADCValue_a);
-    float current_c = axis.motor_.phase_current_from_adcval(ADCValue_c);
-    axis.motor_.DC_calib_.phA = axis.motor_.phase_current_from_adcval(dc_current_a.filtered_value);
-    axis.motor_.DC_calib_.phC = axis.motor_.phase_current_from_adcval(dc_current_c.filtered_value);
+    float current_a = axis.motor_.phase_current_from_adcval(ADCValue_a,0.918f);
+    float current_c = axis.motor_.phase_current_from_adcval(ADCValue_c,0.718f);
+    axis.motor_.DC_calib_.phA = axis.motor_.phase_current_from_adcval(dc_current_a.filtered_value,0.918f);
+    axis.motor_.DC_calib_.phC = axis.motor_.phase_current_from_adcval(dc_current_c.filtered_value,0.718f);
 
     axis.motor_.current_meas_.phA = current_a - axis.motor_.DC_calib_.phA;
     axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
-    axis.motor_.current_meas_.phB =  0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC ;
+    axis.motor_.current_meas_.phB =  1.1f*(0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC) ;
 
    NVIC->STIR = ControlLoop_IRQn;
 #ifdef ADC_TEST

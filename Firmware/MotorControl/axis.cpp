@@ -89,9 +89,9 @@ void Axis::get_axis_state(axis_state_t* state)
 
     state->erro = 0;
     state->pos = (int16_t)(encoder_.gearboxpos_*16471 +32768) ;   // 2pi*12.5*32768
-    state->vel = (int16_t)(encoder_.vel_estimate_ *44.6804f + 2048);   // 2pi/18*2048
-    state->cur = (int16_t)(motor_.current_control_.Iq_measured * 34.13333f + 2048);  // 60/2048
-    state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
+    state->vel = (int16_t)(encoder_.vel_estimate_ *22.3402f + 2048);   // 1/2/pi/36*2048/16将速度的系数再减半
+    state->cur = (int16_t)(motor_.current_control_.Iq_measured * 0.5f*34.13333f + 2048);  // 60/2048将电流的系数再减半
+    state->motor_temperature = 100;//(int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
     state->mos_temperature = (int32_t)fet_thermistor_.temperature_ *2 + 50;
 
 }
@@ -104,8 +104,8 @@ void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
 
     controller_.config_.kp = axis_pvt_parm->kp*0.122070312f;   //500/4096
     controller_.config_.kd = axis_pvt_parm->kd * 0.009765625f;      // 5/512
-    controller_.pos_setpoint_ = (axis_pvt_parm->pos_setpoint - 32768)*3.8856e-07f;  //12.5/2/pi / 65535
-    controller_.vel_setpoint_ = (axis_pvt_parm->vel_setpoint - 2048)*4.3174e-06f;
+    controller_.pos_setpoint_ = (axis_pvt_parm->pos_setpoint - 32768)*6.0713e-05f;  //12.5/2/pi / 32768
+    controller_.vel_setpoint_ = (axis_pvt_parm->vel_setpoint - 2048)*0.0028f;   // 36/2/pi / 2048
 
     torque_setpoint = axis_pvt_parm->torque_setpoint - 2048;
 

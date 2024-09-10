@@ -529,6 +529,7 @@ interfaces:
           WaitingForUpdate:
           Armed:
       is_calibrated: readonly bool
+      current_meas_phA: { type: readonly float32, c_name: current_meas_.phA }
       current_meas_phB: { type: readonly float32, c_name: current_meas_.phB }
       current_meas_phC: { type: readonly float32, c_name: current_meas_.phC }
       DC_calib_phA: { type: float32, c_name: DC_calib_.phA }

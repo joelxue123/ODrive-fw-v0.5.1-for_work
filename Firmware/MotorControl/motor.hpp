@@ -107,7 +107,7 @@ public:
     float effective_current_lim();
     float max_available_torque();
     void log_timing(TimingLog_t log_idx);
-    float phase_current_from_adcval(uint32_t ADCValue);
+    float phase_current_from_adcval(uint32_t ADCValue, float phase_current_gain_coeff);
     bool measure_phase_resistance(float test_current, float max_voltage);
     bool measure_phase_inductance(float voltage_low, float voltage_high);
     bool run_calibration();
@@ -182,7 +182,7 @@ public:
     float Id_filter = 0;
     float Idq_filter_k_ = 0.4f;
     float Idq_filter_k2_ = 0.4f;
-    bool using_old_torque_constant_ = false;
+    bool using_old_torque_constant_ = true;
     float L_Slop_Array_[NUM_LINEARITY_SEG] = {1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f};
 
 

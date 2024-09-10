@@ -702,7 +702,6 @@ bool Encoder::update() {
             }
             else
             {}
-            GearboxOutputEncoder_turns_ = 0;
             GearboxOutputEncoder_counts = GearboxOutputEncoder_turns_*2*HALF_CPR+ gear_single_turn_abs_;
             gearboxpos_ = GearboxOutputEncoder_counts /  config_.GearboxOutputEncoder_cpr;
             
