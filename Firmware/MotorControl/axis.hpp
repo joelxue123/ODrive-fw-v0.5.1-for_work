@@ -34,9 +34,12 @@ public:
    };
 
     static constexpr float POS_BASE = 12.5f;
-    static constexpr float SPEED_BASE = 3.0f;
+    static constexpr float SPEED_BASE = 18.0f;
     static constexpr float CURRENT_BASE = 60.0f;
-    static constexpr float speed_coeff_motor2encos = 2*3.14159265358979323846f*32768/POS_BASE;
+    static constexpr float pos_coeff_motor2encos = 2*3.14159265358979323846f*32768/POS_BASE;
+    static constexpr float pos_coeff_encos2motor = POS_BASE/2/3.14159265358979323846f/32768;
+    static constexpr float speed_coeff_motor2encos = 2*3.14159265358979323846f*2048/SPEED_BASE;
+    static constexpr float speed_coeff_encos2motor = SPEED_BASE/2/3.14159265358979323846f/2048;
 
 
     static LockinConfig_t default_calibration();
@@ -292,7 +295,7 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     axis_state_t axis_state_;
     Homing_t homing_;
     uint32_t last_heartbeat_ = 0;
-
+    float gear_ratio_inverse_ = 1.0/20.f;
     // watchdog
     uint32_t watchdog_current_value_= 0;
 };

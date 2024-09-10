@@ -626,6 +626,7 @@ interfaces:
         attributes:
           pre_calibrated: { type: bool, c_setter: set_pre_calibrated }
           pole_pairs: int32
+          gear_ratio: int32
           motor_torque_base: float32
           calibration_current: float32
           resistance_calib_max_voltage: float32

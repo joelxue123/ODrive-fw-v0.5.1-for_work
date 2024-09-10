@@ -45,8 +45,8 @@ public:
     // example: current_lim and calibration_current will instead determine the maximum voltage applied to the motor.
     struct Config_t {
         bool pre_calibrated = false; // can be set to true to indicate that all values here are valid
-        int32_t pole_pairs = 21;
-        int32_t gear_ratio_ = 16;
+        int32_t pole_pairs = 10;
+        int32_t gear_ratio = 20;
         float motor_torque_base = 60.0f; // [Nm]
         float calibration_current = 10.0f;    // [A]
         float resistance_calib_max_voltage = 2.0f; // [V] - You may need to increase this if this voltage isn't sufficient to drive calibration_current through the motor.
@@ -62,7 +62,7 @@ public:
         float torque_lim = std::numeric_limits<float>::infinity();           //[Nm]. 
         // Value used to compute shunt amplifier gains
         float requested_current_range = 60.0f; // [A]
-        float current_control_bandwidth = 5000.0f;  // [rad/s]
+        float current_control_bandwidth = 3000.0f;  // [rad/s]
         float inverter_temp_limit_lower = 100;
         float inverter_temp_limit_upper = 120;
         float acim_slip_velocity = 14.706f; // [rad/s electrical] = 1/rotor_tau

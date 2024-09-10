@@ -590,7 +590,7 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     }
     else
     {
-        uint32_t idex = floor(fabs(torque_setpoint *config_.gear_ratio_) *0.3333333f);
+        uint32_t idex = floor(fabs(torque_setpoint *config_.gear_ratio) *0.3333333f);
         if( idex < NUM_LINEARITY_SEG)
         {
             torque_constant = L_Slop_Array_[idex]*0.0625f;

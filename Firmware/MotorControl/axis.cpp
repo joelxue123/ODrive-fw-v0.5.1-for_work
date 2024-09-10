@@ -89,7 +89,7 @@ void Axis::get_axis_state(axis_state_t* state)
 
     state->erro = 0;
     state->pos = (int16_t)(encoder_.gearboxpos_*16471 +32768) ;   // 2pi*12.5*32768
-    state->vel = (int16_t)(encoder_.vel_estimate_ *22.3402f + 2048);   // 1/2/pi/36*2048/16将速度的系数再减半
+    state->vel = (int16_t)(encoder_.vel_estimate_ *speed_coeff_motor2encos *gear_ratio_inverse_  + 2048);   // 1/2/pi/36*2048/16将速度的系数再减半
     state->cur = (int16_t)(motor_.current_control_.Iq_measured *0.5f*34.13333f + 2048);  // 60/2048将电流的系数再减半
     state->motor_temperature = 100;//(int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
     state->mos_temperature = (int32_t)fet_thermistor_.temperature_ *2 + 50;
@@ -117,13 +117,14 @@ void Axis::set_axis_current(int16_t current)
     motor_.using_old_torque_constant_ = true;
     controller_.config_.kp = 0;
     controller_.config_.kd = 0;
-    controller_.input_torque_ = current *motor_.config_.gear_ratio_* motor_.config_.torque_constant/ 100;
+    controller_.input_torque_ = current *motor_.config_.gear_ratio* motor_.config_.torque_constant/ 100;
 
 }
 
 
 // @brief Does Nothing
 void Axis::setup() {
+    gear_ratio_inverse_  = 1/motor_.config_.gear_ratio;
     // Does nothing - Motor and encoder setup called separately.
 }
 
