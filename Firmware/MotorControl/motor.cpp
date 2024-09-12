@@ -583,10 +583,10 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     Id_filter += Idq_filter_k_ * (Id - Id_filter);
     
     float dec_vd=0, dec_vq=0,dec_bemf=0,pm_flux_linkage=0;
-    pm_flux_linkage =  config_.torque_constant/ (config_.pole_pairs);
+    pm_flux_linkage =  0.666666f*config_.torque_constant/ (config_.pole_pairs);
     dec_vd = Iq_filter * m_speed_est_fast * config_.phase_inductance;
     dec_vq = Id_filter * m_speed_est_fast * config_.phase_inductance;
-    //dec_bemf = m_speed_est_fast * pm_flux_linkage;
+    dec_bemf = m_speed_est_fast * pm_flux_linkage;
 
     // Check for violation of current limit
     float I_trip = effective_current_lim() + config_.current_lim_margin;
@@ -605,8 +605,8 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     float Vd = ictrl.v_current_control_integral_d + Ierr_d * ictrl.p_gain;
     float Vq = ictrl.v_current_control_integral_q + Ierr_q * ictrl.p_gain;
 
-      Vd -=  dec_vd;
-      Vq +=  dec_vq + dec_bemf;  
+    Vd -=  dec_vd;
+    Vq +=  dec_vq + dec_bemf;  
 
 
     ictrl.final_v_d = Vd;
@@ -669,14 +669,17 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
         current_setpoint = torque_setpoint / config_.torque_constant;
     }
 
-    
+  //  torque_setpoint_filterd_= applyNotchFilter(&notch_filter_, torque_setpoint);
+
+    torque_setpoint_filterd_ += 0.00342f * (torque_setpoint - torque_setpoint_filterd_);
+
     if( using_old_torque_constant_ ==  true)
     {
-        current_setpoint = torque_setpoint / config_.torque_constant;
+        current_setpoint = torque_setpoint_filterd_ / config_.torque_constant;
     }
     else
     {
-        uint32_t idex = floor(fabs(torque_setpoint *config_.gear_ratio_) *0.3333333f);
+        uint32_t idex = floor(fabs(torque_setpoint_filterd_ *config_.gear_ratio_) *0.3333333f);
         if( idex < NUM_LINEARITY_SEG)
         {
             torque_constant = L_Slop_Array_[idex]*0.0625f;
@@ -686,7 +689,7 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
             torque_constant = L_Slop_Array_[NUM_LINEARITY_SEG -1] *0.0625f;
         }
 
-        current_setpoint = torque_setpoint / torque_constant;
+        current_setpoint = torque_setpoint_filterd_ / torque_constant;
 
 
     }
