@@ -211,6 +211,8 @@ bool Encoder::run_offset_calibration() {
     // go to motor zero phase for start_lock_duration to get ready to scan
     int i = 0;
     axis_->run_control_loop([&](){
+
+    axis_->motor_.I_phase_ = 0.5f*(-M_PI);
         if (!axis_->motor_.enqueue_voltage_timings(voltage_magnitude, 0.0f))
             return false; // error set inside enqueue_voltage_timings
         axis_->motor_.log_timing(TIMING_LOG_ENC_CALIB);
@@ -226,8 +228,10 @@ bool Encoder::run_offset_calibration() {
     i = 0;
     axis_->run_control_loop([&]() {
         float phase = wrap_pm_pi(config_.calib_scan_distance * (float)i / (float)num_steps - config_.calib_scan_distance / 2.0f);
+        
         float v_alpha = voltage_magnitude * our_arm_cos_f32(phase);
         float v_beta = voltage_magnitude * our_arm_sin_f32(phase);
+        axis_->motor_.I_phase_ = phase + (-M_PI)*0.5f;
         if (!axis_->motor_.enqueue_voltage_timings(v_alpha, v_beta))
             return false; // error set inside enqueue_voltage_timings
         axis_->motor_.log_timing(TIMING_LOG_ENC_CALIB);
@@ -268,6 +272,7 @@ bool Encoder::run_offset_calibration() {
         float phase = wrap_pm_pi(-config_.calib_scan_distance * (float)i / (float)num_steps + config_.calib_scan_distance / 2.0f);
         float v_alpha = voltage_magnitude * our_arm_cos_f32(phase);
         float v_beta = voltage_magnitude * our_arm_sin_f32(phase);
+        axis_->motor_.I_phase_ = phase + (-M_PI)*0.5f;
         if (!axis_->motor_.enqueue_voltage_timings(v_alpha, v_beta))
             return false; // error set inside enqueue_voltage_timings
         axis_->motor_.log_timing(TIMING_LOG_ENC_CALIB);
@@ -646,9 +651,13 @@ bool Encoder::update() {
             HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_, GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_SET);
             uint32_t rawVal = *(uint32_t *)&abs_spi_dma_rx_[0];
             pos_abs_  = ((rawVal & 0x0000ff00)) | ( (rawVal & 0x00ff0000)>>16 ) ;
+            pos_abs_ = config_.cpr - pos_abs_; //取反
+
             rawVal = *(uint32_t *)&GearboxOutputEncoder_spi_dma_rx_[0];
             sencond_pos_abs_ =  ((rawVal & 0x0000ff00)<<8) | ( (rawVal & 0x00ff0000)>>8 )| ( (rawVal & 0xff000000)>>24 )  ;
             sencond_pos_abs_ >>= 6;
+            sencond_pos_abs_ = config_.GearboxOutputEncoder_cpr - sencond_pos_abs_; //取反
+
             abs_spi_pos_updated_ = true;
             if (abs_spi_pos_updated_ == false) {
                 // Low pass filter the error

@@ -143,7 +143,7 @@ if tup.getconfig("DEBUG") == "true" then
     FLAGS += '-g -gdwarf-2'
     OPT += '-Og'
 else
-    OPT += '-Os'
+    OPT += '-O3'
 end
 
 -- common flags for ASM, C and C++

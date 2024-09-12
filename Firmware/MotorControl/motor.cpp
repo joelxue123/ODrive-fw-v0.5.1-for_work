@@ -319,6 +319,7 @@ void  Motor::setting_torque_slope(uint32_t index, float value)
     if(index < NUM_LINEARITY_SEG )
     {
         L_Slop_Array_[index] = value;
+        config_.Torque_LINEARITY_[index] = value;
     }
 }
 
@@ -434,9 +435,48 @@ bool Motor::enqueue_modulation_timings(float mod_alpha, float mod_beta) {
     float tA, tB, tC;
     if (SVM(mod_alpha, mod_beta, &tA, &tB, &tC) != 0)
         return set_error(ERROR_MODULATION_MAGNITUDE), false;
-    next_timings_[0] = (uint16_t)(tA * (float)TIM_1_8_PERIOD_CLOCKS);
-    next_timings_[1] = (uint16_t)(tB * (float)TIM_1_8_PERIOD_CLOCKS);
-    next_timings_[2] = (uint16_t)(tC * (float)TIM_1_8_PERIOD_CLOCKS);
+
+
+if( deadtime_compensation_coff_ < 0.0f)
+{
+    I_phase_ = wrap_pm_pi(I_phase_);
+
+    float Ialpha = current_meas_.phA;
+    float Ibeta = one_by_sqrt3 * (current_meas_.phB - current_meas_.phC);
+    
+    // Park transform
+    float c_I = our_arm_cos_f32(I_phase_);
+    float s_I = our_arm_sin_f32(I_phase_);
+    float Id = c_I * Ialpha + s_I * Ibeta;
+    float Iq = c_I * Ibeta - s_I * Ialpha;
+
+    Iq_filter2 += Idq_filter_k2_ * (Iq - Iq_filter2);
+    Id_filter2 += Idq_filter_k2_ * (Id - Id_filter2);
+
+    float offset_phase = fast_atan2(Iq_filter2, Id_filter2);
+    total_phase_for_abc_sign_calculation_  = I_phase_ + offset_phase + M_PI;
+    
+    total_phase_for_abc_sign_calculation_ = wrap_pm_pi(total_phase_for_abc_sign_calculation_);
+    total_phase_for_abc_sign_calculation_ += M_PI;
+
+    abc_sign_calculation(total_phase_for_abc_sign_calculation_, &sign_a_, &sign_b_, &sign_c_);
+    
+
+     Aphase_deadtime_compensation_ = deadtime_compensation_coff_*sign_a_ * TIM_1_8_DEADTIME_CLOCKS ;
+     Bphase_deadtime_compensation_ = deadtime_compensation_coff_*sign_b_ * TIM_1_8_DEADTIME_CLOCKS ;
+     Cphase_deadtime_compensation_ = deadtime_compensation_coff_*sign_c_ * TIM_1_8_DEADTIME_CLOCKS ;
+}
+else
+{
+    Aphase_deadtime_compensation_ =0;
+    Bphase_deadtime_compensation_ =0;
+    Cphase_deadtime_compensation_ =0;
+}
+
+
+    next_timings_[0] = (uint16_t)(tA * (float)TIM_1_8_PERIOD_CLOCKS) + Aphase_deadtime_compensation_;
+    next_timings_[1] = (uint16_t)(tB * (float)TIM_1_8_PERIOD_CLOCKS) + Bphase_deadtime_compensation_ ;
+    next_timings_[2] = (uint16_t)(tC * (float)TIM_1_8_PERIOD_CLOCKS) + Cphase_deadtime_compensation_  ;
     next_timings_valid_ = true;
     safety_critical_apply_motor_pwm_timings(
                 *this, next_timings_
@@ -462,8 +502,54 @@ bool Motor::FOC_voltage(float v_d, float v_q, float pwm_phase) {
     float s = our_arm_sin_f32(pwm_phase);
     float v_alpha = c*v_d - s*v_q;
     float v_beta = c*v_q + s*v_d;
+
     return enqueue_voltage_timings(v_alpha, v_beta);
 }
+
+void Motor::abc_sign_calculation(float phase , int32_t *a, int32_t *b, int32_t *c)
+{
+    if(phase > 0 && phase <= M_PI/6){
+       *a = 1;
+       *b = -1;
+       *c = -1;
+    }
+    else if(phase > M_PI/6 && phase <= 3*M_PI/6){
+       *a = 1;
+       *b = 1;
+       *c = -1;
+    }
+    else if(phase > 3*M_PI/6 && phase <= 5*M_PI/6){
+       *a = -1;
+       *b = 1;
+       *c = -1;
+    }
+    else if(phase > 5*M_PI/6 && phase <= 7*M_PI/6){
+       *a = -1;
+       *b = 1;
+       *c = 1;
+    }
+    else if(phase > 7*M_PI/6 && phase <= 3*M_PI/2){
+       *a = -1;
+       *b = -1;
+       *c = 1;
+    }
+    else if (phase > 3*M_PI/2 && phase <= 11*M_PI/6){
+       *a = 1;
+       *b = -1;
+       *c = 1;
+    }
+    else if (phase > 11*M_PI/6 && phase <= 2*M_PI){
+       *a = 1;
+       *b = -1;
+       *c = -1;
+    }
+    else{
+       *a = 0;
+       *b = 0;
+       *c = 0;
+    }
+}
+
 
 bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_phase) {
     // Syntactic sugar
@@ -644,6 +730,9 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
 
     float pwm_phase = phase + 1.5f * current_meas_period * phase_vel;
     pwm_phase = wrap_pm_pi(pwm_phase);
+    I_phase_ = pwm_phase;
+    // Clarke transform
+
 
     bool res = true;
     // Execute current command

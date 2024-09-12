@@ -94,7 +94,12 @@ public:
     bool arm();
     void disarm();
     void setup() {
+        int32_t index = 0;
         DRV8301_setup();
+        for( index = 0;index < NUM_LINEARITY_SEG;index++)
+        {
+              L_Slop_Array_[index] = config_.Torque_LINEARITY_[index];
+        }
 
     }
     void reset_current_control();
@@ -118,6 +123,7 @@ public:
     bool update(float current_setpoint, float phase, float phase_vel);
     void pos_linearity_ini(void);
     float current_Correct(int32_t Torque_Org);
+    void abc_sign_calculation(float phase , int32_t *a, int32_t *b, int32_t *c);
     const MotorHardwareConfig_t& hw_config_;
     const GateDriverHardwareConfig_t gate_driver_config_;
     Config_t& config_;
@@ -180,10 +186,20 @@ public:
     float  m_speed_est_fast =0;
     float Iq_filter = 0;
     float Id_filter = 0;
+    float Iq_filter2 = 0;
+    float Id_filter2 = 0;
     float Idq_filter_k_ = 0.4f;
-    float Idq_filter_k2_ = 0.4f;
+    float Idq_filter_k2_ = 0.01f;
     bool using_old_torque_constant_ = true;
     float L_Slop_Array_[NUM_LINEARITY_SEG] = {1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f};
+    int32_t sign_a_, sign_b_, sign_c_;
+    float total_phase_for_abc_sign_calculation_;
+    float I_phase_;
+    float I_phase2_;
+    float deadtime_compensation_coff_ = 0.0f;
+    int16_t Aphase_deadtime_compensation_ = 0;
+    int16_t Bphase_deadtime_compensation_ = 0;
+    int16_t Cphase_deadtime_compensation_ = 0;
 
 
     void setting_motor_current_linearity(uint32_t index, float value);
