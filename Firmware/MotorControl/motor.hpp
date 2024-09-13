@@ -100,7 +100,7 @@ public:
         {
               L_Slop_Array_[index] = config_.Torque_LINEARITY_[index];
         }
-       // initNotchFilter(&notch_filter_, notch_filter_frequency_, notch_filter_sample_rate_, notch_filter_bandwidth_);
+        initNotchFilter(&notch_filter_, notch_filter_frequency_, notch_filter_sample_rate_, notch_filter_bandwidth_);
 
 
     }
@@ -203,6 +203,7 @@ public:
     int16_t Bphase_deadtime_compensation_ = 0;
     int16_t Cphase_deadtime_compensation_ = 0;
     float torque_setpoint_filterd_ = 0;
+    float torque_setpoint_notch_filterd_ = 0;
 
     float notch_filter_sample_rate_ = 20000.f;
     float notch_filter_frequency_ = 50.f;

@@ -545,6 +545,8 @@ interfaces:
       Idq_filter_k: float32
       Idq_filter_k2: float32
       deadtime_compensation_coff: float32
+      torque_setpoint_filterd: float32
+      torque_setpoint_notch_filterd: float32
       current_control:
         c_is_class: False
         attributes:

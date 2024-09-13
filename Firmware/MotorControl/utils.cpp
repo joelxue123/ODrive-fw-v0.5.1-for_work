@@ -242,14 +242,19 @@ int32_t fsgn(float num) {
 void initNotchFilter(NotchFilter* filter, float frequency, float sampleRate, float bandwidth) {
     float w0 = 2 * M_PI * frequency / sampleRate;
     filter->w0 = w0;
-  //  filter->r = 1 - bandwidth / 2;
+    filter->r = 1 - bandwidth / 2;
     filter->r = our_arm_sin_f32(w0) / (2*bandwidth);
     float cosw0 = our_arm_cos_f32(w0);
-    filter->b1 = -2 * cosw0;
-    filter->b2 = 1;
-    filter->a1 = -2 * filter->r * cosw0;
-   // filter->a2 = filter->r * filter->r;
-    filter->a2 = 1.0f - 2*filter->r ;
+    // filter->b1 = -2 * cosw0;
+    // filter->b2 = 1;
+    // filter->a1 = -2 * filter->r * cosw0;
+    // filter->a2 = filter->r * filter->r;
+    // filter->a2 = 1.0f - 2*filter->r ;
+    filter->b1 = -1.999654572f;//-1.99975573206256f;
+    filter->b2 = 1.0f;
+    filter->a1 = -1.99339212599;
+    filter->a2 = 0.99373647154;
+
     filter->x1 = filter->x2 = filter->y1 = filter->y2 = 0;
 }
 
