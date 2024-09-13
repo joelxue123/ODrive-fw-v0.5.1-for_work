@@ -193,7 +193,7 @@ public:
     float Idq_filter_k_ = 0.4f;
     float Idq_filter_k2_ = 0.01f;
     bool using_old_torque_constant_ = true;
-    float L_Slop_Array_[NUM_LINEARITY_SEG] = {1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f,1.f};
+    float L_Slop_Array_[NUM_LINEARITY_SEG] = {2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f};
     int32_t sign_a_, sign_b_, sign_c_;
     float total_phase_for_abc_sign_calculation_;
     float I_phase_;

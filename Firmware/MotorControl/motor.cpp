@@ -586,7 +586,7 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     pm_flux_linkage =  0.666666f*config_.torque_constant/ (config_.pole_pairs);
     dec_vd = Iq_filter * m_speed_est_fast * config_.phase_inductance;
     dec_vq = Id_filter * m_speed_est_fast * config_.phase_inductance;
-    dec_bemf = m_speed_est_fast * pm_flux_linkage;
+   // dec_bemf = m_speed_est_fast * pm_flux_linkage;
 
     // Check for violation of current limit
     float I_trip = effective_current_lim() + config_.current_lim_margin;
@@ -657,7 +657,7 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
 // phase_vel [rad/s electrical]
 bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     float current_setpoint = 0.0f;
-    float torque_constant = 0.087f;
+    float torque_constant = 0.12f;
     phase *= config_.direction;
     phase_vel *= config_.direction;
     m_speed_est_fast =  phase_vel; 
@@ -678,14 +678,14 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     }
     else
     {
-        uint32_t idex = floor(fabs(torque_setpoint_notch_filterd_ *config_.gear_ratio_) *0.3333333f);
+        uint32_t idex = floor(fabs(torque_setpoint_notch_filterd_ *config_.gear_ratio) *0.3333333f);  
         if( idex < NUM_LINEARITY_SEG)
         {
-            torque_constant = L_Slop_Array_[idex]*0.0625f;
+            torque_constant = L_Slop_Array_[idex]/config_.gear_ratio;
         }
         else
         {
-            torque_constant = L_Slop_Array_[NUM_LINEARITY_SEG -1] *0.0625f;
+            torque_constant = L_Slop_Array_[NUM_LINEARITY_SEG -1]/config_.gear_ratio;
         }
 
         current_setpoint = torque_setpoint_notch_filterd_ / torque_constant;

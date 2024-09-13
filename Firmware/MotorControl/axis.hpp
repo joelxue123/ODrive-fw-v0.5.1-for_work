@@ -111,6 +111,7 @@ bool set_offset(void) {
     if(current_state_ != AXIS_STATE_IDLE)
         return false;
     encoder_.config_.Gearoffset = encoder_.gear_single_turn_abs_;
+    encoder_ . GearboxOutputEncoder_turns_ =0;
     encoder_.first_init_ = true;
     config_.offset = 0; //TODO: 将当前位置设置为零点
     return true;
@@ -298,7 +299,7 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     axis_state_t axis_state_;
     Homing_t homing_;
     uint32_t last_heartbeat_ = 0;
-    float gear_ratio_inverse_ = 1.0/20.f;
+    float gear_ratio_inverse_ = 1.0f/20.f;
     // watchdog
     uint32_t watchdog_current_value_= 0;
 };

@@ -687,22 +687,22 @@ bool Encoder::update() {
             while(gear_single_turn_abs_ < -HALF_CPR) {
                 gear_single_turn_abs_ += 2 * HALF_CPR;
             }
-            gear_single_turn_abs_ = gear_single_turn_abs_ - config_.Gearoffset;
-            while(gear_single_turn_abs_ > HALF_CPR) {
-                gear_single_turn_abs_ -= 2 * HALF_CPR;
+            gear_single_turn_abs_by_user_ = gear_single_turn_abs_ - config_.Gearoffset;
+            while(gear_single_turn_abs_by_user_ > HALF_CPR) {
+                gear_single_turn_abs_by_user_ -= 2 * HALF_CPR;
             }
-            while(gear_single_turn_abs_ < -HALF_CPR) {
-                gear_single_turn_abs_ += 2 * HALF_CPR;
+            while(gear_single_turn_abs_by_user_ < -HALF_CPR) {
+                gear_single_turn_abs_by_user_ += 2 * HALF_CPR;
             }
 
             if(first_init_ == true)
             {
-                GearboxOutputEncoder_count_in_cpr_ = gear_single_turn_abs_;
+                GearboxOutputEncoder_count_in_cpr_ = gear_single_turn_abs_by_user_;
                 first_init_ = false;
             }
 
-            gear_delta_enc =  gear_single_turn_abs_ - GearboxOutputEncoder_count_in_cpr_; //LATCH
-            GearboxOutputEncoder_count_in_cpr_ = gear_single_turn_abs_;
+            gear_delta_enc =  gear_single_turn_abs_by_user_ - GearboxOutputEncoder_count_in_cpr_; //LATCH
+            GearboxOutputEncoder_count_in_cpr_ = gear_single_turn_abs_by_user_;
             if (gear_delta_enc > HALF_CPR) {
                 GearboxOutputEncoder_turns_ -=  1;
             }
@@ -711,7 +711,7 @@ bool Encoder::update() {
             }
             else
             {}
-            GearboxOutputEncoder_counts = GearboxOutputEncoder_turns_*2*HALF_CPR+ gear_single_turn_abs_;
+            GearboxOutputEncoder_counts = GearboxOutputEncoder_turns_*2*HALF_CPR+ gear_single_turn_abs_by_user_;
             gearboxpos_ = GearboxOutputEncoder_counts /  config_.GearboxOutputEncoder_cpr;
             
 
