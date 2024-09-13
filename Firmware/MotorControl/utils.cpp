@@ -250,10 +250,10 @@ void initNotchFilter(NotchFilter* filter, float frequency, float sampleRate, flo
     // filter->a1 = -2 * filter->r * cosw0;
     // filter->a2 = filter->r * filter->r;
     // filter->a2 = 1.0f - 2*filter->r ;
-    filter->b1 = -1.999654572f;//-1.99975573206256f;
+    filter->b1 = -1.9996150f;//-1.99975573206256f;
     filter->b2 = 1.0f;
-    filter->a1 = -1.99339212599;
-    filter->a2 = 0.99373647154;
+    filter->a1 = -1.9686884f;
+    filter->a2 = 0.9690674f;
 
     filter->x1 = filter->x2 = filter->y1 = filter->y2 = 0;
 }
