@@ -118,7 +118,11 @@ void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
                         if (0 == msg.buf[2] && 3 == msg.buf[3]) {
                             // 设置零位
                             bool success = axis->set_offset();
-                            odrv.save_configuration();
+                            if(success)
+                            {
+                                odrv.save_configuration();
+                            }
+                            
                             can_Message_t txmsg;
                             txmsg.id = 0x7FF;
                             txmsg.isExt = axis->config_.can_node_id_extended;
@@ -143,7 +147,11 @@ void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
                         bool success = false;
                         if (new_id < 0x7FF && new_id > 0) {
                             success = axis->set_nodeID(new_id);
-                            odrv.save_configuration();
+                            if(success)
+                            {
+                                odrv.save_configuration();
+                            }
+                            
                         }
                         can_Message_t txmsg;
                         txmsg.id = 0x7FF;
@@ -214,5 +222,9 @@ void CANEncos::handle_can_message(can_Message_t& msg)
 
     encos_cmd_handle(axis, msg);
     axis->watchdog_feed();
-    axis->axis_enable_by_encos();
+    if(axis->config_.can_node_id == msg.id)
+    {
+        axis->axis_enable_by_encos();
+    }
+        
 }

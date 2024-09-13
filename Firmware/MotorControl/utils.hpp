@@ -127,6 +127,15 @@ float our_arm_cos_f32(float x);
 uint8_t calcCRC(uint8_t * buffer, uint8_t length);
 int32_t fsgn(float num);
 
+typedef struct {
+    float w0;  // Notch frequency
+    float r;   // Notch width parameter
+    float a1, a2, b1, b2;  // Filter coefficients
+    float x1, x2, y1, y2;  // State variables
+} NotchFilter;
+void initNotchFilter(NotchFilter* filter, float frequency, float sampleRate, float bandwidth);
+float applyNotchFilter(NotchFilter* filter, float input);
+
 #ifdef __cplusplus
 }
 #endif

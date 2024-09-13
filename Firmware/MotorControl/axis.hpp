@@ -36,10 +36,7 @@ public:
     static constexpr float POS_BASE = 12.5f;
     static constexpr float SPEED_BASE = 18.0f;
     static constexpr float CURRENT_BASE = 60.0f;
-    static constexpr float pos_coeff_motor2encos = 2*3.14159265358979323846f*32768/POS_BASE;
-    static constexpr float pos_coeff_encos2motor = POS_BASE/2/3.14159265358979323846f/32768;
-    static constexpr float speed_coeff_motor2encos = 2*3.14159265358979323846f*2048/SPEED_BASE;
-    static constexpr float speed_coeff_encos2motor = SPEED_BASE/2/3.14159265358979323846f/2048;
+    static constexpr float speed_coeff_motor2encos = 2*3.14159265358979323846f*32768/POS_BASE;
 
 
     static LockinConfig_t default_calibration();
@@ -111,13 +108,19 @@ public:
 void set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm);
 void set_axis_current(int16_t current); // 单位 0.01A
 bool set_offset(void) {
-    
+    if(current_state_ != AXIS_STATE_IDLE)
+        return false;
     encoder_.config_.Gearoffset = encoder_.gear_single_turn_abs_;
     encoder_.first_init_ = true;
     config_.offset = 0; //TODO: 将当前位置设置为零点
     return true;
 };
-bool set_nodeID(uint32_t id) { config_.can_node_id = id; return true; };
+bool set_nodeID(uint32_t id) {
+    if(current_state_ != AXIS_STATE_IDLE)
+        return false;
+    config_.can_node_id = id;
+    return true; 
+}
 bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
 
 
