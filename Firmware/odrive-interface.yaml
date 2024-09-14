@@ -547,6 +547,7 @@ interfaces:
       deadtime_compensation_coff: float32
       torque_setpoint_filterd: float32
       torque_setpoint_notch_filterd: float32
+      notch_filter_enable: uint32
       dec_bemf: float32
       current_control:
         c_is_class: False

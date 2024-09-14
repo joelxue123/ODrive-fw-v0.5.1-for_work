@@ -38,6 +38,84 @@ public:
     static constexpr float CURRENT_BASE = 60.0f;
     static constexpr float speed_coeff_motor2encos = 2*3.14159265358979323846f*32768/POS_BASE;
 
+    static constexpr uint32_t PARAM_LEN = 256;
+    enum EXT_CONFIG_REG
+    {
+        EXT_CONFIG_REG_ENABLE_NOTCH_FILTER = 0,
+        EXT_CONFIG_REG_ENABLE_DC_BUS_OVER_VOLTAGE_FILTER = 1,
+        EXT_CONFIG_REG_ENABLE_DC_BUS_UNDER_VOLTAGE_FILTER = 2,
+        EXT_CONFIG_REG_ENABLE_OVER_TEMP_FILTER = 3,
+        EXT_CONFIG_REG_ENABLE_CURRENT_LIMIT_VIOLATION_FILTER = 4
+
+    };
+    typedef void (*ext_config_reg_callback_fun)(class Axis *axis,uint32_t reg_value);
+    ext_config_reg_callback_fun ext_config_reg_callback_fun_[PARAM_LEN] =
+    {
+        enable_notch_filter,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+        nullptr,
+    };
 
     static LockinConfig_t default_calibration();
     static LockinConfig_t default_sensorless();
@@ -74,7 +152,9 @@ public:
         uint32_t can_node_id = 1; // Both axes will have the same id to start
         bool can_node_id_extended = false;
         uint32_t can_heartbeat_rate_ms = 100;
-        uint32_t offset;
+        uint32_t offset;       
+        
+        uint32_t ext_cfg[PARAM_LEN];
         // custom setters
         Axis* parent = nullptr;
         void set_step_gpio_pin(uint16_t value) { step_gpio_pin = value; parent->decode_step_dir_pins(); }
@@ -249,6 +329,10 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     bool run_closed_loop_control_loop();
     bool run_homing();
     bool run_idle_loop();
+    static void enable_notch_filter(class Axis *axis,uint32_t value) {axis->motor_.notch_filter_enable_ = value;}
+
+
+
 
     constexpr uint32_t get_watchdog_reset() {
         return static_cast<uint32_t>(std::clamp<float>(config_.watchdog_timeout, 0, UINT32_MAX / (current_meas_hz + 1)) * current_meas_hz);
@@ -302,6 +386,7 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     float gear_ratio_inverse_ = 1.0f/20.f;
     // watchdog
     uint32_t watchdog_current_value_= 0;
+    
 };
 
 

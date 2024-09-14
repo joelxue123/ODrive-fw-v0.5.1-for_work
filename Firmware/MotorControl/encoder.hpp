@@ -10,7 +10,7 @@ class Encoder : public ODriveIntf::EncoderIntf {
 public:
     static constexpr uint32_t MODE_FLAG_ABS = 0x100;
     static constexpr uint32_t MODE_FLAG_485_ABS = 0x200;
-    static constexpr float HALF_CPR =  (1<<18) / 2.0f;
+    static constexpr int32_t HALF_CPR =  (1<<18) / 2;
 
     struct Config_t {
         Mode mode = MODE_INCREMENTAL;

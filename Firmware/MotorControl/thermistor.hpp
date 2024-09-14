@@ -56,9 +56,9 @@ public:
         float thermistor_poly_coeffs[num_coeffs_];
         float thermistor_poly_coeffs2[num_coeffs_];
         uint16_t gpio_pin = 4;
-        float temp_limit_lower = 100;
-        float temp_limit_upper = 120;
-        bool enabled = false;
+        float temp_limit_lower = 60;
+        float temp_limit_upper = 80;
+        bool enabled = true;
 
         // custom setters
         OffboardThermistorCurrentLimiter* parent;

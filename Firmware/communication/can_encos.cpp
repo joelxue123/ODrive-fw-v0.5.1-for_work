@@ -47,12 +47,28 @@ void encos_ack_type_1(Axis* &axis)
 
 void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
 {
+    if (axis->config_.can_node_id == msg.id) {
     switch (msg.len) {
-        case 8:
-            switch (msg.buf[0] >> 5)
+        case 3:
             {
+                encos_curr_brake_cmd_t *cmd = (encos_curr_brake_cmd_t *)&(msg.buf[0]);
+                switch (cmd->mode) {
+                case 3:// 手册描述能耗制动，但实际测试用来设置电流
+                    axis->set_axis_current((msg.buf[1] << 8) + msg.buf[2]);
+                    break;
+                }
+                
+                switch (cmd->ack_type) {
+                case 1:
+                    encos_ack_type_1(axis);
+                    break;
+                }
+            }
+            break;
+        case 8:
+            switch (msg.buf[0] >> 5) {
             case 0:
-                if (axis->config_.can_node_id == msg.id) {
+                {
                     encos_cmd_pvt_t *cmd = (encos_cmd_pvt_t *)msg.buf;
                     Axis::axis_pvt_parm_t pvt_parm;
                     pvt_parm.kp = (cmd->kp_h << 7) + cmd->kp_l;
@@ -63,34 +79,15 @@ void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
                     axis->set_axis_pvt_parm(&pvt_parm);
 
                     encos_ack_type_1(axis);
-
                 }
-                break;
-            default:
                 break;
             }
             break;
-        case 3:
-            {
-                encos_curr_brake_cmd_t *cmd = (encos_curr_brake_cmd_t *)&(msg.buf[0]);
-                 switch (cmd->mode) {
-                    case 3:// 手册描述能耗制动，但实际测试用来设置电流
-                        axis->set_axis_current((msg.buf[1] << 8) + msg.buf[2]);
-                        break;
-                    default:
-                        break;
-                }
-                
-                switch (cmd->ack_type) {
-                    case 1:
-                        encos_ack_type_1(axis);
-                        break;
-                    default:
-                        break;
-                }
-            }
+        }
+    } else if (0x7FF == msg.id) {
+        switch (msg.len) {
         case 4:
-            if (0x7FF == msg.id) {
+            {
                 if (0xFF == msg.buf[0] && 0xFF == msg.buf[1] && 0x00 == msg.buf[2] && 0x82 == msg.buf[3]) {
                     uint32_t id;
                     bool success = axis->get_nodeID(id);
@@ -138,7 +135,24 @@ void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
             }
             break;
         case 6:
-            if (0x7FF == msg.id) {
+            {
+                if (0x7F == msg.buf[0] && 0x7F == msg.buf[1] && 0 == msg.buf[2] && 5 == msg.buf[3] && 0x7F == msg.buf[4] && 0x7F == msg.buf[5]) {
+                    // 重置ID为1
+                    if (axis->set_nodeID(1)) {
+                        odrv.save_configuration();
+                        can_Message_t txmsg;
+                        txmsg.id = 0x7FF;
+                        txmsg.isExt = axis->config_.can_node_id_extended;
+                        txmsg.len = 6;
+                        txmsg.buf[0] = 0x7F;
+                        txmsg.buf[1] = 0x7F;
+                        txmsg.buf[2] = 0x01;
+                        txmsg.buf[3] = 0x05;
+                        txmsg.buf[4] = 0x7F;
+                        txmsg.buf[5] = 0x7F;
+                        odCAN->write(txmsg);
+                    }
+                } else {
                 uint32_t id = (msg.buf[0] << 8) + msg.buf[1];
                 if (axis->config_.can_node_id == id) {
                     if (0 == msg.buf[2] && 4 == msg.buf[3]) {
@@ -169,27 +183,42 @@ void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
                         }
                         odCAN->write(txmsg);
                     }
-                } else if (0x7F == msg.buf[0] && 0x7F == msg.buf[1] && 0 == msg.buf[2] && 5 == msg.buf[3] && 0x7F == msg.buf[4] && 0x7F == msg.buf[5]) {
-                    // 重置ID为1
-                    if (axis->set_nodeID(1)) {
-                        odrv.save_configuration();
-                        can_Message_t txmsg;
-                        txmsg.id = 0x7FF;
-                        txmsg.isExt = axis->config_.can_node_id_extended;
-                        txmsg.len = 6;
-                        txmsg.buf[0] = 0x7F;
-                        txmsg.buf[1] = 0x7F;
-                        txmsg.buf[2] = 0x01;
-                        txmsg.buf[3] = 0x05;
-                        txmsg.buf[4] = 0x7F;
-                        txmsg.buf[5] = 0x7F;
-                        odCAN->write(txmsg);
                     }
                 }
             }
             break;
-        default:
-            break;
+        }
+    } else if (0x7FE == msg.id && msg.len >= 3) {
+        uint32_t id = (msg.buf[0] << 8) + msg.buf[1];
+        if (axis->config_.can_node_id == id) {
+            uint8_t index = msg.buf[2];
+            bool success = false;
+
+            if (0xFF == index) {
+                odrv.save_configuration();
+                success = true;
+            } else if (index < sizeof(axis->config_.ext_cfg) / sizeof(axis->config_.ext_cfg[0])) {
+                if (7 == msg.len){
+                    uint32_t value = (msg.buf[3] << 24) + (msg.buf[4] << 16) + (msg.buf[5] << 8) + msg.buf[6];
+                    axis->config_.ext_cfg[index] = value;
+                    success = true;
+                    if(axis->ext_config_reg_callback_fun_[index])
+                    {
+                        axis->ext_config_reg_callback_fun_[index](axis,value);
+                    }
+                }
+            }
+
+            can_Message_t txmsg;
+            txmsg.id = 0x7FE;
+            txmsg.isExt = axis->config_.can_node_id_extended;
+            txmsg.len = 4;
+            txmsg.buf[0] = msg.buf[0];
+            txmsg.buf[1] = msg.buf[1];
+            txmsg.buf[2] = msg.buf[2];
+            txmsg.buf[3] = success;
+            odCAN->write(txmsg);
+        }
     }
 }
 

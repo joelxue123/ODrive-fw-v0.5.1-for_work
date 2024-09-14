@@ -602,8 +602,8 @@ void Encoder::abs_spi_cs_pin_init(){
     HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_SET);
     HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_, GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_SET);
 }
-static int local_spin_pos = 0;
-static float local_spin_pos_f = 0;
+
+
 bool Encoder::update() {
     // update internal encoder state.
     int32_t delta_enc = 0,gear_delta_enc = 0;
