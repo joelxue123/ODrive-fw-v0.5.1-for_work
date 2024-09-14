@@ -210,7 +210,7 @@ public:
     float notch_filter_bandwidth_ = 10.f;  
 
     NotchFilter notch_filter_;
-
+    float dec_bemf_ = 0;
     void setting_motor_current_linearity(uint32_t index, float value);
     void setting_motor_torque_linearity(uint32_t index, float value);
     float get_motor_current_linearity(uint32_t index);

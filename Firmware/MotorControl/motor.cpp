@@ -582,11 +582,11 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     Iq_filter += Idq_filter_k_ * (Iq - Iq_filter);
     Id_filter += Idq_filter_k_ * (Id - Id_filter);
     
-    float dec_vd=0, dec_vq=0,dec_bemf=0,pm_flux_linkage=0;
+    float dec_vd=0, dec_vq=0,pm_flux_linkage=0;
     pm_flux_linkage =  0.666666f*config_.torque_constant/ (config_.pole_pairs);
     dec_vd = Iq_filter * m_speed_est_fast * config_.phase_inductance;
     dec_vq = Id_filter * m_speed_est_fast * config_.phase_inductance;
-    dec_bemf = m_speed_est_fast * pm_flux_linkage;
+    dec_bemf_ = m_speed_est_fast * pm_flux_linkage;
 
     // Check for violation of current limit
     float I_trip = effective_current_lim() + config_.current_lim_margin;
@@ -606,7 +606,7 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     float Vq = ictrl.v_current_control_integral_q + Ierr_q * ictrl.p_gain;
 
     Vd -=  dec_vd;
-    Vq +=  dec_vq + dec_bemf;  
+    Vq +=  dec_vq + dec_bemf_;  
 
 
     ictrl.final_v_d = Vd;
@@ -668,9 +668,9 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     else {
         current_setpoint = torque_setpoint / config_.torque_constant;
     }
-    torque_setpoint_filterd_ += 0.013f * (torque_setpoint - torque_setpoint_filterd_);
-    torque_setpoint_notch_filterd_= applyNotchFilter(&notch_filter_, torque_setpoint_filterd_);
-
+  //  torque_setpoint_filterd_ += 0.013f * (torque_setpoint - torque_setpoint_filterd_);
+   // torque_setpoint_notch_filterd_= applyNotchFilter(&notch_filter_, torque_setpoint_filterd_);
+    torque_setpoint_notch_filterd_ += 0.1f * (torque_setpoint - torque_setpoint_notch_filterd_);
 
     if( using_old_torque_constant_ ==  true)
     {
