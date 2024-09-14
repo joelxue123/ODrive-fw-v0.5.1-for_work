@@ -245,8 +245,8 @@ float Motor::current_Correct(int32_t Torque_Org)
 	}	
 	else
 	{
-			slopTotall = (config_.CURRENT_LINEARITY_[NUM_LINEARITY_SEG] - config_.CURRENT_LINEARITY_[0])/(config_.Torque_LINEARITY_[NUM_LINEARITY_SEG] - config_.Torque_LINEARITY_[0]);
-			current_Corrected = ((Torque_Org - config_.Torque_LINEARITY_[NUM_LINEARITY_SEG])* slopTotall) + config_.CURRENT_LINEARITY_[NUM_LINEARITY_SEG];
+			slopTotall = (config_.CURRENT_LINEARITY_[NUM_LINEARITY_SEG-1] - config_.CURRENT_LINEARITY_[0])/(config_.Torque_LINEARITY_[NUM_LINEARITY_SEG-1] - config_.Torque_LINEARITY_[0]);
+			current_Corrected = ((Torque_Org - config_.Torque_LINEARITY_[NUM_LINEARITY_SEG-1])* slopTotall) + config_.CURRENT_LINEARITY_[NUM_LINEARITY_SEG-1];
 			if( current_Corrected> 32767 )
 			{
 				current_Corrected = 32767;
@@ -462,9 +462,9 @@ if( deadtime_compensation_coff_ < 0.0f)
     abc_sign_calculation(total_phase_for_abc_sign_calculation_, &sign_a_, &sign_b_, &sign_c_);
     
 
-     Aphase_deadtime_compensation_ = deadtime_compensation_coff_*sign_a_ * TIM_1_8_DEADTIME_CLOCKS ;
-     Bphase_deadtime_compensation_ = deadtime_compensation_coff_*sign_b_ * TIM_1_8_DEADTIME_CLOCKS ;
-     Cphase_deadtime_compensation_ = deadtime_compensation_coff_*sign_c_ * TIM_1_8_DEADTIME_CLOCKS ;
+     Aphase_deadtime_compensation_ = ((int16_t)(deadtime_compensation_coff_* TIM_1_8_DEADTIME_CLOCKS))*sign_a_ ;
+     Bphase_deadtime_compensation_ = ((int16_t)(deadtime_compensation_coff_ * TIM_1_8_DEADTIME_CLOCKS))*sign_b_ ;
+     Cphase_deadtime_compensation_ = ((int16_t)(deadtime_compensation_coff_ * TIM_1_8_DEADTIME_CLOCKS))*sign_c_ ;
 }
 else
 {
@@ -583,10 +583,10 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     Id_filter += Idq_filter_k_ * (Id - Id_filter);
     
     float dec_vd=0, dec_vq=0,pm_flux_linkage=0;
-    pm_flux_linkage =  0.666666f*config_.torque_constant/ (config_.pole_pairs);
+    pm_flux_linkage =  0.444444f*config_.torque_constant/ (config_.pole_pairs);
     dec_vd = Iq_filter * m_speed_est_fast * config_.phase_inductance;
     dec_vq = Id_filter * m_speed_est_fast * config_.phase_inductance;
-    dec_bemf = m_speed_est_fast * pm_flux_linkage;
+    dec_bemf_ = m_speed_est_fast * pm_flux_linkage;
 
     // Check for violation of current limit
     float I_trip = effective_current_lim() + config_.current_lim_margin;
@@ -678,7 +678,7 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     }
     else
     {
-        uint32_t idex = floor(fabs(torque_setpoint_notch_filterd_ *config_.gear_ratio) *0.3333333f);  
+        uint32_t idex = (uint32_t)(floor(fabs(torque_setpoint_notch_filterd_ *config_.gear_ratio) *0.3333333f));  
         if( idex < NUM_LINEARITY_SEG)
         {
             torque_constant = L_Slop_Array_[idex]/config_.gear_ratio;
