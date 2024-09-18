@@ -34,7 +34,7 @@ public:
    };
 
     static constexpr float POS_BASE = 12.5f;
-    static constexpr float SPEED_BASE = 18.0f;
+    static constexpr float SPEED_BASE = 36.0f;
     static constexpr float CURRENT_BASE = 60.0f;
     static constexpr float speed_coeff_motor2encos = 2*3.14159265358979323846f*32768/POS_BASE;
 
@@ -251,6 +251,7 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
         encoder_.spi_error_rate_ = 0.0f;
 
         error_ = ERROR_NONE;
+        axis_state_.erro = ENCOS_ERROR_NONE;
     }
 
     // True if there are no errors

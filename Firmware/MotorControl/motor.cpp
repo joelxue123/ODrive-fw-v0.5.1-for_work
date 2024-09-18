@@ -561,6 +561,7 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     // Check for current sense saturation
     if (std::abs(current_meas_.phB) > ictrl.overcurrent_trip_level || std::abs(current_meas_.phC) > ictrl.overcurrent_trip_level) {
         set_error(ERROR_CURRENT_SENSE_SATURATION);
+        axis_->axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_CURRENT_LIMIT_VIOLATION;
         return false;
     }
 
@@ -592,7 +593,6 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     float I_trip = effective_current_lim() + config_.current_lim_margin;
     if (SQ(Id) + SQ(Iq) > SQ(I_trip)) {
         set_error(ERROR_CURRENT_LIMIT_VIOLATION);
-        axis_->axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_CURRENT_LIMIT_VIOLATION;
         return false;
     }
 
@@ -670,7 +670,7 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     }
     if( notch_filter_enable_ )
     {
-        torque_setpoint_filterd_ += 0.013f * (torque_setpoint - torque_setpoint_filterd_);
+        torque_setpoint_filterd_ += 0.015f * (torque_setpoint - torque_setpoint_filterd_);
         torque_setpoint_notch_filterd_= applyNotchFilter(&notch_filter_, torque_setpoint_filterd_);
     }
     else

@@ -32,7 +32,7 @@ void ThermistorCurrentLimiter::update() {
 }
 
 bool ThermistorCurrentLimiter::do_checks() {
-    if (enabled_ && temperature_ >= temp_limit_upper_ + 5) {
+    if (enabled_ && ( (temperature_ >= temp_limit_upper_ + 5) ||  (aux_temperature_ >= temp_limit_upper_ + 5)  )  ) {
         error_ = ERROR_OVER_TEMP;
         axis_->error_ |= Axis::ERROR_OVER_TEMP;
         axis_->axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_OVER_TEMP;
