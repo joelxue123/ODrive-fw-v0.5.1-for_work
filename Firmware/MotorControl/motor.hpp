@@ -45,8 +45,8 @@ public:
     // example: current_lim and calibration_current will instead determine the maximum voltage applied to the motor.
     struct Config_t {
         bool pre_calibrated = false; // can be set to true to indicate that all values here are valid
-        int32_t pole_pairs = 10;
-        int32_t gear_ratio = 20;
+        int32_t pole_pairs = 21;
+        int32_t gear_ratio = 16;
         float motor_torque_base = 60.0f; // [Nm]
         float calibration_current = 10.0f;    // [A]
         float resistance_calib_max_voltage = 2.0f; // [V] - You may need to increase this if this voltage isn't sufficient to drive calibration_current through the motor.

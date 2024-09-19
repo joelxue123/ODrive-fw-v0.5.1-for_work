@@ -384,7 +384,7 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     axis_state_t axis_state_;
     Homing_t homing_;
     uint32_t last_heartbeat_ = 0;
-    float gear_ratio_inverse_ = 1.0f/20.f;
+    float gear_ratio_inverse_ = 1.0f/16.f;
     // watchdog
     uint32_t watchdog_current_value_= 0;
     

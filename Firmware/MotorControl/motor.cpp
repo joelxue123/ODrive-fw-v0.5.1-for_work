@@ -675,7 +675,7 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     }
     else
     {
-        torque_setpoint_notch_filterd_ += 0.1f * (torque_setpoint - torque_setpoint_notch_filterd_);
+        torque_setpoint_notch_filterd_ = torque_setpoint;
     }
     
 
@@ -685,14 +685,14 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     }
     else
     {
-        uint32_t idex = (uint32_t)(floor(fabs(torque_setpoint_notch_filterd_ *config_.gear_ratio) *0.3333333f));  
+        uint32_t idex = (uint32_t)(floor(fabs(torque_setpoint_notch_filterd_) *0.3333333f));  
         if( idex < NUM_LINEARITY_SEG)
         {
-            torque_constant = L_Slop_Array_[idex]/config_.gear_ratio;
+            torque_constant = L_Slop_Array_[idex];
         }
         else
         {
-            torque_constant = L_Slop_Array_[NUM_LINEARITY_SEG -1]/config_.gear_ratio;
+            torque_constant = L_Slop_Array_[NUM_LINEARITY_SEG -1];
         }
 
         current_setpoint = torque_setpoint_notch_filterd_ / torque_constant;
