@@ -338,6 +338,7 @@ interfaces:
             unit: s
             doc: 0 disables watchdog
           enable_watchdog: bool
+          speed_base: float32
           step_gpio_pin: { type: uint16, c_setter: "set_step_gpio_pin" }
           dir_gpio_pin: { type: uint16, c_setter: "set_dir_gpio_pin" }
           calibration_lockin: # TODO: this is a subset of lockin state
@@ -544,6 +545,7 @@ interfaces:
       capturing: bool
       Idq_filter_k: float32
       Idq_filter_k2: float32
+      using_old_torque_constant: bool
       deadtime_compensation_coff: float32
       torque_setpoint_filterd: float32
       torque_setpoint_notch_filterd: float32
@@ -659,9 +661,10 @@ interfaces:
       get_motor_current_linearity: { in: { index: uint32 }, out: { value: float32 } }
       setting_motor_torque_linearity: { in: { index: uint32, value: float32 } }
       get_motor_torque_linearity: { in: { index: uint32 }, out: { value: float32 } }
-      get_torque_slope: { in: { index: uint32 }, out: { slope: float32 } }
-      setting_torque_slope: { in: { index: uint32, value: float32 } }
-
+      setting_positive_torque_slope: { in: { index: uint32, value: float32 } }
+      get_positive_torque_slope: { in: { index: uint32 }, out: { slope: float32 } }
+      setting_negative_torque_slope: { in: { index: uint32, value: float32 } }
+      get_negative_torque_slope: { in: { index: uint32 }, out: { slope: float32 } }
 
 
 

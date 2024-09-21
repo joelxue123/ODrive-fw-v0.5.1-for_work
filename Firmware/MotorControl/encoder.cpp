@@ -37,8 +37,10 @@ void Encoder::setup() {
     {
         abs_485_cs_pin_init();
         abs_485_init();
-        
     }
+    
+    cpr_inverse_ = 1.0f / config_.cpr;
+    GearboxOutputEncoder_cpr_inverse_ = 1.0f / config_.GearboxOutputEncoder_cpr;
 }
 
 void Encoder::set_error(Error error) {
@@ -498,7 +500,6 @@ bool Encoder::abs_485_start_transaction(){
 
 bool Encoder::abs_spi_start_transaction(){
     if (mode_ & MODE_FLAG_ABS){
-        axis_->motor_.log_timing(TIMING_LOG_SPI_START);
         if(hw_config_.motor_spi->State != HAL_SPI_STATE_READY){  
             set_error(ERROR_ABS_SPI_NOT_READY);
             return false;
@@ -608,7 +609,6 @@ bool Encoder::update() {
     // update internal encoder state.
     int32_t delta_enc = 0,gear_delta_enc = 0;
     int32_t pos_abs_latched = pos_abs_; //LATCH
-    axis_->motor_.log_timing(TIMING_LOG_ENC_CALIB);
     switch (mode_) {
         case MODE_INCREMENTAL: {
             //TODO: use count_in_cpr_ instead as shadow_count_ can overflow
@@ -712,7 +712,7 @@ bool Encoder::update() {
             else
             {}
             GearboxOutputEncoder_counts = GearboxOutputEncoder_turns_*2*HALF_CPR+ gear_single_turn_abs_by_user_;
-            gearboxpos_ = GearboxOutputEncoder_counts /  config_.GearboxOutputEncoder_cpr;
+            gearboxpos_ = GearboxOutputEncoder_counts * GearboxOutputEncoder_cpr_inverse_;
             
 
         }break;
@@ -758,15 +758,10 @@ bool Encoder::update() {
         snap_to_zero_vel = true;
     }
 
-    // Outputs from Encoder for Controller
-    float pos_cpr_last = pos_cpr_;
-    pos_estimate_ = pos_estimate_counts_ / (float)config_.cpr;
-    vel_estimate_ = vel_estimate_counts_ / (float)config_.cpr;
 
-    pos_cpr_= pos_cpr_counts_ / (float)config_.cpr;
-    float delta_pos_cpr = wrap_pm(pos_cpr_ - pos_cpr_last, 0.5f);
-    pos_circular_ += delta_pos_cpr;
-    pos_circular_ = fmodf_pos(pos_circular_, axis_->controller_.config_.circular_setpoint_range);
+    vel_estimate_ = vel_estimate_counts_ * cpr_inverse_;
+
+
 
     //// run encoder count interpolation
     int32_t corrected_enc = count_in_cpr_ - config_.offset;
@@ -791,7 +786,7 @@ bool Encoder::update() {
 
     //// compute electrical phase
     //TODO avoid recomputing elec_rad_per_enc every time
-    float elec_rad_per_enc = axis_->motor_.config_.pole_pairs * 2 * M_PI * (1.0f / (float)(config_.cpr));
+    float elec_rad_per_enc = axis_->motor_.config_.pole_pairs * 2 * M_PI * cpr_inverse_;
     float ph = elec_rad_per_enc * (interpolated_enc - config_.offset_float);
     // ph = fmodf(ph, 2*M_PI);
     phase_ = wrap_pm_pi(ph);

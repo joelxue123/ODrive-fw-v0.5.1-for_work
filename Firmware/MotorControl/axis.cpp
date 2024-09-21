@@ -88,9 +88,9 @@ void Axis::get_axis_state(axis_state_t* state)
 {
 
     state->erro =  axis_state_.erro;
-    state->pos = (int16_t)(encoder_.gearboxpos_*16471 +32768) ;   // 2pi*12.5*32768
-    state->vel = (int16_t)(encoder_.vel_estimate_ *22.3402f + 2048);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
-    state->cur = (int16_t)(motor_.current_control_.Iq_measured *0.5f*34.13333f + 2048);  // 60/2048将电流的系数再减半
+    state->pos = (uint16_t)(encoder_.gearboxpos_ * position_coeff_motor2encos +32768) ;   // 2pi*12.5*32768
+    state->vel = (uint16_t)(encoder_.vel_estimate_ * speed_coeff_motor2encos + 2048);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
+    state->cur = (uint16_t)(motor_.current_control_.Iq_measured *0.5f*34.13333f + 2048);  // 60/2048将电流的系数再减半
     state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
     state->mos_temperature = (int32_t)fet_thermistor_.temperature_ *2 + 50;
 
@@ -105,12 +105,12 @@ void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
 
     controller_.config_.kp = axis_pvt_parm->kp*0.122070312f;   //500/4096
     controller_.config_.kd = axis_pvt_parm->kd * 0.009765625f;      // 5/512
-    controller_.pos_setpoint_ = (axis_pvt_parm->pos_setpoint - 32768)*6.0713e-05f;  //12.5/2/pi / 32768
-    controller_.vel_setpoint_ = (axis_pvt_parm->vel_setpoint - 2048)*0.0028f;   // 36/2/pi / 2048
+    controller_.pos_setpoint_ = (axis_pvt_parm->pos_setpoint - 32768)*position_coeff_encos2motor;  //12.5/2/pi / 32768
+    controller_.vel_setpoint_ = (axis_pvt_parm->vel_setpoint - 2048) * speed_coeff_encos2motor;   // 36/2/pi / 2048
 
     torque_setpoint = axis_pvt_parm->torque_setpoint - 2048;
 
-    controller_.input_torque_ = torque_setpoint*motor_.config_.motor_torque_base/2048;
+    controller_.input_torque_ = torque_setpoint*motor_.config_.motor_torque_base * 4.8828e-04f;
 } 
 
 void Axis::set_axis_current(int16_t current)
@@ -118,7 +118,7 @@ void Axis::set_axis_current(int16_t current)
     motor_.using_old_torque_constant_ = true;
     controller_.config_.kp = 0;
     controller_.config_.kd = 0;
-    controller_.input_torque_ = current *motor_.config_.gear_ratio* motor_.config_.torque_constant/ 100;
+    controller_.input_torque_ = current * motor_.config_.torque_constant * 0.01f;
 
 }
 
@@ -126,7 +126,12 @@ void Axis::set_axis_current(int16_t current)
 // @brief Does Nothing
 void Axis::setup() {
     gear_ratio_inverse_  = 1/motor_.config_.gear_ratio;
+    speed_coeff_motor2encos = 2*M_PI*2048/config_.speed_base/motor_.config_.gear_ratio;
+    speed_coeff_encos2motor = 1.0f / speed_coeff_motor2encos;
+    position_coeff_motor2encos = 2*M_PI*32768/config_.position_base;
+    position_coeff_encos2motor = 1.0f / position_coeff_motor2encos;
     // Does nothing - Motor and encoder setup called separately.
+    axis_state_.erro = 0;
 }
 
 static void run_state_machine_loop_wrapper(void* ctx) {
@@ -232,11 +237,11 @@ bool Axis::do_checks() {
     // controller_.do_checks();
 
     // Check for endstop presses
-    if (min_endstop_.config_.enabled && min_endstop_.get_state() && !(current_state_ == AXIS_STATE_HOMING)) {
-        error_ |= ERROR_MIN_ENDSTOP_PRESSED;
-    } else if (max_endstop_.config_.enabled && max_endstop_.get_state() && !(current_state_ == AXIS_STATE_HOMING)) {
-        error_ |= ERROR_MAX_ENDSTOP_PRESSED;
-    }
+    // if (min_endstop_.config_.enabled && min_endstop_.get_state() && !(current_state_ == AXIS_STATE_HOMING)) {
+    //     error_ |= ERROR_MIN_ENDSTOP_PRESSED;
+    // } else if (max_endstop_.config_.enabled && max_endstop_.get_state() && !(current_state_ == AXIS_STATE_HOMING)) {
+    //     error_ |= ERROR_MAX_ENDSTOP_PRESSED;
+    // }
 
     return check_for_errors();
 }

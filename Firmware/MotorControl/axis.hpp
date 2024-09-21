@@ -33,10 +33,7 @@ public:
       ENCOS_ERROR_DRV_FAULT=7,
    };
 
-    static constexpr float POS_BASE = 12.5f;
-    static constexpr float SPEED_BASE = 36.0f;
-    static constexpr float CURRENT_BASE = 60.0f;
-    static constexpr float speed_coeff_motor2encos = 2*3.14159265358979323846f*32768/POS_BASE;
+
 
     static constexpr uint32_t PARAM_LEN = 256;
     enum EXT_CONFIG_REG
@@ -155,6 +152,9 @@ public:
         uint32_t offset;       
         
         uint32_t ext_cfg[PARAM_LEN];
+        float position_base = 12.5f;
+        float speed_base = 18.0f;
+        float current_base = 120.0f;        
         // custom setters
         Axis* parent = nullptr;
         void set_step_gpio_pin(uint16_t value) { step_gpio_pin = value; parent->decode_step_dir_pins(); }
@@ -178,11 +178,11 @@ public:
 
     struct axis_pvt_parm_t {
         
-        int16_t kp;
-        int16_t kd;
-        int16_t pos_setpoint;
-        int16_t vel_setpoint;
-        int16_t torque_setpoint;
+        uint16_t kp;
+        uint16_t kd;
+        uint16_t pos_setpoint;
+        uint16_t vel_setpoint;
+        uint16_t torque_setpoint;
     };
 
 void set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm);
@@ -283,7 +283,7 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     void run_control_loop(const T& update_handler) {
         while (requested_state_ == AXIS_STATE_UNDEFINED) {
             // look for errors at axis level and also all subcomponents
-            bool checks_ok = do_checks();
+            // bool checks_ok = do_checks();
             // Update all estimators
             // Note: updates run even if checks fail
             bool updates_ok = do_updates(); 
@@ -291,7 +291,7 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
             // make sure the watchdog is being fed. 
             bool watchdog_ok = watchdog_check();
             
-            if (!checks_ok || !updates_ok || !watchdog_ok) {
+            if (!checks_ok_ || !updates_ok || !watchdog_ok) {
                 // It's not useful to quit idle since that is the safe action
                 // Also leaving idle would rearm the motors
                 if (current_state_ != AXIS_STATE_IDLE)
@@ -385,9 +385,17 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     Homing_t homing_;
     uint32_t last_heartbeat_ = 0;
     float gear_ratio_inverse_ = 1.0f/16.f;
+    float position_base_inverse_ = 12.5f;
+    float speed_base_inverse_ = 18.0f;
+    float current_base_inverse_ = 120.0f;  
+    float speed_coeff_motor2encos = 2*M_PI*2048/18.0f/16.0f;
+    float speed_coeff_encos2motor = 18.0f*16.0f/(2*M_PI*2048);
+    float position_coeff_motor2encos = 2*M_PI*32768/12.5f;
+    float position_coeff_encos2motor = 12.5f / (2*M_PI*32768);
+
     // watchdog
     uint32_t watchdog_current_value_= 0;
-    
+    bool checks_ok_ = true;
 };
 
 

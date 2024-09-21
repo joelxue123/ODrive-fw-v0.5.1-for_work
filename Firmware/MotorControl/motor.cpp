@@ -202,16 +202,16 @@ void Motor::log_timing(TimingLog_t log_idx) {
 
 void Motor::pos_linearity_init(void)
 {
-	int16_t i = 0;
+/* 	int16_t i = 0;
 	for(i=0;i<NUM_LINEARITY_SEG-1;i++)
 	{
 		L_Slop_Array_[i] = (config_.CURRENT_LINEARITY_[i+1] - config_.CURRENT_LINEARITY_[i]) / (config_.Torque_LINEARITY_[i+1] - config_.Torque_LINEARITY_[i]);
-	}
+	} */
 }
 
 float Motor::current_Correct(int32_t Torque_Org)
 {
-	float slopTotall = 0;
+/* 	float slopTotall = 0;
 	int32_t Index_A = 0,Index_B = NUM_LINEARITY_SEG-1;
 	int32_t i = 0;
     float current_Corrected = 0;
@@ -252,9 +252,9 @@ float Motor::current_Correct(int32_t Torque_Org)
 				current_Corrected = 32767;
 			}
 		
-	}
+	} */
     
-    return current_Corrected;
+    return 0;
 }
 
 
@@ -302,11 +302,22 @@ float Motor::get_motor_torque_linearity(uint32_t index)
     }
 }
 
-float Motor::get_torque_slope(uint32_t index)
+float Motor::get_positive_torque_slope(uint32_t index)
 {
     if(index < NUM_LINEARITY_SEG)
     {
-        return L_Slop_Array_[index];
+        return L_Slop_Array_P_[index];
+    }
+    else
+    {
+        return 0;
+    }
+}
+float Motor::get_negative_torque_slope(uint32_t index)
+{
+    if(index < NUM_LINEARITY_SEG)
+    {
+        return L_Slop_Array_N_[index];
     }
     else
     {
@@ -314,12 +325,20 @@ float Motor::get_torque_slope(uint32_t index)
     }
 }
 
-void  Motor::setting_torque_slope(uint32_t index, float value)
+void  Motor::setting_positive_torque_slope(uint32_t index, float value)
 {
     if(index < NUM_LINEARITY_SEG )
     {
-        L_Slop_Array_[index] = value;
+        L_Slop_Array_P_[index] = value;
         config_.Torque_LINEARITY_[index] = value;
+    }
+}
+void  Motor::setting_negative_torque_slope(uint32_t index, float value)
+{
+    if(index < NUM_LINEARITY_SEG )
+    {
+        L_Slop_Array_N_[index] = value;
+        config_.CURRENT_LINEARITY_[index] = value;
     }
 }
 
@@ -647,8 +666,8 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     // Apply SVM
     if (!enqueue_modulation_timings(mod_alpha, mod_beta))
         return false; // error set inside enqueue_modulation_timings
+    
     log_timing(TIMING_LOG_FOC_CURRENT);
-
     return true;
 }
 
@@ -662,12 +681,13 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     phase_vel *= config_.direction;
     m_speed_est_fast =  phase_vel; 
 
-    if (config_.motor_type == MOTOR_TYPE_ACIM) {
-        current_setpoint = torque_setpoint / (config_.torque_constant * fmax(current_control_.acim_rotor_flux, config_.acim_gain_min_flux));
-    }
-    else {
-        current_setpoint = torque_setpoint / config_.torque_constant;
-    }
+    // if (config_.motor_type == MOTOR_TYPE_ACIM) {
+    //     current_setpoint = torque_setpoint / (config_.torque_constant * fmax(current_control_.acim_rotor_flux, config_.acim_gain_min_flux));
+    // }
+    // else {
+    //     current_setpoint = torque_setpoint / config_.torque_constant;
+    // }
+    
     if( notch_filter_enable_ )
     {
         torque_setpoint_filterd_ += 0.015f * (torque_setpoint - torque_setpoint_filterd_);
@@ -681,20 +701,25 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
 
     if( using_old_torque_constant_ ==  true)
     {
-        current_setpoint = torque_setpoint_notch_filterd_ / config_.torque_constant;
+        current_setpoint = torque_setpoint_notch_filterd_ / (config_.torque_constant );
     }
     else
     {
-        uint32_t idex = (uint32_t)(floor(fabs(torque_setpoint_notch_filterd_) *0.3333333f));  
-        if( idex < NUM_LINEARITY_SEG)
+        uint32_t idex = (uint32_t)((fabsf(torque_setpoint_notch_filterd_) *0.3333333f)); 
+        if( idex > (NUM_LINEARITY_SEG -1) )
         {
-            torque_constant = L_Slop_Array_[idex];
+            idex = NUM_LINEARITY_SEG -1;
+        }
+        
+        if(torque_setpoint_notch_filterd_ > 0.0f)
+        {
+            torque_constant = L_Slop_Array_P_[idex];
         }
         else
         {
-            torque_constant = L_Slop_Array_[NUM_LINEARITY_SEG -1];
+            torque_constant = L_Slop_Array_N_[idex];
         }
-
+        
         current_setpoint = torque_setpoint_notch_filterd_ / torque_constant;
 
 

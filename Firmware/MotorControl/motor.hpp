@@ -98,7 +98,8 @@ public:
         DRV8301_setup();
         for( index = 0;index < NUM_LINEARITY_SEG;index++)
         {
-              L_Slop_Array_[index] = config_.Torque_LINEARITY_[index];
+            L_Slop_Array_P_[index] = config_.Torque_LINEARITY_[index];
+            L_Slop_Array_N_[index] = config_.CURRENT_LINEARITY_[index];
         }
         initNotchFilter(&notch_filter_, notch_filter_frequency_, notch_filter_sample_rate_, notch_filter_bandwidth_);
 
@@ -193,7 +194,8 @@ public:
     float Idq_filter_k_ = 0.4f;
     float Idq_filter_k2_ = 0.01f;
     bool using_old_torque_constant_ = true;
-    float L_Slop_Array_[NUM_LINEARITY_SEG] = {2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f};
+    float L_Slop_Array_P_[NUM_LINEARITY_SEG] = {2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f};
+    float L_Slop_Array_N_[NUM_LINEARITY_SEG] = {2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f};
     int32_t sign_a_, sign_b_, sign_c_;
     float total_phase_for_abc_sign_calculation_;
     float I_phase_;
@@ -215,8 +217,10 @@ public:
     void setting_motor_torque_linearity(uint32_t index, float value);
     float get_motor_current_linearity(uint32_t index);
     float get_motor_torque_linearity(uint32_t index);
-    void setting_torque_slope(uint32_t index, float value);
-    float get_torque_slope(uint32_t index);
+    void setting_positive_torque_slope(uint32_t index, float value);
+    float get_positive_torque_slope(uint32_t index);
+    void setting_negative_torque_slope(uint32_t index, float value);
+    float get_negative_torque_slope(uint32_t index);
     void pos_linearity_init(void);
 };
 

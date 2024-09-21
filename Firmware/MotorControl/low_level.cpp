@@ -611,8 +611,10 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
 
 void send_notification(void)
 {
+    
     Axis& axis = *axes[0];
     axis.signal_current_meas(); 
+    
 }
 
 

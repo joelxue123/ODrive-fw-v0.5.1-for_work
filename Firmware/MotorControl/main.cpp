@@ -244,7 +244,10 @@ void vApplicationIdleHook(void) {
         odrv.system_stats_.stack_usage_can = odCAN->stack_size_ - odrv.system_stats_.min_stack_space_can;
         for (ThermistorCurrentLimiter* thermistor : axes[0]->thermistors_) {
             thermistor->update();
-    }
+        }
+       
+       axes[0]->checks_ok_ = axes[0]->do_checks();
+       
 
     }
 }

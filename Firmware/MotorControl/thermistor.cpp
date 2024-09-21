@@ -32,7 +32,7 @@ void ThermistorCurrentLimiter::update() {
 }
 
 bool ThermistorCurrentLimiter::do_checks() {
-    if (enabled_ && ( (temperature_ >= temp_limit_upper_ + 5) ||  (aux_temperature_ >= temp_limit_upper_ + 5)  )  ) {
+    if (enabled_ && ( (temperature_ >= temp_limit_upper_ + 1 ) ||  (aux_temperature_ >= temp_limit_upper_ + 1 )  )  ) {
         error_ = ERROR_OVER_TEMP;
         axis_->error_ |= Axis::ERROR_OVER_TEMP;
         axis_->axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_OVER_TEMP;
@@ -46,7 +46,9 @@ float ThermistorCurrentLimiter::get_current_limit(float base_current_lim) const 
         return base_current_lim;
     }
 
-    const float temp_margin = temp_limit_upper_ - temperature_;
+    float aux_temp_margin = temp_limit_upper_ - aux_temperature_;
+    float fet_temp_margin = temp_limit_upper_ - temperature_;
+    float temp_margin = std::min(aux_temp_margin, fet_temp_margin);
     const float derating_range = temp_limit_upper_ - temp_limit_lower_;
     float thermal_current_lim = base_current_lim * (temp_margin / derating_range);
     if (!(thermal_current_lim >= 0.0f)) { // Funny polarity to also catch NaN
