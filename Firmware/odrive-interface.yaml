@@ -294,6 +294,7 @@ interfaces:
       requested_state: AxisState
       loop_counter: readonly uint32
       can_raw: float32
+      gear_vel_used: bool
       lockin_state:
         typeargs: { fibre.Property.mode: readonly }
         values:

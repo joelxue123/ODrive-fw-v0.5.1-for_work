@@ -394,6 +394,7 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     float position_coeff_encos2motor = 12.5f / (2*M_PI*32768);
     float current_coeff_motor2encos = 2048.0f/120.f;
     float can_raw_ = 0.0f;
+    bool  gear_vel_used_ = false;
     // watchdog
     uint32_t watchdog_current_value_= 0;
     bool checks_ok_ = true;

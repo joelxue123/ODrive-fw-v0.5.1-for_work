@@ -90,7 +90,15 @@ void Axis::get_axis_state(axis_state_t* state)
     int16_t actual_torque = motor_.convert_torque_from_current(motor_.current_control_.Iq_measured, motor_.config_.CURRENT2TORQUE_COEFF, motor_.NUM_LINEARITY_SEG,  0.3333333f);
     state->erro =  axis_state_.erro;
     state->pos = saturation((int32_t)(encoder_.gearboxpos_ * position_coeff_motor2encos +32768),0,65535 );   // 2pi*12.5*32768
-    state->vel = saturation((int32_t)(encoder_.vel_estimate_ * speed_coeff_motor2encos + 2048),0,4095);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
+    if(gear_vel_used_ == true)
+    {
+        state->vel = saturation((int32_t)(encoder_.gear_vel_estimate_ * speed_coeff_motor2encos + 2048),0,4095);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
+    }
+    else
+    {
+        state->vel = saturation((int32_t)(encoder_.vel_estimate_ * speed_coeff_motor2encos + 2048),0,4095);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
+    }
+   
     state->cur = saturation((int32_t)(actual_torque *current_coeff_motor2encos + 2048),0,4095);  // 60/2048将电流的系数再减半
     state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
     state->mos_temperature = (int32_t)fet_thermistor_.temperature_ *2 + 50;
@@ -126,7 +134,15 @@ void Axis::set_axis_current(int16_t current)
 // @brief Does Nothing
 void Axis::setup() {
     gear_ratio_inverse_  = 1/motor_.config_.gear_ratio;
-    speed_coeff_motor2encos = 2*M_PI*2048/config_.speed_base/motor_.config_.gear_ratio;
+    if(gear_vel_used_ == true)
+    {
+        speed_coeff_motor2encos = 2*M_PI*2048/config_.speed_base;
+    }
+    else
+    {
+        speed_coeff_motor2encos = 2*M_PI*2048/config_.speed_base/motor_.config_.gear_ratio;
+    }
+    
     speed_coeff_encos2motor = 1.0f / speed_coeff_motor2encos;
     position_coeff_motor2encos = 2*M_PI*32768/config_.position_base;
     position_coeff_encos2motor = 1.0f / position_coeff_motor2encos;

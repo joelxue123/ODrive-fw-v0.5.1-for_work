@@ -148,7 +148,15 @@ bool Controller::update(float* torque_setpoint_output) {
         float kp = config_.kp;
         float kd = config_.kd;
         
-        torque = kp*(pos_setpoint_ - axis_->encoder_.gearboxpos_) + input_torque_ + kd*(vel_setpoint_ - (*vel_estimate_src));
+        if(axis_->gear_vel_used_ == true)
+        {
+            torque = kp*(pos_setpoint_ - axis_->encoder_.gearboxpos_) + input_torque_ + kd*(vel_setpoint_ - axis_->encoder_.gear_vel_estimate_);
+        }
+        else
+        {
+            torque = kp*(pos_setpoint_ - axis_->encoder_.gearboxpos_) + input_torque_ + kd*(vel_setpoint_ - (*vel_estimate_src));
+
+        }
 
         torque = torque;
         // Torque limiting
