@@ -126,7 +126,7 @@ float our_arm_sin_f32(float x);
 float our_arm_cos_f32(float x);
 uint8_t calcCRC(uint8_t * buffer, uint8_t length);
 int32_t fsgn(float num);
-
+int32_t saturation(int32_t num, int32_t min, int32_t max);
 typedef struct {
     float w0;  // Notch frequency
     float r;   // Notch width parameter

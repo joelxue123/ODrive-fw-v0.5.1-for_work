@@ -236,7 +236,16 @@ int32_t fsgn(float num) {
     }
 }
 
-
+int32_t saturation(int32_t num, int32_t min, int32_t max) 
+{
+    if (num > max) {
+        return max;
+    } else if (num < min) {
+        return min;
+    } else {
+        return num;
+    }
+}
 
 
 void initNotchFilter(NotchFilter* filter, float frequency, float sampleRate, float bandwidth) {

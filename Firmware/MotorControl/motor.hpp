@@ -75,6 +75,7 @@ public:
         float Torque_LINEARITY_[NUM_LINEARITY_SEG];
         float CURRENT_LINEARITY_[NUM_LINEARITY_SEG];
 
+        float CURRENT2TORQUE_COEFF[2*NUM_LINEARITY_SEG];
 
         // custom property setters
         Motor* parent = nullptr;
@@ -221,6 +222,9 @@ public:
     float get_positive_torque_slope(uint32_t index);
     void setting_negative_torque_slope(uint32_t index, float value);
     float get_negative_torque_slope(uint32_t index);
+    void  setting_current2torque_slope(uint32_t index, float value);
+    float getting_current2torque_slope(uint32_t index);
+    float convert_torque_from_current(float current,float *current2torque_coeff,uint32_t coeff_size,float current_step);
     void pos_linearity_init(void);
 };
 

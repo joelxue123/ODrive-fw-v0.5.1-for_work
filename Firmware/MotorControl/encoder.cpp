@@ -97,6 +97,8 @@ void Encoder::update_pll_gains() {
     pll_kp_ = 2.0f * config_.bandwidth;  // basic conversion to discrete time
     pll_ki_ = 0.25f * (pll_kp_ * pll_kp_); // Critically damped 0.025f
 
+    gear_pll_kp_ = 2.0f * config_.bandwidth/4.0f;  // basic conversion to discrete time
+    gear_pll_ki_ = 0.25f * (gear_pll_kp_ * gear_pll_kp_); // Critically damped 0.025f
     // Check that we don't get problems with discrete time approximation
     if (!(current_meas_period * pll_kp_ < 1.0f)) {
         set_error(ERROR_UNSTABLE_GAIN);
@@ -743,15 +745,28 @@ bool Encoder::update() {
     // Predict current pos
     pos_estimate_counts_ += current_meas_period * vel_estimate_counts_;
     pos_cpr_counts_      += current_meas_period * vel_estimate_counts_;
+    gear_pos_cpr_counts_      += current_meas_period * gear_vel_estimate_counts_;
+
     // discrete phase detector
     float delta_pos_counts = (float)(shadow_count_ - (int32_t)std::floor(pos_estimate_counts_));
     float delta_pos_cpr_counts = (float)(count_in_cpr_ - (int32_t)std::floor(pos_cpr_counts_));
     delta_pos_cpr_counts = wrap_pm(delta_pos_cpr_counts, 0.5f * (float)(config_.cpr));
+
+    float delta_pos_gear_counts = (float)(sencond_pos_abs_ - (int32_t)std::floor(gear_pos_cpr_counts_));
+    delta_pos_gear_counts = wrap_pm(delta_pos_gear_counts, 0.5f * (float)(config_.GearboxOutputEncoder_cpr));
+
     // pll feedback
     pos_estimate_counts_ += current_meas_period * pll_kp_ * delta_pos_counts;
     pos_cpr_counts_ += current_meas_period * pll_kp_ * delta_pos_cpr_counts;
     pos_cpr_counts_ = fmodf_pos(pos_cpr_counts_, (float)(config_.cpr));
+
+    gear_pos_cpr_counts_ += current_meas_period * gear_pll_kp_ * delta_pos_gear_counts;
+    gear_pos_cpr_counts_ = fmodf_pos(gear_pos_cpr_counts_, (float)(config_.GearboxOutputEncoder_cpr));
+
     vel_estimate_counts_ += current_meas_period * pll_ki_ * delta_pos_cpr_counts;
+    gear_vel_estimate_counts_ += current_meas_period * gear_pll_ki_ * delta_pos_gear_counts;
+
+
     bool snap_to_zero_vel = false;
     if (std::abs(vel_estimate_counts_) < 0.5f * current_meas_period * pll_ki_) {
         vel_estimate_counts_ = 0.0f;  //align delta-sigma on zero to prevent jitter
@@ -760,7 +775,7 @@ bool Encoder::update() {
 
 
     vel_estimate_ = vel_estimate_counts_ * cpr_inverse_;
-
+    gear_vel_estimate_ = gear_vel_estimate_counts_ * GearboxOutputEncoder_cpr_inverse_;
 
 
     //// run encoder count interpolation

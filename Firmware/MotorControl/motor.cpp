@@ -342,6 +342,44 @@ void  Motor::setting_negative_torque_slope(uint32_t index, float value)
     }
 }
 
+void  Motor::setting_current2torque_slope(uint32_t index, float value)
+{
+    if(index < 2*NUM_LINEARITY_SEG )
+    {
+        config_.CURRENT2TORQUE_COEFF[index] = value;
+    }
+}
+
+
+float Motor::getting_current2torque_slope(uint32_t index)
+{
+    if(index < 2*NUM_LINEARITY_SEG)
+    {
+        return config_.CURRENT2TORQUE_COEFF[index];
+    }
+    else
+    {
+        return 0;
+    }
+}
+
+float Motor::convert_torque_from_current(float current,float *current2torque_coeff,uint32_t coeff_size,float current_step)
+{
+    uint32_t idex = (uint32_t)((fabsf(current) *current_step)); 
+    float torque_constant = 0;
+
+    if( idex > (coeff_size -1) )
+    {
+        idex = coeff_size -1;
+    }
+    
+    torque_constant = current2torque_coeff[2*idex + (current < 0.0f)];
+    
+    return current * torque_constant;
+}
+
+
+
 float Motor::phase_current_from_adcval(uint32_t ADCValue, float phase_current_gain_coeff) {
     int adcval_bal = (int)ADCValue - (1 << 11);
     float amp_out_volt = (3.3f / (float)(1 << 12)) * (float)adcval_bal;
@@ -670,6 +708,10 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     log_timing(TIMING_LOG_FOC_CURRENT);
     return true;
 }
+
+
+
+
 
 // torque_setpoint [Nm]
 // phase [rad electrical]

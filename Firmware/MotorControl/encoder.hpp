@@ -95,6 +95,8 @@ public:
     float vel_estimate_counts_ = 0.0f;  // [count/s]
     float pll_kp_ = 0.0f;   // [count/s / count]
     float pll_ki_ = 0.0f;   // [(count/s^2) / count]
+    float gear_pll_kp_ = 0.0f;
+    float gear_pll_ki_ = 0.0f;
     float calib_scan_response_ = 0.0f; // debug report from offset calib
     int32_t pos_abs_ = 0;
     int32_t sencond_pos_abs_ = 0;
@@ -112,6 +114,13 @@ public:
     
     float cpr_inverse_ = 1.0f/1000;
     float GearboxOutputEncoder_cpr_inverse_ = 1.0f/1000;
+
+    float gear_pos_cpr_counts_ = 0.0f;
+    float gear_vel_estimate_counts_ = 0.0f;
+    float gear_vel_estimate_ = 0.0f;
+
+
+
     int16_t tim_cnt_sample_ = 0; // 
     // Updated by low_level pwm_adc_cb
     uint8_t hall_state_ = 0x0; // bit[0] = HallA, .., bit[2] = HallC

@@ -87,13 +87,14 @@ static void step_cb_wrapper(void* ctx) {
 void Axis::get_axis_state(axis_state_t* state)
 {
 
+    int16_t actual_torque = motor_.convert_torque_from_current(motor_.current_control_.Iq_measured, motor_.config_.CURRENT2TORQUE_COEFF, motor_.NUM_LINEARITY_SEG,  0.3333333f);
     state->erro =  axis_state_.erro;
-    state->pos = (uint16_t)(encoder_.gearboxpos_ * position_coeff_motor2encos +32768) ;   // 2pi*12.5*32768
-    state->vel = (uint16_t)(encoder_.vel_estimate_ * speed_coeff_motor2encos + 2048);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
-    state->cur = (uint16_t)(motor_.current_control_.Iq_measured *0.5f*34.13333f + 2048);  // 60/2048将电流的系数再减半
+    state->pos = saturation((int32_t)(encoder_.gearboxpos_ * position_coeff_motor2encos +32768),0,65535 );   // 2pi*12.5*32768
+    state->vel = saturation((int32_t)(encoder_.vel_estimate_ * speed_coeff_motor2encos + 2048),0,4095);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
+    state->cur = saturation((int32_t)(actual_torque *current_coeff_motor2encos + 2048),0,4095);  // 60/2048将电流的系数再减半
     state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
     state->mos_temperature = (int32_t)fet_thermistor_.temperature_ *2 + 50;
-
+    can_raw_ = state->cur;
 }
 
 void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
@@ -109,7 +110,6 @@ void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
     controller_.vel_setpoint_ = (axis_pvt_parm->vel_setpoint - 2048) * speed_coeff_encos2motor;   // 36/2/pi / 2048
 
     torque_setpoint = axis_pvt_parm->torque_setpoint - 2048;
-
     controller_.input_torque_ = torque_setpoint*motor_.config_.motor_torque_base * 4.8828e-04f;
 } 
 
@@ -130,6 +130,7 @@ void Axis::setup() {
     speed_coeff_encos2motor = 1.0f / speed_coeff_motor2encos;
     position_coeff_motor2encos = 2*M_PI*32768/config_.position_base;
     position_coeff_encos2motor = 1.0f / position_coeff_motor2encos;
+    current_coeff_motor2encos = 2048.0f/config_.current_base;
     // Does nothing - Motor and encoder setup called separately.
     axis_state_.erro = 0;
 }
@@ -291,7 +292,8 @@ bool Axis::watchdog_check() {
 
 void Axis::axis_enable_by_encos(void)
 {
-    error_ &= ~(ERROR_WATCHDOG_TIMER_EXPIRED);
+    motor_.error_ = Motor::ERROR_NONE;
+    error_ = ERROR_NONE;
     if(current_state_ != AXIS_STATE_CLOSED_LOOP_CONTROL )
     {
         requested_state_  = AXIS_STATE_CLOSED_LOOP_CONTROL;

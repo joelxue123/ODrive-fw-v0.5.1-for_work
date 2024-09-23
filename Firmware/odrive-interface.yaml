@@ -293,6 +293,7 @@ interfaces:
       current_state: readonly AxisState
       requested_state: AxisState
       loop_counter: readonly uint32
+      can_raw: float32
       lockin_state:
         typeargs: { fibre.Property.mode: readonly }
         values:
@@ -301,6 +302,7 @@ interfaces:
           Accelerate:
           ConstVel:
       is_homed: { type: bool, c_name: homing_.is_homed }
+      set_torque_raw_data: readonly uint32
       config:
         c_is_class: False
         attributes:
@@ -339,6 +341,7 @@ interfaces:
             doc: 0 disables watchdog
           enable_watchdog: bool
           speed_base: float32
+          current_base: float32
           step_gpio_pin: { type: uint16, c_setter: "set_step_gpio_pin" }
           dir_gpio_pin: { type: uint16, c_setter: "set_dir_gpio_pin" }
           calibration_lockin: # TODO: this is a subset of lockin state
@@ -665,8 +668,8 @@ interfaces:
       get_positive_torque_slope: { in: { index: uint32 }, out: { slope: float32 } }
       setting_negative_torque_slope: { in: { index: uint32, value: float32 } }
       get_negative_torque_slope: { in: { index: uint32 }, out: { slope: float32 } }
-
-
+      setting_current2torque_slope: { in: { index: uint32, value: float32 } }
+      getting_current2torque_slope: { in: { index: uint32 }, out: { slope: float32 } }
 
   ODrive.Controller:
     c_is_class: True
@@ -835,6 +838,7 @@ interfaces:
       pos_abs: int32
       sencond_pos_abs: int32
       spi_error_rate: readonly float32
+      gear_vel_estimate: float32  
       config:
         c_is_class: False
         attributes:
