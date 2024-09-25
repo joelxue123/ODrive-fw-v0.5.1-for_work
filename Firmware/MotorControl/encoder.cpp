@@ -654,10 +654,7 @@ bool Encoder::update() {
             pos_abs_  = ((rawVal & 0x0000ff00)) | ( (rawVal & 0x00ff0000)>>16 ) ;
             pos_abs_ = config_.cpr - pos_abs_; //取反
 
-            rawVal = *(uint32_t *)&GearboxOutputEncoder_spi_dma_rx_[0];
-            sencond_pos_abs_ =  ((rawVal & 0x0000ff00)<<8) | ( (rawVal & 0x00ff0000)>>8 )| ( (rawVal & 0xff000000)>>24 )  ;
-            sencond_pos_abs_ >>= 6;
-            sencond_pos_abs_ = config_.GearboxOutputEncoder_cpr - sencond_pos_abs_; //取反
+
 
             abs_spi_pos_updated_ = true;
             if (abs_spi_pos_updated_ == false) {
@@ -684,6 +681,11 @@ bool Encoder::update() {
                 delta_enc -= config_.cpr;
             }
 
+            rawVal = *(uint32_t *)&GearboxOutputEncoder_spi_dma_rx_[0];
+            sencond_pos_abs_ =  ((rawVal & 0x0000ff00)<<8) | ( (rawVal & 0x00ff0000)>>8 )| ( (rawVal & 0xff000000)>>24 )  ;
+            sencond_pos_abs_ >>= 6;
+            sencond_pos_abs_ = config_.GearboxOutputEncoder_cpr - sencond_pos_abs_; //取反
+            
             gear_single_turn_abs_ = sencond_pos_abs_;
             while(gear_single_turn_abs_ > HALF_CPR) {
                 gear_single_turn_abs_ -= 2 * HALF_CPR;
