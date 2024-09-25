@@ -97,7 +97,7 @@ void Encoder::update_pll_gains() {
     pll_kp_ = 2.0f * config_.bandwidth;  // basic conversion to discrete time
     pll_ki_ = 0.25f * (pll_kp_ * pll_kp_); // Critically damped 0.025f
 
-    gear_pll_kp_ = 2.0f * config_.bandwidth/4.0f;  // basic conversion to discrete time
+    gear_pll_kp_ = 2.0f * config_.bandwidth;  // basic conversion to discrete time
     gear_pll_ki_ = 0.25f * (gear_pll_kp_ * gear_pll_kp_); // Critically damped 0.025f
     // Check that we don't get problems with discrete time approximation
     if (!(current_meas_period * pll_kp_ < 1.0f)) {

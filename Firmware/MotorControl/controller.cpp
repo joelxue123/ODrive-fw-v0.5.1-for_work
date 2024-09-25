@@ -148,7 +148,7 @@ bool Controller::update(float* torque_setpoint_output) {
         float kp = config_.kp;
         float kd = config_.kd;
         
-        if(axis_->gear_vel_used_ == true)
+        if(axis_->config_.gear_vel_used == true)
         {
             torque = kp*(pos_setpoint_ - axis_->encoder_.gearboxpos_) + input_torque_ + kd*(vel_setpoint_ - axis_->encoder_.gear_vel_estimate_);
         }

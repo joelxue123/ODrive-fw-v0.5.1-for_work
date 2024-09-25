@@ -90,7 +90,7 @@ void Axis::get_axis_state(axis_state_t* state)
     int16_t actual_torque = motor_.convert_torque_from_current(motor_.current_control_.Iq_measured, motor_.config_.CURRENT2TORQUE_COEFF, motor_.NUM_LINEARITY_SEG,  0.3333333f);
     state->erro =  axis_state_.erro;
     state->pos = saturation((int32_t)(encoder_.gearboxpos_ * position_coeff_motor2encos +32768),0,65535 );   // 2pi*12.5*32768
-    if(gear_vel_used_ == true)
+    if(config_.gear_vel_used == true)
     {
         state->vel = saturation((int32_t)(encoder_.gear_vel_estimate_ * speed_coeff_motor2encos + 2048),0,4095);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
     }
@@ -112,8 +112,16 @@ void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
 
     motor_.using_old_torque_constant_ = false;
 
-    controller_.config_.kp = axis_pvt_parm->kp*0.122070312f;   //500/4096
-    controller_.config_.kd = axis_pvt_parm->kd * 0.009765625f;      // 5/512
+    controller_.config_.kp = ((float)axis_pvt_parm->kp)*1.0f;   //1000/4096
+    if(config_.gear_vel_used == true)
+    {
+        controller_.config_.kd = ((float)axis_pvt_parm->kd) * 0.1953f;      // 100/512
+    }
+    else
+    {
+        controller_.config_.kd = ((float)axis_pvt_parm->kd) * 0.0195f;      // 10/512
+    }
+    
     controller_.pos_setpoint_ = (axis_pvt_parm->pos_setpoint - 32768)*position_coeff_encos2motor;  //12.5/2/pi / 32768
     controller_.vel_setpoint_ = (axis_pvt_parm->vel_setpoint - 2048) * speed_coeff_encos2motor;   // 36/2/pi / 2048
 
@@ -134,7 +142,7 @@ void Axis::set_axis_current(int16_t current)
 // @brief Does Nothing
 void Axis::setup() {
     gear_ratio_inverse_  = 1/motor_.config_.gear_ratio;
-    if(gear_vel_used_ == true)
+    if(config_.gear_vel_used == true)
     {
         speed_coeff_motor2encos = 2*M_PI*2048/config_.speed_base;
     }
