@@ -709,6 +709,8 @@ interfaces:
       trajectory_done: readonly bool
       vel_integrator_torque: float32
       anticogging_valid: bool
+      raw_data1: float32
+      raw_data2: float32
       config:
         c_is_class: False
         attributes:
@@ -867,6 +869,7 @@ interfaces:
           abs_485_cs_gpio_pin: uint16
     functions:
       set_linear_count: { in: { count: int32 } }
+      set_zero_pos:
 
   ODrive.SensorlessEstimator:
     c_is_class: True

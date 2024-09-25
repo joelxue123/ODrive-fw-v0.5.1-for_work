@@ -777,6 +777,9 @@ bool Encoder::update() {
     vel_estimate_ = vel_estimate_counts_ * cpr_inverse_;
     gear_vel_estimate_ = gear_vel_estimate_counts_ * GearboxOutputEncoder_cpr_inverse_;
 
+    float pos_cpr_last = pos_cpr_;
+    pos_estimate_ = pos_estimate_counts_ / (float)config_.cpr;
+    
 
     //// run encoder count interpolation
     int32_t corrected_enc = count_in_cpr_ - config_.offset;

@@ -155,7 +155,7 @@ public:
     GPIO_TypeDef* GearboxOutputEncoder_spi_cs_port_;
     uint16_t GearboxOutputEncoder_spi_cs_pin_;
 
-
+    void set_zero_pos (void) { pos_estimate_counts_ = shadow_count_ ;  }
 
     uint32_t abs_spi_cr1;
     uint32_t abs_spi_cr2;

@@ -143,6 +143,8 @@ bool Controller::update(float* torque_setpoint_output) {
         input_pos_ = fmodf_pos(input_pos_, config_.circular_setpoint_range);
     }
 
+    raw_data1_ = *vel_estimate_src;
+    raw_data2_ = axis_->encoder_.pos_abs_;
     if( CONTROL_MODE_PVT_CONTROL == config_.control_mode )
     {
         float kp = config_.kp;
@@ -299,6 +301,7 @@ bool Controller::update(float* torque_setpoint_output) {
             return false;
         }
         if (std::abs(*vel_estimate_src) > config_.vel_limit_tolerance * vel_lim) {
+            
             set_error(ERROR_OVERSPEED);
             return false;
         }

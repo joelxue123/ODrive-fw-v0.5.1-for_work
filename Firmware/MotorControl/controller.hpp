@@ -86,8 +86,8 @@ public:
     float* vel_estimate_src_ = nullptr;
     bool* vel_estimate_valid_src_ = nullptr;
     float* pos_wrap_src_ = nullptr; 
-
-
+    float raw_data1_ =0;
+    float raw_data2_ =0;
     float pos_setpoint_ = 0.0f; // [turns]
     float vel_setpoint_ = 0.0f; // [turn/s]
     // float vel_setpoint = 800.0f; <sensorless example>
