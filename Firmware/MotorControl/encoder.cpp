@@ -649,8 +649,7 @@ bool Encoder::update() {
         case MODE_SPI_ABS_AMS:
         case MODE_SPI_ABS_CUI: 
         case MODE_SPI_ABS_AEAT: {
-            HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_SET);
-            HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_, GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_SET);
+
             uint32_t rawVal = *(uint32_t *)&abs_spi_dma_rx_[0];
             pos_abs_  = ((rawVal & 0x0000ff00)) | ( (rawVal & 0x00ff0000)>>16 ) ;
             pos_abs_ = config_.cpr - pos_abs_; //取反
@@ -671,9 +670,12 @@ bool Encoder::update() {
                 }
                     
             } else {
+                if(abs_spi_dma_rx_[0] != 0xA6)
+                    raw_data1_++;
                 // Low pass filter the error
-                spi_error_rate_ += current_meas_period * (0.0f - spi_error_rate_);
+                abs_spi_dma_rx_[0] = 0;
             }
+            
             pos_abs_latched = pos_abs_;
             abs_spi_pos_updated_ = false;
             delta_enc = pos_abs_latched - count_in_cpr_; //LATCH
@@ -811,6 +813,7 @@ bool Encoder::update() {
 
     vel_estimate_valid_ = true;
     pos_estimate_valid_ = true;
+
     return true;
 }
 

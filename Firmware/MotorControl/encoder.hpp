@@ -159,7 +159,7 @@ public:
 
     uint32_t abs_spi_cr1;
     uint32_t abs_spi_cr2;
-  
+    uint32_t raw_data1_ = 0;
     constexpr float getCoggingRatio(){
         return 1.0f / 3600.0f;
     }

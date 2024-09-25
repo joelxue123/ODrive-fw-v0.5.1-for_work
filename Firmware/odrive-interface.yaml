@@ -842,6 +842,7 @@ interfaces:
       sencond_pos_abs: int32
       spi_error_rate: readonly float32
       gear_vel_estimate: float32  
+      raw_data1: uint32
       config:
         c_is_class: False
         attributes:

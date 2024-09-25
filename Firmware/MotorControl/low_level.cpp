@@ -554,7 +554,8 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
 #define calib_tau 0.2f  //@TOTO make more easily configurable
     constexpr float calib_filter_k = CURRENT_MEAS_PERIOD / calib_tau;
     
-
+    HAL_GPIO_WritePin(axis.encoder_.motor_spi_cs_port_, axis.encoder_.motor_spi_cs_pin_, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(axis.encoder_.GearboxOutputEncoder_spi_cs_port_, axis.encoder_.GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_SET);
     this_sample_time = 2 * htim13.Instance->CNT;
     axis.motor_.timing_log_[TIMING_LOG_ADC_CB_I] = (8400.f+this_sample_time - last_sample_time);
    // current_meas_period = CURRENT_MEAS_PERIOD * (8400.f+this_sample_time - last_sample_time)/8400.0f;  
