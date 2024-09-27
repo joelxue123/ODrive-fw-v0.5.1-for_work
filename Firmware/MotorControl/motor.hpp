@@ -39,7 +39,8 @@ public:
         float async_phase_vel; // [rad/s electrical]
         float async_phase_offset; // [rad electrical]
     };
-    static constexpr int32_t NUM_LINEARITY_SEG = 20;
+    static constexpr int32_t NUM_LINEARITY_SEG = 60;
+    static constexpr int32_t CALIBRATION_INCREMENT = 1.0f;
     // NOTE: for gimbal motors, all units of Nm are instead V.
     // example: vel_gain is [V/(turn/s)] instead of [Nm/(turn/s)]
     // example: current_lim and calibration_current will instead determine the maximum voltage applied to the motor.

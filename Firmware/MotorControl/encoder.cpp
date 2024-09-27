@@ -21,13 +21,22 @@ static void enc_index_cb_wrapper(void* ctx) {
     reinterpret_cast<Encoder*>(ctx)->enc_index_cb();
 }
 
+void Encoder::set_cs_high(void)
+{
+    if(mode_ & MODE_FLAG_ABS)
+    {  
+        HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_SET);
+        HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_,GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_SET);
+    }    
+}
+
 void Encoder::setup() {
     HAL_TIM_Encoder_Start(hw_config_.timer, TIM_CHANNEL_ALL);
     set_idx_subscribe();
 
     mode_ = config_.mode;
-    if(mode_ & MODE_FLAG_ABS){
-        abs_spi_cs_pin_init();
+    abs_spi_cs_pin_init();
+    if(mode_ & MODE_FLAG_ABS){      
         abs_spi_init();
         if (axis_->controller_.config_.anticogging.pre_calibrated) {
             axis_->controller_.anticogging_valid_ = true;

@@ -135,6 +135,7 @@ public:
     void abs_spi_cb();
     void abs_spi_cs_pin_init();
     void abs_485_cs_pin_init();
+    void set_cs_high(void);
     uint8_t abs_spi_dma_tx_[4] = {0xA6,0x00,0x00,0x00};
     uint8_t abs_spi_dma_rx_[4];
 

@@ -747,7 +747,7 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     }
     else
     {
-        uint32_t idex = (uint32_t)((fabsf(torque_setpoint_notch_filterd_) *0.3333333f)); 
+        uint32_t idex = (uint32_t)((fabsf(torque_setpoint_notch_filterd_) *CALIBRATION_INCREMENT)); 
         if( idex > (NUM_LINEARITY_SEG -1) )
         {
             idex = NUM_LINEARITY_SEG -1;
