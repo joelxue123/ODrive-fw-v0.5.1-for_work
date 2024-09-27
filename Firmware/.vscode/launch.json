@@ -17,8 +17,6 @@
             ],
             "svdFile": "${workspaceRoot}/Board/v3/STM32F40x.svd",
             "cwd": "${workspaceRoot}",
-            "armToolchainPath": "C:/Program Files (x86)/GNU Tools Arm Embedded/7 2018-q2-update/bin"
-
         },
         {
             // For the Cortex-Debug extension
