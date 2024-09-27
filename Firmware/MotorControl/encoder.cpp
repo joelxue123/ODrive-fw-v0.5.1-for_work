@@ -26,8 +26,9 @@ void Encoder::setup() {
     set_idx_subscribe();
 
     mode_ = config_.mode;
+    abs_spi_cs_pin_init();
     if(mode_ & MODE_FLAG_ABS){
-        abs_spi_cs_pin_init();
+        
         abs_spi_init();
         if (axis_->controller_.config_.anticogging.pre_calibrated) {
             axis_->controller_.anticogging_valid_ = true;
