@@ -676,7 +676,7 @@ bool Encoder::update() {
                 }
                     
             } else {
-                if(abs_spi_dma_rx_[0] != 0xA6)
+                if( (abs_spi_dma_rx_[0] != 0xA6) || __HAL_DMA_GET_FLAG(hw_config_.motor_spi->hdmatx, DMA_FLAG_TCIF1_5) == RESET) 
                 {
                     encoder_error_detected = true;
                    raw_data1_++;
