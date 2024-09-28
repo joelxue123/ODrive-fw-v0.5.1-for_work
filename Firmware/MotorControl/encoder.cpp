@@ -665,24 +665,31 @@ bool Encoder::update() {
             pos_abs_ = config_.cpr - pos_abs_; //取反
 
 
-
+            bool encoder_error_detected = false;
             abs_spi_pos_updated_ = true;
             if (abs_spi_pos_updated_ == false) {
                 // Low pass filter the error
                 spi_error_rate_ += current_meas_period * (1.0f - spi_error_rate_);
                 if (spi_error_rate_ > 0.005f)
                 {
-                    axis_->axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_ABS_SPI_COM_FAIL;
-                    set_error(ERROR_ABS_SPI_COM_FAIL);
+                    encoder_error_detected = true;
                 }
                     
             } else {
                 if(abs_spi_dma_rx_[0] != 0xA6)
-                    raw_data1_++;
-                // Low pass filter the error
+                {
+                    encoder_error_detected = true;
+                   raw_data1_++;
+                }
                 abs_spi_dma_rx_[0] = 0;
             }
             
+            if(encoder_error_detected)
+            {
+                axis_->axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_ABS_SPI_COM_FAIL;
+                set_error(ERROR_ABS_SPI_COM_FAIL);
+            }
+
             pos_abs_latched = pos_abs_;
             abs_spi_pos_updated_ = false;
             delta_enc = pos_abs_latched - count_in_cpr_; //LATCH
