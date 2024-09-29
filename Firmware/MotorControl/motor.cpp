@@ -747,21 +747,25 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
     }
     else
     {
-        uint32_t idex = (uint32_t)((fabsf(torque_setpoint_notch_filterd_) *CALIBRATION_INCREMENT)); 
-        if( idex > (NUM_LINEARITY_SEG -1) )
+        float torque_setpoint_abs = fabsf(torque_setpoint_notch_filterd_);
+        uint32_t idex = (uint32_t)((torque_setpoint_abs*CALIBRATION_INCREMENT)); 
+        if( idex > (NUM_LINEARITY_SEG -2) )
         {
             idex = NUM_LINEARITY_SEG -1;
-        }
-        
-        if(torque_setpoint_notch_filterd_ > 0.0f)
-        {
-            torque_constant = L_Slop_Array_P_[idex];
+            torque_constant = L_Slop_Array_N_[idex];
         }
         else
         {
-            torque_constant = L_Slop_Array_N_[idex];
+            if(torque_setpoint_notch_filterd_ > 0.0f)
+            {
+                torque_constant = L_Slop_Array_P_[idex]*( 1.0f - torque_setpoint_notch_filterd_+ (uint32_t)torque_setpoint_notch_filterd_ ) + L_Slop_Array_P_[idex+1]*( torque_setpoint_notch_filterd_- (uint32_t)torque_setpoint_abs);
+            }
+            else
+            {
+                torque_constant = L_Slop_Array_N_[idex]*( 1.0f - torque_setpoint_notch_filterd_+ (uint32_t)torque_setpoint_notch_filterd_ ) + L_Slop_Array_N_[idex+1]*( torque_setpoint_notch_filterd_- (uint32_t)torque_setpoint_abs);
+            }
         }
-        
+
         current_setpoint = torque_setpoint_notch_filterd_ / torque_constant;
 
 
