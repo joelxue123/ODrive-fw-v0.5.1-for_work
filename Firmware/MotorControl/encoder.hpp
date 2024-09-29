@@ -13,7 +13,7 @@ public:
     static constexpr int32_t HALF_CPR =  (1<<18) / 2;
 
     struct Config_t {
-        Mode mode = MODE_INCREMENTAL;
+        Mode mode = MODE_SPI_ABS_RLS;
         bool use_index = false;
         bool pre_calibrated = false; // If true, this means the offset stored in
                                     // configuration is valid and does not need
@@ -148,7 +148,7 @@ public:
     bool abs_spi_pos_updated_ = false;
     bool first_init_ = true;
 
-    Mode mode_ = MODE_INCREMENTAL;
+    Mode mode_ = MODE_SPI_ABS_RLS;
 
     GPIO_TypeDef* motor_spi_cs_port_;
     uint16_t motor_spi_cs_pin_;
