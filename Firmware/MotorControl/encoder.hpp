@@ -26,10 +26,10 @@ public:
         int32_t offset = 0;        // Offset between encoder count and rotor electrical phase
         float offset_float = 0.0f; // Sub-count phase alignment offset
         bool enable_phase_interpolation = true; // Use velocity to interpolate inside the count state
-        float calib_range = 0.02f; // Accuracy required to pass encoder cpr check
+        float calib_range = 0.002f; // Accuracy required to pass encoder cpr check
         float calib_scan_distance = 16.0f * M_PI; // rad electrical
         float calib_scan_omega = 4.0f * M_PI; // rad/s electrical
-        float bandwidth = 1000.0f;
+        float bandwidth = 4000.0f;
         bool find_idx_on_lockin_only = false; // Only be sensitive during lockin scan constant vel state
         bool idx_search_unidirectional = false; // Only allow index search in known direction
         bool ignore_illegal_hall_state = false; // dont error on bad states like 000 or 111
