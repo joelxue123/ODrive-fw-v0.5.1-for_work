@@ -99,7 +99,7 @@ void Axis::get_axis_state(axis_state_t* state)
         state->vel = saturation((int32_t)(encoder_.vel_estimate_ * speed_coeff_motor2encos + 2048),0,4095);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
     }
    
-    state->cur = saturation((int32_t)(actual_torque *current_coeff_motor2encos + 2048),0,4095);  // 60/2048将电流的系数再减半
+    state->cur = saturation((int32_t)(actual_torque *current_coeff_motor2encos + 2048),10,4090);  //这是有问题的代码，不要忘记 2024-10-8
     state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
     state->mos_temperature = (int32_t)fet_thermistor_.temperature_ *2 + 50;
     can_raw_ = state->cur;
