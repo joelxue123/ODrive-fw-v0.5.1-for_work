@@ -524,7 +524,7 @@ bool Encoder::abs_spi_start_transaction(){
         
       //  HAL_SPI_TransmitReceive_DMA(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
         transmit_spi(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 4); 
-        
+        abs_spi_pos_updated_ = true;
     }
     return true;
 }
@@ -666,7 +666,7 @@ bool Encoder::update() {
 
 
             bool encoder_error_detected = false;
-            abs_spi_pos_updated_ = true;
+            
             if (abs_spi_pos_updated_ == false) {
                 // Low pass filter the error
                 spi_error_rate_ += current_meas_period * (1.0f - spi_error_rate_);
@@ -676,8 +676,8 @@ bool Encoder::update() {
                 }
                     
             } else {
-                bool dma_flag = __HAL_DMA_GET_FLAG(hw_config_.motor_spi->hdmatx, DMA_FLAG_TCIF1_5);
-                if( (abs_spi_dma_rx_[0] != 0xA6) || (dma_flag != SET)) 
+               // bool dma_flag = __HAL_DMA_GET_FLAG(hw_config_.motor_spi->hdmatx, DMA_FLAG_TCIF1_5);
+                if( (abs_spi_dma_rx_[0] != 0xA6) ) 
                 {
                     encoder_error_detected = true;
                    raw_data1_++;

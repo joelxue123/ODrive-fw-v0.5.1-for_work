@@ -102,7 +102,7 @@ void Axis::get_axis_state(axis_state_t* state)
     state->cur = saturation((int32_t)(actual_torque *current_coeff_motor2encos + 2048),10,4090);  //这是有问题的代码，不要忘记 2024-10-8
     state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
     state->mos_temperature = (int32_t)fet_thermistor_.temperature_ *2 + 50;
-    can_raw_ = state->cur;
+    
 }
 
 void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
@@ -127,6 +127,7 @@ void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
 
     torque_setpoint = axis_pvt_parm->torque_setpoint - 2048;
     controller_.input_torque_ = torque_setpoint*motor_.config_.motor_torque_base * 4.8828e-04f;
+    can_raw_ = axis_pvt_parm->torque_setpoint;
 } 
 
 void Axis::set_axis_current(int16_t current)
