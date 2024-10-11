@@ -283,9 +283,9 @@ int odrive_main(void) {
     }
 
     // Setup encoders (Starts encoder SPI transactions)
-    for(auto& axis : axes){
-        axis->encoder_.setup();
-    }
+   // for(auto& axis : axes){
+        axes[0]->encoder_.setup();
+   // }
 
     // Setup anything remaining in each axis
     for(auto& axis : axes){
