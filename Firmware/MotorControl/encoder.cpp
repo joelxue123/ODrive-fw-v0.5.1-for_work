@@ -31,8 +31,8 @@ void Encoder::set_cs_high(void)
 }
 
 void Encoder::setup() {
-    HAL_TIM_Encoder_Start(hw_config_.timer, TIM_CHANNEL_ALL);
-    set_idx_subscribe();
+   // HAL_TIM_Encoder_Start(hw_config_.timer, TIM_CHANNEL_ALL);
+   // set_idx_subscribe();
 
     mode_ = config_.mode;
     abs_spi_cs_pin_init();
