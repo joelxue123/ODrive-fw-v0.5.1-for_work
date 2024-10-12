@@ -228,6 +228,7 @@ void start_adc_pwm() {
     sync_timers(&htim1, &htim8, TIM_CLOCKSOURCE_ITR0, TIM_1_8_PERIOD_CLOCKS,
             &htim13);
 
+
     // Motor output starts in the disabled state
     __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(&htim1);
     __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(&htim8);
