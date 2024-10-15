@@ -368,6 +368,11 @@ float Motor::convert_torque_from_current(float current,float *current2torque_coe
     uint32_t idex = (uint32_t)((fabsf(current) *current_step)); 
     float torque_constant = 0;
 
+    if(using_old_torque_constant_ == true)
+    {
+        return current;
+    }
+    
     if( idex > (coeff_size -1) )
     {
         idex = coeff_size -1;

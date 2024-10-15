@@ -547,6 +547,9 @@ interfaces:
       phase_current_rev_gain: float32
       effective_current_lim: readonly float32
       capturing: bool
+      sign_a: int32
+      sign_b: int32
+      sign_c: int32
       Idq_filter_k: float32
       Idq_filter_k2: float32
       using_old_torque_constant: bool

@@ -699,12 +699,7 @@ bool Encoder::update() {
             sencond_pos_abs_ = config_.GearboxOutputEncoder_cpr - sencond_pos_abs_; //取反
             
             gear_single_turn_abs_ = sencond_pos_abs_;
-            while(gear_single_turn_abs_ > HALF_CPR) {
-                gear_single_turn_abs_ -= 2 * HALF_CPR;
-            } 
-            while(gear_single_turn_abs_ < -HALF_CPR) {
-                gear_single_turn_abs_ += 2 * HALF_CPR;
-            }
+
             gear_single_turn_abs_by_user_ = gear_single_turn_abs_ - config_.Gearoffset;
             while(gear_single_turn_abs_by_user_ > HALF_CPR) {
                 gear_single_turn_abs_by_user_ -= 2 * HALF_CPR;
