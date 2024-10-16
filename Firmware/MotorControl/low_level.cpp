@@ -605,6 +605,7 @@ void send_notification(void)
 {
     
     Axis& axis = *axes[0];
+    axis.control_loop_cb();
     axis.signal_current_meas(); 
     
 }

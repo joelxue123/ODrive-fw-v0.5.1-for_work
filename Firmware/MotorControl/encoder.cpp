@@ -157,6 +157,8 @@ void Encoder::set_circular_count(int32_t count, bool update_offset) {
     cpu_exit_critical(prim);
 }
 
+
+
 bool Encoder::run_index_search() {
     config_.use_index = true;
     index_found_ = false;

@@ -176,13 +176,23 @@ void Axis::start_thread() {
 // This is called from the current sense interrupt handler.
 void Axis::signal_current_meas() {
     if (thread_id_valid_)
-        osSignalSet(thread_id_, M_SIGNAL_PH_CURRENT_MEAS);
+    {
+        is_current_meas_update_ = true;
+    }
 }
 
 // @brief Blocks until a current measurement is completed
 // @returns True on success, false otherwise
 bool Axis::wait_for_current_meas() {
-    return osSignalWait(M_SIGNAL_PH_CURRENT_MEAS, PH_CURRENT_MEAS_TIMEOUT).status == osEventSignal;
+    if(is_current_meas_update_  == true)
+    {
+        is_current_meas_update_ = false;
+        return true;
+    }
+    else
+    {
+        return false;
+    }
 }
 
 // step/direction interface
@@ -284,11 +294,6 @@ bool Axis::do_updates() {
         //sensorless_estimator_.update2();
     }
     
-    #if 0
-    
-    min_endstop_.update();
-    max_endstop_.update();
-    #endif
     bool ret = check_for_errors();
    // odCAN->send_heartbeat(this);
     return ret;

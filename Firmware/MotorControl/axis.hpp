@@ -283,21 +283,6 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     template<typename T>
     void run_control_loop(const T& update_handler) {
         while (requested_state_ == AXIS_STATE_UNDEFINED) {
-            // look for errors at axis level and also all subcomponents
-            // bool checks_ok = do_checks();
-            // Update all estimators
-            // Note: updates run even if checks fail
-            bool updates_ok = do_updates(); 
-
-            // make sure the watchdog is being fed. 
-            bool watchdog_ok = watchdog_check();
-            
-            if (!checks_ok_ || !updates_ok || !watchdog_ok) {
-                // It's not useful to quit idle since that is the safe action
-                // Also leaving idle would rearm the motors
-                if (current_state_ != AXIS_STATE_IDLE)
-                    break;
-            }
 
 
             
@@ -334,6 +319,31 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     static void enable_notch_filter(class Axis *axis,uint32_t value) {axis->motor_.notch_filter_enable_ = value;}
 
 
+    void control_loop_cb(void)
+    {
+        // look for errors at axis level and also all subcomponents
+        // bool checks_ok = do_checks();
+        // Update all estimators
+        // Note: updates run even if checks fail
+        
+
+        // make sure the watchdog is being fed. 
+        bool watchdog_ok = watchdog_check();
+        bool updates_ok = do_updates(); 
+        
+        if (!checks_ok_ || !updates_ok || !watchdog_ok) {
+            // It's not useful to quit idle since that is the safe action
+            // Also leaving idle would rearm the motors
+            safety_critical_disarm_motor_pwm(motor_);
+        }
+        if (!controller_.update(&torque_setpoint))
+        {
+            return error_ |= ERROR_CONTROLLER_FAILED;
+        }
+             
+        motor_.update(torque_setpoint, encoder_.phase_, phase_vel);
+
+    }
 
 
     constexpr uint32_t get_watchdog_reset() {
@@ -399,7 +409,7 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     // watchdog
     uint32_t watchdog_current_value_= 0;
     bool checks_ok_ = true;
-
+    volatile bool is_current_meas_update_ = false;
     uint32_t set_torque_raw_data_ = 0;
 };
 

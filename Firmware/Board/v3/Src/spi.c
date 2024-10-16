@@ -326,7 +326,7 @@ void transmit_spi(SPI_HandleTypeDef* spiHandle,uint8_t *tx_buf, uint8_t *rx_buf,
     DMA_SetConfig(spiHandle->hdmarx, (uint32_t)&spiHandle->Instance->DR,(uint32_t)rx_buf, len);
 
    __HAL_DMA_ENABLE(spiHandle->hdmarx);
-    __HAL_DMA_ENABLE(spiHandle->hdmatx);
+   __HAL_DMA_ENABLE(spiHandle->hdmatx);
     
  
 
