@@ -500,8 +500,7 @@ void vbus_sense_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     constexpr float voltage_scale = adc_ref_voltage * VBUS_S_DIVIDER_RATIO / adc_full_scale;
     // Only one conversion in sequence, so only rank1
     uint32_t ADCValue = HAL_ADCEx_InjectedGetValue(hadc, ADC_INJECTED_RANK_1);
-    smooth_filter(ADCValue , &vbus_voltage_filter);
-    vbus_voltage = vbus_voltage_filter.filtered_value * voltage_scale;
+    vbus_voltage = ADCValue * voltage_scale;
 }
 
 static void decode_hall_samples(Encoder& enc, uint16_t GPIO_samples[num_GPIO]) {
@@ -590,13 +589,13 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     smooth_filter(ADCValue_dc_a, &dc_current_a);
     smooth_filter(ADCValue_dc_c, &dc_current_c);
     float current_a = axis.motor_.phase_current_from_adcval(ADCValue_a,0.94f);
-    float current_c = axis.motor_.phase_current_from_adcval(ADCValue_c,0.74f);//0.718
+    float current_c = axis.motor_.phase_current_from_adcval(ADCValue_c,0.718f);//0.718
     axis.motor_.DC_calib_.phA = axis.motor_.phase_current_from_adcval(dc_current_a.filtered_value,0.94f);
-    axis.motor_.DC_calib_.phC = axis.motor_.phase_current_from_adcval(dc_current_c.filtered_value,0.74f);
+    axis.motor_.DC_calib_.phC = axis.motor_.phase_current_from_adcval(dc_current_c.filtered_value,0.718f);
 
     axis.motor_.current_meas_.phA = current_a - axis.motor_.DC_calib_.phA;
     axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
-    axis.motor_.current_meas_.phB =  1.06f*(0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC) ;//0.12
+    axis.motor_.current_meas_.phB =  1.2f*(0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC) ;//0.12
 
    NVIC->STIR = ControlLoop_IRQn;
 }

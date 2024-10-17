@@ -287,12 +287,13 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
             // bool checks_ok = do_checks();
             // Update all estimators
             // Note: updates run even if checks fail
+            bool voltage_ok = do_voltage_checks();
             bool updates_ok = do_updates(); 
 
             // make sure the watchdog is being fed. 
             bool watchdog_ok = watchdog_check();
             
-            if (!checks_ok_ || !updates_ok || !watchdog_ok) {
+            if (!checks_ok_ || !updates_ok || !watchdog_ok || !voltage_ok) {
                 // It's not useful to quit idle since that is the safe action
                 // Also leaving idle would rearm the motors
                 if (current_state_ != AXIS_STATE_IDLE)
@@ -332,7 +333,7 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     bool run_homing();
     bool run_idle_loop();
     static void enable_notch_filter(class Axis *axis,uint32_t value) {axis->motor_.notch_filter_enable_ = value;}
-
+    bool do_voltage_checks();
 
 
 

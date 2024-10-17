@@ -232,14 +232,9 @@ void Axis::set_step_dir_active(bool active) {
     }
 }
 
-// @brief Do axis level checks and call subcomponent do_checks
-// Returns true if everything is ok.
-bool Axis::do_checks() {
-    if (!brake_resistor_armed)
-        error_ |= ERROR_BRAKE_RESISTOR_DISARMED;
-    if ((current_state_ != AXIS_STATE_IDLE) && (motor_.armed_state_ == Motor::ARMED_STATE_DISARMED))
-        // motor got disarmed in something other than the idle loop
-        error_ |= ERROR_MOTOR_DISARMED;
+
+bool Axis::do_voltage_checks()
+{
     if (!(vbus_voltage >= odrv.config_.dc_bus_undervoltage_trip_level))
     {
         error_ |= ERROR_DC_BUS_UNDER_VOLTAGE;
@@ -251,7 +246,20 @@ bool Axis::do_checks() {
         axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_DC_BUS_OVER_VOLTAGE;
         error_ |= ERROR_DC_BUS_OVER_VOLTAGE;
     }
-        
+    
+    return check_for_errors();
+       
+}
+
+// @brief Do axis level checks and call subcomponent do_checks
+// Returns true if everything is ok.
+bool Axis::do_checks() {
+    if (!brake_resistor_armed)
+        error_ |= ERROR_BRAKE_RESISTOR_DISARMED;
+    if ((current_state_ != AXIS_STATE_IDLE) && (motor_.armed_state_ == Motor::ARMED_STATE_DISARMED))
+        // motor got disarmed in something other than the idle loop
+        error_ |= ERROR_MOTOR_DISARMED;
+ 
 
     // Sub-components should use set_error which will propegate to this error_
     for (ThermistorCurrentLimiter* thermistor : thermistors_) {
