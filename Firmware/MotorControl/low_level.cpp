@@ -118,9 +118,9 @@ bool safety_critical_disarm_motor_pwm(Motor& motor) {
     bool was_armed = motor.armed_state_ != Motor::ARMED_STATE_DISARMED;
     motor.armed_state_ = Motor::ARMED_STATE_DISARMED;
    // __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(motor.hw_config_.timer); //进入刹车模式 2024-10-11
-     motor.hw_config_.timer->Instance->CCR1 = TIM_1_8_PERIOD_CLOCKS;
-     motor.hw_config_.timer->Instance->CCR2 = TIM_1_8_PERIOD_CLOCKS;
-     motor.hw_config_.timer->Instance->CCR3 = TIM_1_8_PERIOD_CLOCKS;
+     motor.hw_config_.timer->Instance->CCR1 = TIM_1_8_PERIOD_CLOCKS/2;
+     motor.hw_config_.timer->Instance->CCR2 = TIM_1_8_PERIOD_CLOCKS/2;
+     motor.hw_config_.timer->Instance->CCR3 = TIM_1_8_PERIOD_CLOCKS/2;
     cpu_exit_critical(mask);
     return was_armed;
 }
