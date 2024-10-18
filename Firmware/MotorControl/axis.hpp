@@ -334,7 +334,7 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     bool run_idle_loop();
     static void enable_notch_filter(class Axis *axis,uint32_t value) {axis->motor_.notch_filter_enable_ = value;}
     bool do_voltage_checks();
-
+    bool is_over_voltage();
 
 
     constexpr uint32_t get_watchdog_reset() {

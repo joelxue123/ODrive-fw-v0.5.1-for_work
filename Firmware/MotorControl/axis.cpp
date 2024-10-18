@@ -86,10 +86,11 @@ static void step_cb_wrapper(void* ctx) {
 
 void Axis::get_axis_state(axis_state_t* state)
 {
-
     float actual_torque = motor_.convert_torque_from_current(motor_.current_control_.Iq_measured, motor_.config_.CURRENT2TORQUE_COEFF, motor_.NUM_LINEARITY_SEG,  motor_.CALIBRATION_INCREMENT);
     state->erro =  axis_state_.erro;
+    
     state->pos = saturation((int32_t)(encoder_.gearboxpos_ * position_coeff_motor2encos +32768),0,65535 );   // 2pi*12.5*32768
+    //state->pos =(int16_t)(encoder_.gearboxpos_ * position_coeff_motor2encos +32768);   // 2pi*12.5*32768
     if(config_.gear_vel_used == true)
     {
         state->vel = saturation((int32_t)(encoder_.gear_vel_estimate_ * speed_coeff_motor2encos + 2048),0,4095);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
@@ -231,7 +232,10 @@ void Axis::set_step_dir_active(bool active) {
         GPIO_unsubscribe(step_port_, step_pin_);
     }
 }
-
+bool Axis::is_over_voltage(void)
+{
+    return (vbus_voltage >  odrv.config_.dc_bus_overvoltage_trip_level );
+}
 
 bool Axis::do_voltage_checks()
 {
@@ -241,7 +245,7 @@ bool Axis::do_voltage_checks()
         axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_DC_BUS_UNDER_VOLTAGE;
     }
        
-    if (!(vbus_voltage <= odrv.config_.dc_bus_overvoltage_trip_level))
+    if (!(vbus_voltage <= 1.07f * odrv.config_.dc_bus_overvoltage_trip_level))
     {
         axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_DC_BUS_OVER_VOLTAGE;
         error_ |= ERROR_DC_BUS_OVER_VOLTAGE;

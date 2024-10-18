@@ -59,7 +59,7 @@ public:
         // Read out max_allowed_current to see max supported value for current_lim.
         // float current_lim = 70.0f; //[A]
         float current_lim = 10.0f;          //[A]
-        float current_lim_margin = 8.0f;    // Maximum violation of current_lim
+        float current_lim_margin = 10.0f;    // Maximum violation of current_lim
         float torque_lim = std::numeric_limits<float>::infinity();           //[Nm]. 
         // Value used to compute shunt amplifier gains
         float requested_current_range = 60.0f; // [A]
