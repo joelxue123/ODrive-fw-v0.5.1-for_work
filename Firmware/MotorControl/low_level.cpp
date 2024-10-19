@@ -117,10 +117,10 @@ bool safety_critical_disarm_motor_pwm(Motor& motor) {
     uint32_t mask = cpu_enter_critical();
     bool was_armed = motor.armed_state_ != Motor::ARMED_STATE_DISARMED;
     motor.armed_state_ = Motor::ARMED_STATE_DISARMED;
-  //  __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(motor.hw_config_.timer); //进入刹车模式 2024-10-11
-     motor.hw_config_.timer->Instance->CCR1 = TIM_1_8_PERIOD_CLOCKS/2;
-     motor.hw_config_.timer->Instance->CCR2 = TIM_1_8_PERIOD_CLOCKS/2;
-     motor.hw_config_.timer->Instance->CCR3 = TIM_1_8_PERIOD_CLOCKS/2;
+    __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(motor.hw_config_.timer); //进入刹车模式 2024-10-11
+    // motor.hw_config_.timer->Instance->CCR1 = TIM_1_8_PERIOD_CLOCKS/2;
+    // motor.hw_config_.timer->Instance->CCR2 = TIM_1_8_PERIOD_CLOCKS/2;
+    // motor.hw_config_.timer->Instance->CCR3 = TIM_1_8_PERIOD_CLOCKS/2;
     
     
 
@@ -598,7 +598,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
 
     axis.motor_.current_meas_.phA = current_a - axis.motor_.DC_calib_.phA;
     axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
-    axis.motor_.current_meas_.phB =  1.06f*(0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC) ;//0.12
+    axis.motor_.current_meas_.phB =  1.2f*(0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC) ;//0.12
 
    NVIC->STIR = ControlLoop_IRQn;
 }

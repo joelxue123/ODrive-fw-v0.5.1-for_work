@@ -170,10 +170,6 @@ float Motor::effective_current_lim() {
         current_lim = std::min(current_lim, limiter->get_current_limit(config_.current_lim));
     }
 
-    if(axis_->is_over_voltage())
-    {
-        current_lim = std::min(current_lim, 3.f);
-    }
     effective_current_lim_ = current_lim;
 
     return effective_current_lim_;

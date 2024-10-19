@@ -245,7 +245,7 @@ bool Axis::do_voltage_checks()
         axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_DC_BUS_UNDER_VOLTAGE;
     }
        
-    if (!(vbus_voltage <= 1.07f * odrv.config_.dc_bus_overvoltage_trip_level))
+    if (!(vbus_voltage <= odrv.config_.dc_bus_overvoltage_trip_level))
     {
         axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_DC_BUS_OVER_VOLTAGE;
         error_ |= ERROR_DC_BUS_OVER_VOLTAGE;
@@ -551,24 +551,24 @@ bool Axis::run_closed_loop_control_loop() {
     }
 
     // To avoid any transient on startup, we intialize the setpoint to be the current position
-    if (controller_.config_.circular_setpoints) {
-        if (!controller_.pos_estimate_circular_src_) {
-            return error_ |= ERROR_CONTROLLER_FAILED, false;
-        }
-        else {
-            controller_.pos_setpoint_ = *controller_.pos_estimate_circular_src_;
-            controller_.input_pos_ = *controller_.pos_estimate_circular_src_;
-        }
-    }
-    else {
-        if (!controller_.pos_estimate_linear_src_) {
-            return error_ |= ERROR_CONTROLLER_FAILED, false;
-        }
-        else {
-            controller_.pos_setpoint_ = *controller_.pos_estimate_linear_src_;
-            controller_.input_pos_ = *controller_.pos_estimate_linear_src_;
-        }
-    }
+    // if (controller_.config_.circular_setpoints) {
+    //     if (!controller_.pos_estimate_circular_src_) {
+    //         return error_ |= ERROR_CONTROLLER_FAILED, false;
+    //     }
+    //     else {
+    //         controller_.pos_setpoint_ = *controller_.pos_estimate_circular_src_;
+    //         controller_.input_pos_ = *controller_.pos_estimate_circular_src_;
+    //     }
+    // }
+    // else {
+    //     if (!controller_.pos_estimate_linear_src_) {
+    //         return error_ |= ERROR_CONTROLLER_FAILED, false;
+    //     }
+    //     else {
+    //         controller_.pos_setpoint_ = *controller_.pos_estimate_linear_src_;
+    //         controller_.input_pos_ = *controller_.pos_estimate_linear_src_;
+    //     }
+    // }
     controller_.input_pos_updated();
 
     // Avoid integrator windup issues
