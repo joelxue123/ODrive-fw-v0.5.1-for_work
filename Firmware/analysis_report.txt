@@ -1,0 +1,5 @@
+scan-build: Using '/usr/lib/llvm-14/bin/clang' for static analysis
+make: 'Tests/test_runner.exe' is up to date.
+scan-build: Analysis run complete.
+scan-build: Removing directory '/tmp/scan-build-2024-10-22-115455-175261-1' because it contains no reports.
+scan-build: No bugs found.
