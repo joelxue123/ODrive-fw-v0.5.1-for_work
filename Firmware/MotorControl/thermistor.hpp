@@ -37,8 +37,8 @@ public:
 class OnboardThermistorCurrentLimiter : public ThermistorCurrentLimiter, public ODriveIntf::OnboardThermistorCurrentLimiterIntf {
 public:
     struct Config_t {
-        float temp_limit_lower = 100;
-        float temp_limit_upper = 120;
+        float temp_limit_lower = 80;
+        float temp_limit_upper = 100;
         bool enabled = true;
     };
 
