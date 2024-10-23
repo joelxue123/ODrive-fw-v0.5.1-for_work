@@ -37,7 +37,7 @@ constexpr float adc_ref_voltage = 3.3f;
 
 // This value is updated by the DC-bus reading ADC.
 // Arbitrary non-zero inital value to avoid division by zero if ADC reading is late
-float vbus_voltage = 12.0f;
+float vbus_voltage = 48.0f;
 float ibus_ = 0.0f; // exposed for monitoring only
 bool brake_resistor_armed = false;
 bool brake_resistor_saturated = false;
@@ -117,10 +117,13 @@ bool safety_critical_disarm_motor_pwm(Motor& motor) {
     uint32_t mask = cpu_enter_critical();
     bool was_armed = motor.armed_state_ != Motor::ARMED_STATE_DISARMED;
     motor.armed_state_ = Motor::ARMED_STATE_DISARMED;
-   // __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(motor.hw_config_.timer); //进入刹车模式 2024-10-11
-     motor.hw_config_.timer->Instance->CCR1 = TIM_1_8_PERIOD_CLOCKS;
-     motor.hw_config_.timer->Instance->CCR2 = TIM_1_8_PERIOD_CLOCKS;
-     motor.hw_config_.timer->Instance->CCR3 = TIM_1_8_PERIOD_CLOCKS;
+    __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(motor.hw_config_.timer); //进入刹车模式 2024-10-11
+    // motor.hw_config_.timer->Instance->CCR1 = TIM_1_8_PERIOD_CLOCKS/2;
+    // motor.hw_config_.timer->Instance->CCR2 = TIM_1_8_PERIOD_CLOCKS/2;
+    // motor.hw_config_.timer->Instance->CCR3 = TIM_1_8_PERIOD_CLOCKS/2;
+    
+    
+
     cpu_exit_critical(mask);
     return was_armed;
 }
@@ -500,8 +503,7 @@ void vbus_sense_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     constexpr float voltage_scale = adc_ref_voltage * VBUS_S_DIVIDER_RATIO / adc_full_scale;
     // Only one conversion in sequence, so only rank1
     uint32_t ADCValue = HAL_ADCEx_InjectedGetValue(hadc, ADC_INJECTED_RANK_1);
-    smooth_filter(ADCValue , &vbus_voltage_filter);
-    vbus_voltage = vbus_voltage_filter.filtered_value * voltage_scale;
+    vbus_voltage = ADCValue * voltage_scale;
 }
 
 static void decode_hall_samples(Encoder& enc, uint16_t GPIO_samples[num_GPIO]) {
@@ -596,7 +598,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
 
     axis.motor_.current_meas_.phA = current_a - axis.motor_.DC_calib_.phA;
     axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
-    axis.motor_.current_meas_.phB =  1.06f*(0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC) ;//0.12
+    axis.motor_.current_meas_.phB =  1.06f*(0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC) ;
 
    NVIC->STIR = ControlLoop_IRQn;
 }

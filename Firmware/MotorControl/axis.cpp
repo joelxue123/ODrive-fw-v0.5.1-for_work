@@ -86,10 +86,11 @@ static void step_cb_wrapper(void* ctx) {
 
 void Axis::get_axis_state(axis_state_t* state)
 {
-
     float actual_torque = motor_.convert_torque_from_current(motor_.current_control_.Iq_measured, motor_.config_.CURRENT2TORQUE_COEFF, motor_.NUM_LINEARITY_SEG,  motor_.CALIBRATION_INCREMENT);
     state->erro =  axis_state_.erro;
+    
     state->pos = saturation((int32_t)(encoder_.gearboxpos_ * position_coeff_motor2encos +32768),0,65535 );   // 2pi*12.5*32768
+    //state->pos =(int16_t)(encoder_.gearboxpos_ * position_coeff_motor2encos +32768);   // 2pi*12.5*32768
     if(config_.gear_vel_used == true)
     {
         state->vel = saturation((int32_t)(encoder_.gear_vel_estimate_ * speed_coeff_motor2encos + 2048),0,4095);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
@@ -231,15 +232,13 @@ void Axis::set_step_dir_active(bool active) {
         GPIO_unsubscribe(step_port_, step_pin_);
     }
 }
+bool Axis::is_over_voltage(void)
+{
+    return (vbus_voltage >  odrv.config_.dc_bus_overvoltage_trip_level );
+}
 
-// @brief Do axis level checks and call subcomponent do_checks
-// Returns true if everything is ok.
-bool Axis::do_checks() {
-    if (!brake_resistor_armed)
-        error_ |= ERROR_BRAKE_RESISTOR_DISARMED;
-    if ((current_state_ != AXIS_STATE_IDLE) && (motor_.armed_state_ == Motor::ARMED_STATE_DISARMED))
-        // motor got disarmed in something other than the idle loop
-        error_ |= ERROR_MOTOR_DISARMED;
+bool Axis::do_voltage_checks()
+{
     if (!(vbus_voltage >= odrv.config_.dc_bus_undervoltage_trip_level))
     {
         error_ |= ERROR_DC_BUS_UNDER_VOLTAGE;
@@ -251,7 +250,20 @@ bool Axis::do_checks() {
         axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_DC_BUS_OVER_VOLTAGE;
         error_ |= ERROR_DC_BUS_OVER_VOLTAGE;
     }
-        
+    
+    return check_for_errors();
+       
+}
+
+// @brief Do axis level checks and call subcomponent do_checks
+// Returns true if everything is ok.
+bool Axis::do_checks() {
+    if (!brake_resistor_armed)
+        error_ |= ERROR_BRAKE_RESISTOR_DISARMED;
+    if ((current_state_ != AXIS_STATE_IDLE) && (motor_.armed_state_ == Motor::ARMED_STATE_DISARMED))
+        // motor got disarmed in something other than the idle loop
+        error_ |= ERROR_MOTOR_DISARMED;
+ 
 
     // Sub-components should use set_error which will propegate to this error_
     for (ThermistorCurrentLimiter* thermistor : thermistors_) {
@@ -539,24 +551,24 @@ bool Axis::run_closed_loop_control_loop() {
     }
 
     // To avoid any transient on startup, we intialize the setpoint to be the current position
-    if (controller_.config_.circular_setpoints) {
-        if (!controller_.pos_estimate_circular_src_) {
-            return error_ |= ERROR_CONTROLLER_FAILED, false;
-        }
-        else {
-            controller_.pos_setpoint_ = *controller_.pos_estimate_circular_src_;
-            controller_.input_pos_ = *controller_.pos_estimate_circular_src_;
-        }
-    }
-    else {
-        if (!controller_.pos_estimate_linear_src_) {
-            return error_ |= ERROR_CONTROLLER_FAILED, false;
-        }
-        else {
-            controller_.pos_setpoint_ = *controller_.pos_estimate_linear_src_;
-            controller_.input_pos_ = *controller_.pos_estimate_linear_src_;
-        }
-    }
+    // if (controller_.config_.circular_setpoints) {
+    //     if (!controller_.pos_estimate_circular_src_) {
+    //         return error_ |= ERROR_CONTROLLER_FAILED, false;
+    //     }
+    //     else {
+    //         controller_.pos_setpoint_ = *controller_.pos_estimate_circular_src_;
+    //         controller_.input_pos_ = *controller_.pos_estimate_circular_src_;
+    //     }
+    // }
+    // else {
+    //     if (!controller_.pos_estimate_linear_src_) {
+    //         return error_ |= ERROR_CONTROLLER_FAILED, false;
+    //     }
+    //     else {
+    //         controller_.pos_setpoint_ = *controller_.pos_estimate_linear_src_;
+    //         controller_.input_pos_ = *controller_.pos_estimate_linear_src_;
+    //     }
+    // }
     controller_.input_pos_updated();
 
     // Avoid integrator windup issues
