@@ -50,6 +50,8 @@ extern char serial_number_str[13];
 #ifdef __cplusplus
 }
 
+#define MAX_CONTROL_LOOP_UPDATE_TO_CURRENT_UPDATE_DELTA (TIM_1_8_PERIOD_CLOCKS / 2 + 1 * 128)
+
 typedef struct {
     bool fully_booted;
     uint32_t uptime; // [ms]
@@ -162,10 +164,7 @@ const size_t AXIS_COUNT_USED = 1;
 extern std::array<Axis*, AXIS_COUNT> axes;
 extern ODriveCAN *odCAN;
 
-// if you use the oscilloscope feature you can bump up this value
-#define OSCILLOSCOPE_SIZE (16384)
-extern float oscilloscope[OSCILLOSCOPE_SIZE];
-extern size_t oscilloscope_pos;
+
 extern float motor_torque_coeff[48];
 
 // TODO: move
@@ -196,13 +195,18 @@ enum TimingLog_t {
     TIMING_LOG_NUM_SLOTS
 };
 
-
+#include <user_int.hpp>
 #include "autogen/interfaces.hpp"
 
 // ODrive specific includes
 #include <utils.hpp>
 #include <gpio_utils.hpp>
 #include <low_level.h>
+#include <component.hpp>
+#include <phase_control_law.hpp>
+#include <foc.hpp>
+#include<open_loop_controller.hpp>
+#include<oscilloscope.hpp>
 #include <motor.hpp>
 #include <encoder.hpp>
 #include <sensorless_estimator.hpp>
@@ -212,7 +216,9 @@ enum TimingLog_t {
 #include <trapTraj.hpp>
 #include <endstop.hpp>
 #include <axis.hpp>
+
 #include <communication/communication.h>
+
 
 // Defined in autogen/version.c based on git-derived version numbers
 extern "C" {
@@ -231,9 +237,6 @@ public:
     void reboot() override { NVIC_SystemReset(); }
     void enter_dfu_mode() override;
 
-    float get_oscilloscope_val(uint32_t index) override {
-        return oscilloscope[index];
-    }
 
     float set_motor_torque_coeff(uint32_t index) override {
         return motor_torque_coeff[index];
@@ -295,6 +298,13 @@ public:
     bool user_config_loaded_;
 
     uint32_t test_property_ = 0;
+
+        // Edit these to suit your capture needs
+    Oscilloscope oscilloscope_{
+        nullptr, // trigger_src
+        0.5f, // trigger_threshold
+        nullptr // data_src TODO: change data type
+    };
 };
 
 extern ODrive odrv; // defined in main.cpp

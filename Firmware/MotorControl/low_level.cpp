@@ -21,6 +21,7 @@
 
 #include "odrive_main.h"
 
+
 #define ControlLoop_IRQHandler OTG_HS_IRQHandler
 #define ControlLoop_IRQn OTG_HS_IRQn
 
@@ -117,10 +118,7 @@ bool safety_critical_disarm_motor_pwm(Motor& motor) {
     uint32_t mask = cpu_enter_critical();
     bool was_armed = motor.armed_state_ != Motor::ARMED_STATE_DISARMED;
     motor.armed_state_ = Motor::ARMED_STATE_DISARMED;
-   // __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(motor.hw_config_.timer); //进入刹车模式 2024-10-11
-     motor.hw_config_.timer->Instance->CCR1 = TIM_1_8_PERIOD_CLOCKS;
-     motor.hw_config_.timer->Instance->CCR2 = TIM_1_8_PERIOD_CLOCKS;
-     motor.hw_config_.timer->Instance->CCR3 = TIM_1_8_PERIOD_CLOCKS;
+    __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(motor.hw_config_.timer); //进入刹车模式 2024-10-11
     cpu_exit_critical(mask);
     return was_armed;
 }
@@ -598,15 +596,19 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
     axis.motor_.current_meas_.phB =  1.06f*(0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC) ;//0.12
 
-   NVIC->STIR = ControlLoop_IRQn;
+    axis.control_loop_cb();
+    axis.signal_current_meas(); 
+    
 }
 
+/*如果想使用此函数，需要 调用 NVIC->STIR = ControlLoop_IRQn;
+此函数暂时不用，等后续需要的时候，用在速度环和位置环中。
+*/
 void send_notification(void)
 {
     
     Axis& axis = *axes[0];
-    axis.control_loop_cb();
-    axis.signal_current_meas(); 
+
     
 }
 

@@ -5,6 +5,7 @@ summary: ODrive Interface Definitions
 
 dictionary: [ODrive] # Prevent the word 'ODrive' from being detected as two words 'O' and 'Drive'
 
+
 interfaces:
   ODrive:
     c_is_class: True
@@ -183,13 +184,13 @@ interfaces:
           gpio4_analog_mapping: { type: Endpoint, c_name: "analog_mappings[3]" }
       user_config_loaded: readonly bool
 
+      oscilloscope: {type: Oscilloscope}
       axis0: { type: Axis, c_name: get_axis(0) }  #axis1: { type: Axis, c_name: get_axis(1) }
       can: { type: Can, c_name: get_can() }
       test_property: uint32
 
     functions:
       test_function: { in: { delta: int32 }, out: { cnt: int32 } }
-      get_oscilloscope_val: { in: { index: uint32 }, out: { val: float32 } }
       set_motor_torque_coeff: { in: { index: uint32 }, out: { val: float32 } }
       get_adc_voltage: { in: { gpio: uint32 }, out: { voltage: float32 } }
       save_configuration:
@@ -369,6 +370,23 @@ interfaces:
       trap_traj: TrapezoidalTrajectory
       min_endstop: Endstop
       max_endstop: Endstop
+      task_times:
+        c_is_class: False
+        attributes:
+          thermistor_update: TaskTimer
+          encoder_update: TaskTimer
+          sensorless_estimator_update: TaskTimer
+          endstop_update: TaskTimer
+          can_heartbeat: TaskTimer
+          controller_update: TaskTimer
+          open_loop_controller_update: TaskTimer
+          acim_estimator_update: TaskTimer
+          motor_update: TaskTimer
+          current_controller_update: TaskTimer
+          dc_calib: TaskTimer
+          current_sense: TaskTimer
+          pwm_update: TaskTimer
+      
     functions:
       watchdog_feed:
         doc: Feed the watchdog to prevent watchdog timeouts.
@@ -527,6 +545,8 @@ interfaces:
             { doc: too much current pushed into the power supply }
           DcBusOverCurrent:
             { doc: too much current pulled out of the power supply }
+          UnknownCurrentMeasurement:
+            
       armed_state:
         typeargs: { fibre.Property.mode: readonly }
         values:
@@ -580,6 +600,41 @@ interfaces:
           acim_rotor_flux: float32
           async_phase_vel: readonly float32
           async_phase_offset: float32
+
+      current_control1:
+        c_is_class: True
+        attributes:
+          p_gain: {type: readonly float32, c_getter: 'pi_gains_.value_or(float2D{0.0f, 0.0f}).first'}
+          i_gain: {type: readonly float32, c_getter: 'pi_gains_.value_or(float2D{0.0f, 0.0f}).second'}
+          I_measured_report_filter_k: float32
+          Id_setpoint: {type: readonly float32, c_getter: 'Idq_setpoint_.value_or(float2D{0.0f, 0.0f}).first'}
+          Iq_setpoint: {type: readonly float32, c_getter: 'Idq_setpoint_.value_or(float2D{0.0f, 0.0f}).second'}
+          Vd_setpoint: {type: readonly float32, c_getter: 'Vdq_setpoint_.value_or(float2D{0.0f, 0.0f}).first'}
+          Vq_setpoint: {type: readonly float32, c_getter: 'Vdq_setpoint_.value_or(float2D{0.0f, 0.0f}).second'}
+          phase: {type: readonly float32, c_getter: 'phase_.value_or(0.0f)'}
+          phase_vel: {type: readonly float32, c_getter: 'phase_vel_.value_or(0.0f)'}
+          Ialpha_measured: {type: readonly float32, c_getter: 'Ialpha_beta_measured_.value_or(float2D{0.0f, 0.0f}).first'}
+          Ibeta_measured: {type: readonly float32, c_getter: 'Ialpha_beta_measured_.value_or(float2D{0.0f, 0.0f}).second'}
+          Id_measured: 
+            type: readonly float32
+            unit: A
+            doc: |
+              The phase current measured along the "d" axis in the FOC control loop.  This should be close to 0 for typical surface permanent magnet motors.
+          Iq_measured: 
+            type: readonly float32
+            unit: A
+            doc: |
+              The phase current measured along the "q" axis in the FOC control loop.  This is the torque-generating current, so motor torque is approx. `torque_constant * Iq_measured`
+          power: 
+            type: readonly float32
+            unit: W
+            doc: |
+              The electrical power being delivered to the motor
+          v_current_control_integral_d: float32
+          v_current_control_integral_q: float32
+          final_v_alpha: readonly float32
+          final_v_beta: readonly float32
+
       gate_driver:
         c_name: gate_driver_exported_
         c_is_class: False
@@ -917,7 +972,22 @@ interfaces:
           is_active_high: bool
           pullup: bool
           debounce_ms: { type: uint32, c_setter: set_debounce_ms }
+  ODrive.Oscilloscope:
+    c_is_class: True
+    attributes:
+      size: readonly uint32
+    functions:
+      get_val: {in: {index: uint32}, out: {val: float32}}
+  ODrive.TaskTimer:
+    c_is_class: True
+    attributes:
+      start_time: readonly uint32
+      end_time: readonly uint32
+      length: readonly uint32
+      max_length: uint32
 
+
+      
 valuetypes:
   ODrive.Can.Protocol:
     values: { Simple, Encos }
@@ -1113,3 +1183,4 @@ valuetypes:
       #LowCurrent: # not implemented
       Gimbal: { value: 2 }
       Acim:
+      

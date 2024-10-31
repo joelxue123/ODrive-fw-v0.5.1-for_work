@@ -5,6 +5,8 @@
 #error "This file should not be included directly. Include odrive_main.h instead."
 #endif
 
+#include "component.hpp"
+
 class Controller : public ODriveIntf::ControllerIntf {
 public:
     typedef struct {
@@ -73,7 +75,7 @@ public:
     bool anticogging_calibration(float pos_estimate, float vel_estimate);
 
     void update_filter_gains();
-    bool update(float* torque_setpoint);
+    bool update(void);
 
     Config_t& config_;
     Axis* axis_ = nullptr; // set by Axis constructor
@@ -105,7 +107,7 @@ public:
     bool trajectory_done_ = true;
 
     bool anticogging_valid_ = false;
-
+    OutputPort<float> torque_output_ = 0.0f;
     // custom setters
     void set_input_pos(float value) { input_pos_ = value; input_pos_updated(); }
     

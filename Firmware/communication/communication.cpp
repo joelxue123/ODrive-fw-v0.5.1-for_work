@@ -54,9 +54,7 @@ void init_communication(void) {
 
 float motor_torque_coeff[48] = {0};
 
-float oscilloscope[OSCILLOSCOPE_SIZE] = {0};
-size_t oscilloscope_pos = 0;
- 
+
 // Thread to handle deffered processing of USB interrupt, and
 // read commands out of the UART DMA circular buffer
 void communication_task(void * ctx) {

@@ -4,6 +4,8 @@
 
 #include <algorithm>
 
+
+
 Controller::Controller(Config_t& config) :
     config_(config)
 {
@@ -115,7 +117,7 @@ static float limitVel(const float vel_limit, const float vel_estimate, const flo
     return std::clamp(torque, Tmin, Tmax);
 }
 
-bool Controller::update(float* torque_setpoint_output) {
+bool Controller::update() {
 
     float torque =0;
     bool limited = false;
@@ -173,7 +175,7 @@ bool Controller::update(float* torque_setpoint_output) {
             limited = true;
             torque = -Tlim;
         }
-        if (torque_setpoint_output) *torque_setpoint_output = torque;
+        torque_output_ = torque;
         return true;
     }
 
@@ -381,7 +383,7 @@ bool Controller::update(float* torque_setpoint_output) {
         limited = true;
         torque = -Tlim;
     }
-    if (torque_setpoint_output) *torque_setpoint_output = torque;
+    torque_output_= torque;
     return true;
 }
 

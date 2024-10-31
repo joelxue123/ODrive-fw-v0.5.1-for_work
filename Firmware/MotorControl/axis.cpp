@@ -8,6 +8,9 @@
 #include "gpio_utils.hpp"
 #include "communication/interface_can.hpp"
 
+bool TaskTimer::enabled = false;
+
+
 Axis::Axis(int axis_num,
            const AxisHardwareConfig_t& hw_config,
            Config_t& config,
@@ -429,7 +432,6 @@ bool Axis::run_lockin_spin(const LockinConfig_t &lockin_config) {
     lockin_state_ = LOCKIN_STATE_RAMP;
     float x = 0.0f;
     sin_rule.index =0;
-    oscilloscope_pos =0;
 
     run_control_loop([&]() {
         float phase = 0;
@@ -439,21 +441,6 @@ bool Axis::run_lockin_spin(const LockinConfig_t &lockin_config) {
              phase = wrap_pm_pi(lockin_config.ramp_distance);
              torque = lockin_config.current * motor_.config_.torque_constant;
 
-            if (motor_.capturing_) {
-                motor_.oscilloscope_div++;
-                if(motor_.oscilloscope_div == 10) 
-                {    
-                    torque = sin_rule.generate_wave_callback(&sin_rule,motor_.oscilloscope_div,config_.general_lockin.current * motor_.config_.torque_constant);
-                    oscilloscope[oscilloscope_pos] =motor_.current_control_.Iq_measured;//; //  Iq_measured
-                    if (++oscilloscope_pos >= OSCILLOSCOPE_SIZE) {
-                        oscilloscope_pos = 0;
-                        motor_.capturing_ = false;
-                    }
-                    motor_.oscilloscope_div = 0;
-                }
-
-            }
-             
         }
         else
         {
@@ -527,12 +514,7 @@ bool Axis::run_sensorless_control_loop() {
     controller_.vel_estimate_valid_src_ = &sensorless_estimator_.vel_estimate_valid_;
 
     run_control_loop([this](){
-        // Note that all estimators are updated in the loop prefix in run_control_loop
-        float torque_setpoint;
-        if (!controller_.update(&torque_setpoint))
-            return error_ |= ERROR_CONTROLLER_FAILED, false;
-        if (!motor_.update(torque_setpoint, sensorless_estimator_.phase_, sensorless_estimator_.vel_estimate_))
-            return false; // set_error should update axis.error_
+        // Note that all estimators are updated in the loop prefix in run_control_loop// set_error should update axis.error_
         return true;
     });
     return check_for_errors();
@@ -569,7 +551,6 @@ bool Axis::run_closed_loop_control_loop() {
 
     set_step_dir_active(config_.enable_step_dir);
     sin_rule.index =0;
-    oscilloscope_pos =0;
     encoder_.pos_estimate_counts_ = 0;
     encoder_.shadow_count_ = 0;
 
@@ -577,26 +558,6 @@ bool Axis::run_closed_loop_control_loop() {
         // Note that all estimators are updated in the loop prefix in run_control_loop
         float torque_setpoint;
                 // Edit these to suit your capture needs
-
-
-        if (motor_.capturing_) {
-            motor_.oscilloscope_div++;
-            if(motor_.oscilloscope_div == 20000/SAMPLE_FRE) 
-            {    
-              //  controller_.input_torque_ = qtauChirp();  //input_vel_
-                controller_.input_vel_ = qtauChirp(&sin_rule,motor_.oscilloscope_div,5);
-                oscilloscope[oscilloscope_pos] = encoder_.vel_estimate_;//encoder_.vel_estimate_;                   //encoder_.vel_estimate_;
-                if (++oscilloscope_pos >= OSCILLOSCOPE_SIZE) {
-                    oscilloscope_pos = 0;
-                    motor_.capturing_ = false;
-                }
-                motor_.oscilloscope_div = 0;
-            }
-
-        }
-        
-        if (!controller_.update(&torque_setpoint))
-            return error_ |= ERROR_CONTROLLER_FAILED, false;
 
         float phase_vel = (2*M_PI) * encoder_.vel_estimate_ * motor_.config_.pole_pairs;
         if (!motor_.update(torque_setpoint, encoder_.phase_, phase_vel))
@@ -660,8 +621,7 @@ bool Axis::run_homing() {
     run_control_loop([this](){
         // Note that all estimators are updated in the loop prefix in run_control_loop
         float torque_setpoint;
-        if (!controller_.update(&torque_setpoint))
-            return error_ |= ERROR_CONTROLLER_FAILED, false;
+  
 
         float phase_vel = (2*M_PI) * encoder_.vel_estimate_ * motor_.config_.pole_pairs;
         if (!motor_.update(torque_setpoint, encoder_.phase_, phase_vel))
@@ -689,8 +649,7 @@ bool Axis::run_homing() {
     run_control_loop([this](){
         // Note that all estimators are updated in the loop prefix in run_control_loop
         float torque_setpoint;
-        if (!controller_.update(&torque_setpoint))
-            return error_ |= ERROR_CONTROLLER_FAILED, false;
+
 
         float phase_vel = (2*M_PI) * encoder_.vel_estimate_ * motor_.config_.pole_pairs;
         if (!motor_.update(torque_setpoint, encoder_.phase_, phase_vel))

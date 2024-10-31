@@ -5,6 +5,8 @@
 #error "This file should not be included directly. Include odrive_main.h instead."
 #endif
 
+#include "task_timer.hpp"
+
 #include <array>
 
 class Axis : public ODriveIntf::AxisIntf {
@@ -20,6 +22,24 @@ public:
         bool finish_on_distance = false;
         bool finish_on_enc_idx = false;
     };
+    struct TaskTimes {
+        TaskTimer thermistor_update;
+        TaskTimer encoder_update;
+        TaskTimer sensorless_estimator_update;
+        TaskTimer endstop_update;
+        TaskTimer can_heartbeat;
+        TaskTimer controller_update;
+        TaskTimer open_loop_controller_update;
+        TaskTimer acim_estimator_update;
+        TaskTimer motor_update;
+        TaskTimer current_controller_update;
+        TaskTimer dc_calib;
+        TaskTimer current_sense;
+        TaskTimer pwm_update;
+    };
+
+
+
 
 
    enum ENCOS_ERRO
@@ -336,12 +356,12 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
             // Also leaving idle would rearm the motors
             safety_critical_disarm_motor_pwm(motor_);
         }
-        if (!controller_.update(&torque_setpoint))
-        {
-            return error_ |= ERROR_CONTROLLER_FAILED;
+        MEASURE_TIME(task_times_.controller_update) {
+            if (controller_.update()) { // uses position and velocity from encoder
+                error_ |= Axis::ERROR_CONTROLLER_FAILED;
+            }
         }
-             
-        motor_.update(torque_setpoint, encoder_.phase_, phase_vel);
+        //motor_.update(torque_setpoint, encoder_.phase_, phase_vel);
 
     }
 
@@ -361,6 +381,8 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     Encoder& encoder_;
     SensorlessEstimator& sensorless_estimator_;
     Controller& controller_;
+    OpenLoopController open_loop_controller_;
+
     OnboardThermistorCurrentLimiter& fet_thermistor_;
     OffboardThermistorCurrentLimiter& motor_thermistor_;
     Motor& motor_;
@@ -368,6 +390,7 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     Endstop& min_endstop_;
     Endstop& max_endstop_;
 
+    TaskTimes task_times_;
     // List of current_limiters and thermistors to
     // provide easy iteration.
     std::array<CurrentLimiter*, 2> current_limiters_;

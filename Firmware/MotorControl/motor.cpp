@@ -5,6 +5,152 @@
 #include "odrive_main.h"
 
 
+
+
+/**
+ * @brief This control law adjusts the output voltage such that a predefined
+ * current is tracked. A hardcoded integrator gain is used for this.
+ * 
+ * TODO: this might as well be implemented using the FieldOrientedController.
+ */
+struct ResistanceMeasurementControlLaw : AlphaBetaFrameController {
+    void reset() final {
+        test_voltage_ = 0.0f;
+        test_mod_ = std::nullopt;
+    }
+
+    ODriveIntf::MotorIntf::Error on_measurement(
+            std::optional<float> vbus_voltage,
+            std::optional<float2D> Ialpha_beta,
+            uint32_t input_timestamp) final {
+
+        if (Ialpha_beta.has_value()) {
+            actual_current_ = Ialpha_beta->first;
+            test_voltage_ += (kI * current_meas_period) * (target_current_ - actual_current_);
+            I_beta_ += (kIBetaFilt * current_meas_period) * (Ialpha_beta->second - I_beta_);
+        } else {
+            actual_current_ = 0.0f;
+            test_voltage_ = 0.0f;
+        }
+    
+        if (std::abs(test_voltage_) > max_voltage_) {
+            test_voltage_ = NAN;
+           // return Motor::ERROR_PHASE_RESISTANCE_OUT_OF_RANGE;
+        } else if (!vbus_voltage.has_value()) {
+          //  return Motor::ERROR_UNKNOWN_VBUS_VOLTAGE;
+        } else {
+            float vfactor = 1.0f / ((2.0f / 3.0f) * *vbus_voltage);
+            test_mod_ = test_voltage_ * vfactor;
+           // return Motor::ERROR_NONE;
+        }
+    }
+
+    ODriveIntf::MotorIntf::Error get_alpha_beta_output(
+            uint32_t output_timestamp,
+            std::optional<float2D>* mod_alpha_beta,
+            std::optional<float>* ibus) final {
+        if (!test_mod_.has_value()) {
+          //  return Motor::ERROR_CONTROLLER_INITIALIZING;
+        } else {
+            *mod_alpha_beta = {*test_mod_, 0.0f};
+            *ibus = *test_mod_ * actual_current_;
+            return Motor::ERROR_NONE;
+        }
+    }
+
+    float get_resistance() {
+        return test_voltage_ / target_current_;
+    }
+
+    float get_Ibeta() {
+        return I_beta_;
+    }
+
+    const float kI = 1.0f; // [(V/s)/A]
+    const float kIBetaFilt = 80.0f;
+    float max_voltage_ = 0.0f;
+    float actual_current_ = 0.0f;
+    float target_current_ = 0.0f;
+    float test_voltage_ = 0.0f;
+    float I_beta_ = 0.0f; // [A] low pass filtered Ibeta response
+    std::optional<float> test_mod_ = NAN;
+};
+
+
+
+
+/**
+ * @brief This control law toggles rapidly between positive and negative output
+ * voltage. By measuring how large the current ripples are, the phase inductance
+ * can be determined.
+ * 
+ * TODO: this method assumes a certain synchronization between current measurement and output application
+ */
+struct InductanceMeasurementControlLaw : AlphaBetaFrameController {
+    void reset() final {
+        attached_ = false;
+    }
+
+    ODriveIntf::MotorIntf::Error on_measurement(
+            std::optional<float> vbus_voltage,
+            std::optional<float2D> Ialpha_beta,
+            uint32_t input_timestamp) final
+    {
+        if (!Ialpha_beta.has_value()) {
+            return {ODriveIntf::MotorIntf::Error::ERROR_UNKNOWN_CURRENT_MEASUREMENT};
+        }
+
+        float Ialpha = Ialpha_beta->first;
+
+        if (attached_) {
+            float sign = test_voltage_ >= 0.0f ? 1.0f : -1.0f;
+            deltaI_ += -sign * (Ialpha - last_Ialpha_);
+        } else {
+            start_timestamp_ = input_timestamp;
+            attached_ = true;
+        }
+
+        last_Ialpha_ = Ialpha;
+        last_input_timestamp_ = input_timestamp;
+
+        return ODriveIntf::MotorIntf::Error::ERROR_NONE;
+    }
+
+    ODriveIntf::MotorIntf::Error get_alpha_beta_output(
+            uint32_t output_timestamp, std::optional<float2D>* mod_alpha_beta,
+            std::optional<float>* ibus) final
+    {
+        test_voltage_ *= -1.0f;
+        float vfactor = 1.0f / ((2.0f / 3.0f) * vbus_voltage);
+        *mod_alpha_beta = {test_voltage_ * vfactor, 0.0f};
+        *ibus = 0.0f;
+        return Motor::ERROR_NONE;
+    }
+
+    float get_inductance() {
+        // Note: A more correct formula would also take into account that there is a finite timestep.
+        // However, the discretisation in the current control loop inverts the same discrepancy
+        float dt = (float)(last_input_timestamp_ - start_timestamp_) / (float)TIM_1_8_CLOCK_HZ; // at 216MHz this overflows after 19 seconds
+        return std::abs(test_voltage_) / (deltaI_ / dt);
+    }
+
+    // Config
+    float test_voltage_ = 0.0f;
+
+    // State
+    bool attached_ = false;
+    float sign_ = 0;
+
+    // Outputs
+    uint32_t start_timestamp_ = 0;
+    float last_Ialpha_ = NAN;
+    uint32_t last_input_timestamp_ = 0;
+    float deltaI_ = 0.0f;
+};
+
+
+
+
 Motor::Motor(const MotorHardwareConfig_t& hw_config,
              const GateDriverHardwareConfig_t& gate_driver_config,
              Config_t& config) :
@@ -21,30 +167,106 @@ Motor::Motor(const MotorHardwareConfig_t& hw_config,
     update_current_controller_gains();
 }
 
-// @brief Arms the PWM outputs that belong to this motor.
-//
-// Note that this does not yet activate the PWM outputs, it just unlocks them.
-//
-// While the motor is armed, the control loop must set new modulation timings
-// between any two interrupts (that is, enqueue_modulation_timings must be executed).
-// If the control loop fails to do so, the next interrupt handler floats the
-// phases. Once this happens, missed_control_deadline is set to true and
-// the motor can be considered disarmed.
-//
-// @returns: True on success, false otherwise
-bool Motor::arm() {
 
-    // Reset controller states, integrators, setpoints, etc.
-    axis_->controller_.reset();
-    reset_current_control();
+/**
+ * @brief Updates the phase PWM timings unless the motor is disarmed.
+ *
+ * If the motor is armed, the PWM timings come into effect at the next update
+ * event (and are enabled if they weren't already), unless the motor is disarmed
+ * prior to that.
+ * 
+ * @param tentative: If true, the update is not counted as "refresh".
+ */
+void Motor::apply_pwm_timings(uint16_t timings[3], bool tentative) {
+    CRITICAL_SECTION() {
+        if (odrv.config_.enable_brake_resistor && !brake_resistor_armed) {
+            disarm_with_error(ERROR_BRAKE_RESISTOR_DISARMED);
+        }
 
-    // Wait until the interrupt handler triggers twice. This gives
-    // the control loop the correct time quota to set up modulation timings.
-    if (!axis_->wait_for_current_meas())
-        return axis_->error_ |= Axis::ERROR_CURRENT_MEASUREMENT_TIMEOUT, false;
-    next_timings_valid_ = false;
-    safety_critical_arm_motor_pwm(*this);
+        TIM_HandleTypeDef* htim = timer_;
+        TIM_TypeDef* tim = htim->Instance;
+        tim->CCR1 = timings[0];
+        tim->CCR2 = timings[1];
+        tim->CCR3 = timings[2];
+        
+        if (!tentative) {
+            if (is_armed_) {
+                // Set the Automatic Output Enable so that the Master Output Enable
+                // bit will be automatically enabled on the next update event.
+                tim->BDTR |= TIM_BDTR_AOE;
+            }
+        }
+        
+        // If a timer update event occurred just now while we were updating the
+        // timings, we can't be sure what values the shadow registers now contain,
+        // so we must disarm the motor.
+        // (this also protects against the case where the update interrupt has too
+        // low priority, but that should not happen)
+        //if (__HAL_TIM_GET_FLAG(htim, TIM_FLAG_UPDATE)) {
+        //    disarm_with_error(ERROR_CONTROL_DEADLINE_MISSED);
+        //}
+    }
+}
+
+/**
+ * @brief Arms the PWM outputs that belong to this motor.
+ *
+ * Note that this does not activate the PWM outputs immediately, it just sets
+ * a flag so they will be enabled later.
+ * 
+ * The sequence goes like this:
+ *  - Motor::arm() sets the is_armed_ flag.
+ *  - On the next timer update event Motor::timer_update_cb() gets called in an
+ *    interrupt context
+ *  - Motor::timer_update_cb() runs specified control law to determine PWM values
+ *  - Motor::timer_update_cb() calls Motor::apply_pwm_timings()
+ *  - Motor::apply_pwm_timings() sets the output compare registers and the AOE
+ *    (automatic output enable) bit.
+ *  - On the next update event the timer latches the configured values into the
+ *    active shadow register and enables the outputs at the same time.
+ * 
+ * The sequence can be aborted at any time by calling Motor::disarm().
+ *
+ * @param control_law: An control law that is called at the frequency of current
+ *        measurements. The function must return as quickly as possible
+ *        such that the resulting PWM timings are available before the next
+ *        timer update event.
+ * @returns: True on success, false otherwise
+ */
+bool Motor::arm(PhaseControlLaw<3>* control_law) {
+    axis_->mechanical_brake_.release();
+
+    uint32_t mask = cpu_enter_critical();
+    
+        control_law_ = control_law;
+
+        // Reset controller states, integrators, setpoints, etc.
+        axis_->controller_.reset();
+        axis_->acim_estimator_.rotor_flux_ = 0.0f;
+        if (control_law_) {
+            control_law_->reset();
+        }
+        reset_current_control();
+        if (!odrv.config_.enable_brake_resistor || brake_resistor_armed) {
+            armed_state_ = 1;
+            is_armed_ = true;
+        } else {
+            error_ |= Motor::ERROR_BRAKE_RESISTOR_DISARMED;
+        }
+    cpu_exit_critical(mask);
+
     return true;
+}
+
+bool Motor::disarm()
+{
+    uint32_t mask = cpu_enter_critical();
+    bool was_armed = armed_state_ != Motor::ARMED_STATE_DISARMED;
+    armed_state_ = Motor::ARMED_STATE_DISARMED;
+    __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(hw_config_.timer); //进入刹车模式 2024-10-11
+    cpu_exit_critical(mask);
+    return was_armed;
+
 }
 
 void Motor::reset_current_control() {
@@ -496,7 +718,7 @@ bool Motor::run_calibration() {
 bool Motor::enqueue_modulation_timings(float mod_alpha, float mod_beta) {
     float tA, tB, tC;
     if (SVM(mod_alpha, mod_beta, &tA, &tB, &tC) != 0)
-        return set_error(ERROR_MODULATION_MAGNITUDE), false;
+    return set_error(ERROR_MODULATION_MAGNITUDE), false;
 
 
 if( deadtime_compensation_coff_ < 0.0f)
@@ -821,12 +1043,145 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
         case MOTOR_TYPE_GIMBAL: res =FOC_voltage(id, iq, pwm_phase); break;
         default: set_error(ERROR_NOT_IMPLEMENTED_MOTOR_TYPE); return false; break;
     }
-
-    
-
-
-
-
-
     return res;
+}
+
+
+/**
+ * @brief Called when the underlying hardware timer triggers an update event.
+ */
+void Motor::dc_calib_cb(uint32_t timestamp, std::optional<Iph_ABC_t> current) {
+    const float dc_calib_period = static_cast<float>(2 * TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1)) / TIM_1_8_CLOCK_HZ;
+    TaskTimerContext tmr{axis_->task_times_.dc_calib};
+
+    if (current.has_value()) {
+        const float calib_filter_k = std::min(dc_calib_period / config_.dc_calib_tau, 1.0f);
+        DC_calib_.phA += (current->phA - DC_calib_.phA) * calib_filter_k;
+        DC_calib_.phB += (current->phB - DC_calib_.phB) * calib_filter_k;
+        DC_calib_.phC += (current->phC - DC_calib_.phC) * calib_filter_k;
+        dc_calib_running_since_ += dc_calib_period;
+    } else {
+        DC_calib_.phA = 0.0f;
+        DC_calib_.phB = 0.0f;
+        DC_calib_.phC = 0.0f;
+        dc_calib_running_since_ = 0.0f;
+    }
+}
+
+/**
+ * @brief Called when the underlying hardware timer triggers an update event.
+ */
+void Motor::current_meas_cb(uint32_t timestamp, std::optional<Iph_ABC_t> current) {
+    // TODO: this is platform specific
+    //const float current_meas_period = static_cast<float>(2 * TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1)) / TIM_1_8_CLOCK_HZ;
+    TaskTimerContext tmr{axis_->task_times_.current_sense};
+
+    n_evt_current_measurement_++;
+
+    bool dc_calib_valid = (dc_calib_running_since_ >= config_.dc_calib_tau * 7.5f)
+                       && (abs(DC_calib_.phA) < max_dc_calib_)
+                       && (abs(DC_calib_.phB) < max_dc_calib_)
+                       && (abs(DC_calib_.phC) < max_dc_calib_);
+
+    if (armed_state_ == 1 || armed_state_ == 2) {
+        current_meas_ = {0.0f, 0.0f, 0.0f};
+        armed_state_ += 1;
+    } else if (current.has_value() && dc_calib_valid) {
+        current_meas_ = {
+            current->phA - DC_calib_.phA,
+            current->phB - DC_calib_.phB,
+            current->phC - DC_calib_.phC
+        };
+    } else {
+        current_meas_ = std::nullopt;
+    }
+
+    // Run system-level checks (e.g. overvoltage/undervoltage condition)
+    // The motor might be disarmed in this function. In this case the
+    // handler will continue to run until the end but it won't have an
+    // effect on the PWM.
+    odrv.do_fast_checks();
+
+    if (current_meas_.has_value()) {
+        // Check for violation of current limit
+        // If Ia + Ib + Ic == 0 holds then we have:
+        // Inorm^2 = Id^2 + Iq^2 = Ialpha^2 + Ibeta^2 = 2/3 * (Ia^2 + Ib^2 + Ic^2)
+        float Itrip = effective_current_lim_ + config_.current_lim_margin;
+        float Inorm_sq = 2.0f / 3.0f * (SQ(current_meas_->phA)
+                                      + SQ(current_meas_->phB)
+                                      + SQ(current_meas_->phC));
+
+        // Hack: we disable the current check during motor calibration because
+        // it tends to briefly overshoot when the motor moves to align flux with I_alpha
+        if (Inorm_sq > SQ(Itrip)) {
+            disarm_with_error(ERROR_CURRENT_LIMIT_VIOLATION);
+        }
+    } else if (is_armed_) {
+        // Since we can't check current limits, be safe for now and disarm.
+        // Theoretically we could continue to operate if there is no active
+        // current limit.
+        disarm_with_error(ERROR_UNKNOWN_CURRENT_MEASUREMENT);
+    }
+
+    if (control_law_) {
+        Error err = control_law_->on_measurement(vbus_voltage,
+                            current_meas_.has_value() ?
+                                std::make_optional(std::array<float, 3>{current_meas_->phA, current_meas_->phB, current_meas_->phC})
+                                : std::nullopt,
+                            timestamp);
+        if (err != ERROR_NONE) {
+            disarm_with_error(err);
+        }
+    }
+}
+
+
+
+void Motor::pwm_update_cb(uint32_t output_timestamp) {
+    TaskTimerContext tmr{axis_->task_times_.pwm_update};
+    n_evt_pwm_update_++;
+
+    Error control_law_status = ERROR_CONTROLLER_FAILED;
+    float pwm_timings[3] = {NAN, NAN, NAN};
+    std::optional<float> i_bus;
+
+    if (control_law_) {
+        control_law_status = control_law_->get_output(
+            output_timestamp, pwm_timings, &i_bus);
+    }
+
+    // Apply control law to calculate PWM duty cycles
+    if (is_armed_ && control_law_status == ERROR_NONE) {
+        uint16_t next_timings[] = {
+            (uint16_t)(pwm_timings[0] * (float)TIM_1_8_PERIOD_CLOCKS),
+            (uint16_t)(pwm_timings[1] * (float)TIM_1_8_PERIOD_CLOCKS),
+            (uint16_t)(pwm_timings[2] * (float)TIM_1_8_PERIOD_CLOCKS)
+        };
+        apply_pwm_timings(next_timings, false);
+    } else if (is_armed_) {
+        if (!(timer_->Instance->BDTR & TIM_BDTR_MOE) && (control_law_status == ERROR_CONTROLLER_INITIALIZING)) {
+            // If the PWM output is armed in software but not yet in
+            // hardware we tolerate the "initializing" error.
+            i_bus = 0.0f;
+        } else {
+            set_error(control_law_status);
+        }
+    }
+
+    if (!is_armed_) {
+        // If something above failed, reset I_bus to 0A.
+        i_bus = 0.0f;
+    } else if (is_armed_ && !i_bus.has_value()) {
+        // If the motor is armed then i_bus must be known
+        set_error(ERROR_UNKNOWN_CURRENT_MEASUREMENT);
+        i_bus = 0.0f;
+    }
+
+    I_bus_ = *i_bus;
+
+    if (*i_bus < config_.I_bus_hard_min || *i_bus > config_.I_bus_hard_max) {
+        set_error(ERROR_I_BUS_OUT_OF_RANGE);
+    }
+
+
 }

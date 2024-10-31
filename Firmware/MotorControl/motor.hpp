@@ -7,6 +7,7 @@
 
 #include "drv8301.h"
 
+
 class Motor : public ODriveIntf::MotorIntf {
 public:
     struct Iph_BC_t {
@@ -151,6 +152,7 @@ public:
         uint16_t content[TIMING_LOG_NUM_SLOTS];
     } timing_log_;
 
+    
     // variables exposed on protocol
     Error error_ = ERROR_NONE;
     // Do not write to this variable directly!
@@ -215,6 +217,9 @@ public:
     uint32_t notch_filter_enable_ = 0;
     NotchFilter notch_filter_;
     float dec_bemf_ = 0;
+
+
+FieldOrientedController current_control1_;
     void setting_motor_current_linearity(uint32_t index, float value);
     void setting_motor_torque_linearity(uint32_t index, float value);
     float get_motor_current_linearity(uint32_t index);

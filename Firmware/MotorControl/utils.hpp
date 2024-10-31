@@ -140,4 +140,11 @@ float applyNotchFilter(NotchFilter* filter, float input);
 }
 #endif
 
+
+__attribute__((optimize("-fno-finite-math-only")))
+inline bool is_nan(float x) {
+    return __builtin_isnan(x);
+}
+
+
 #endif  //__UTILS_H
