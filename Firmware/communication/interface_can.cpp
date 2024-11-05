@@ -190,6 +190,12 @@ void ODriveCAN::send_heartbeat(Axis *axis) {
                 case PROTOCOL_SIMPLE:
                     CANSimple::send_heartbeat(axis);
                     break;
+                case PROTOCOL_ENCOS:
+                    break;
+
+                default:
+                    break;
+
             }
             axis->last_heartbeat_ = now;
         }

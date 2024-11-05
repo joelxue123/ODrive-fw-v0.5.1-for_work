@@ -49,6 +49,8 @@ extern char serial_number_str[13];
 
 #ifdef __cplusplus
 }
+#define CURRENT_SENSE_MIN_VOLT  0.3f
+#define CURRENT_SENSE_MAX_VOLT  3.0f
 
 #define MAX_CONTROL_LOOP_UPDATE_TO_CURRENT_UPDATE_DELTA (TIM_1_8_PERIOD_CLOCKS / 2 + 1 * 128)
 
@@ -86,6 +88,7 @@ struct PWMMapping_t {
 
 // @brief general user configurable board configuration
 struct BoardConfig_t {
+    bool enable_brake_resistor = false;
     bool enable_uart = true;
     bool enable_i2c_instead_of_can = false;
     bool enable_ascii_protocol_on_usb = true;

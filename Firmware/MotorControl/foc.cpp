@@ -20,7 +20,7 @@ Motor::Error AlphaBetaFrameController::on_measurement(
     return on_measurement(vbus_voltage, Ialpha_beta, input_timestamp);
 }
 
-Motor::Error AlphaBetaFrameController::get_output(
+ODriveIntf::MotorIntf::Error AlphaBetaFrameController::get_output(
             uint32_t output_timestamp, float (&pwm_timings)[3],
             std::optional<float>* ibus) {
     std::optional<float2D> mod_alpha_beta;
@@ -29,14 +29,13 @@ Motor::Error AlphaBetaFrameController::get_output(
     if (status != Motor::ERROR_NONE) {
         return status;
     } else if (!mod_alpha_beta.has_value() || is_nan(mod_alpha_beta->first) || is_nan(mod_alpha_beta->second)) {
-       // return Motor::ERROR_MODULATION_IS_NAN;
+        return ODriveIntf::MotorIntf::Error::ERROR_MODULATION_IS_NAN;
     }
 
     float tA, tB, tC;
     if (SVM(mod_alpha_beta->first, mod_alpha_beta->second, &tA, &tB, &tC) != 0)
     {
-       // set_error(ERROR_MODULATION_MAGNITUDE),
-        return  Motor::ERROR_NONE;
+        return ODriveIntf::MotorIntf::Error::ERROR_MODULATION_MAGNITUDE;
     }
         
 
@@ -73,10 +72,10 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
 
     if (!vbus_voltage_measured_.has_value() || !Ialpha_beta_measured_.has_value()) {
         // FOC didn't receive a current measurement yet.
-       // return Motor::ERROR_CONTROLLER_INITIALIZING;
+        return ODriveIntf::MotorIntf::Error::ERROR_CONTROLLER_INITIALIZING;
     } else if (abs((int32_t)(i_timestamp_ - ctrl_timestamp_)) > MAX_CONTROL_LOOP_UPDATE_TO_CURRENT_UPDATE_DELTA) {
         // Data from control loop and current measurement are too far apart.
-       // return Motor::ERROR_BAD_TIMING;
+        return ODriveIntf::MotorIntf::Error::ERROR_BAD_TIMING;
     }
 
     // TODO: improve efficiency in case PWM updates are requested at a higher
@@ -86,9 +85,9 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
     if (!Vdq_setpoint_.has_value()) {
         //return Motor::ERROR_UNKNOWN_VOLTAGE_COMMAND;
     } else if (!phase_.has_value() || !phase_vel_.has_value()) {
-        //return Motor::ERROR_UNKNOWN_PHASE_ESTIMATE;
+        return ODriveIntf::MotorIntf::Error::ERROR_UNKNOWN_PHASE_ESTIMATE;
     } else if (!vbus_voltage_measured_.has_value()) {
-        //return Motor::ERROR_UNKNOWN_VBUS_VOLTAGE;
+        return ODriveIntf::MotorIntf::Error::ERROR_UNKNOWN_VBUS_VOLTAGE;
     }
 
     auto [Vd, Vq] = *Vdq_setpoint_;
@@ -125,11 +124,11 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
         // Current control mode
 
         if (!pi_gains_.has_value()) {
-          //  return Motor::ERROR_UNKNOWN_GAINS;
+            return ODriveIntf::MotorIntf::Error::ERROR_UNKNOWN_GAINS;
         } else if (!Idq.has_value()) {
-           // return Motor::ERROR_UNKNOWN_CURRENT_MEASUREMENT;
+            return ODriveIntf::MotorIntf::Error::ERROR_UNKNOWN_CURRENT_MEASUREMENT;
         } else if (!Idq_setpoint_.has_value()) {
-            //return Motor::ERROR_UNKNOWN_CURRENT_COMMAND;
+            return ODriveIntf::MotorIntf::Error::ERROR_UNKNOWN_CURRENT_COMMAND;
         }
 
         auto [p_gain, i_gain] = *pi_gains_;
@@ -186,7 +185,7 @@ ODriveIntf::MotorIntf::Error FieldOrientedController::get_alpha_beta_output(
 }
 
 void FieldOrientedController::update(uint32_t timestamp) {
-   // CRITICAL_SECTION() 
+   uint32_t mask = cpu_enter_critical();
     {
         ctrl_timestamp_ = timestamp;
         enable_current_control_ = enable_current_control_src_;
@@ -195,5 +194,6 @@ void FieldOrientedController::update(uint32_t timestamp) {
         phase_ = phase_src_.present();
         phase_vel_ = phase_vel_src_.present();
     }
+    cpu_exit_critical(mask);
 }
 

@@ -545,7 +545,19 @@ interfaces:
             { doc: too much current pushed into the power supply }
           DcBusOverCurrent:
             { doc: too much current pulled out of the power supply }
+          BrakeResistorDisarmed:
           UnknownCurrentMeasurement:
+          UnknownVbusVoltage:
+          UnknownGains:
+          UnknownPhaseEstimate:
+          UnknownCurrentCommand:
+          BadTiming:
+          ControllerFailed:
+          ControllerInitializing:
+          IBusOutOfRange:
+          UnbalancedPhases:
+          ModulationIsNan:
+          
             
       armed_state:
         typeargs: { fibre.Property.mode: readonly }
@@ -578,30 +590,8 @@ interfaces:
       torque_setpoint_notch_filterd: float32
       notch_filter_enable: uint32
       dec_bemf: float32
-      current_control:
-        c_is_class: False
-        attributes:
-          p_gain: float32
-          i_gain: float32
-          v_current_control_integral_d: float32
-          v_current_control_integral_q: float32
-          Ibus: float32
-          final_v_alpha: float32
-          final_v_beta: float32
-          final_v_d: float32
-          final_v_q: float32
-          Id_setpoint: float32
-          Iq_setpoint: readonly float32
-          Iq_measured: float32
-          Id_measured: float32
-          I_measured_report_filter_k: float32
-          max_allowed_current: readonly float32
-          overcurrent_trip_level: readonly float32
-          acim_rotor_flux: float32
-          async_phase_vel: readonly float32
-          async_phase_offset: float32
 
-      current_control1:
+      current_control:
         c_is_class: True
         attributes:
           p_gain: {type: readonly float32, c_getter: 'pi_gains_.value_or(float2D{0.0f, 0.0f}).first'}

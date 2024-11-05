@@ -501,8 +501,8 @@ void vbus_sense_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     smooth_filter(ADCValue , &vbus_voltage_filter);
     vbus_voltage = vbus_voltage_filter.filtered_value * voltage_scale;
 }
-
-static void decode_hall_samples(Encoder& enc, uint16_t GPIO_samples[num_GPIO]) {
+ void decode_hall_samples(Encoder& enc, uint16_t GPIO_samples[num_GPIO]);
+ void decode_hall_samples(Encoder& enc, uint16_t GPIO_samples[num_GPIO]) {
     GPIO_TypeDef* hall_ports[] = {
         enc.hw_config_.hallC_port,
         enc.hw_config_.hallB_port,
@@ -533,29 +533,30 @@ static void decode_hall_samples(Encoder& enc, uint16_t GPIO_samples[num_GPIO]) {
 
 
 
-// 用于存储最近的数据点的数组
+volatile uint32_t timestamp_ = 0;
 
-
-
-// 函数：平滑滤波处理
 
 
 #include <stm32f405xx.h>
 #include <stm32f4xx_hal.h>  // Sets up the correct chip specifc defines required by arm_math
 // This is the callback from the ADC that we expect after the PWM has triggered an ADC conversion.
 // Timing diagram: Firmware/timing_diagram_v3.png
-static float this_sample_time = 0;
-static float last_sample_time = 0;
+static uint32_t this_sample_time = 0;
+static uint32_t last_sample_time = 0;
 void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
+
     Axis& axis = *axes[0];
     
+    timestamp_ += TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1);
+    uint32_t timestamp = timestamp_;
+
     axis.encoder_.set_cs_high();
 #define calib_tau 0.2f  //@TOTO make more easily configurable
     constexpr float calib_filter_k = CURRENT_MEAS_PERIOD / calib_tau;
-    
+    (void)calib_filter_k;
 
     this_sample_time = 2 * htim13.Instance->CNT;
-    axis.motor_.timing_log_[TIMING_LOG_ADC_CB_I] = (8400.f+this_sample_time - last_sample_time);
+    axis.motor_.timing_log_[TIMING_LOG_ADC_CB_I] = (8400+this_sample_time - last_sample_time);
    // current_meas_period = CURRENT_MEAS_PERIOD * (8400.f+this_sample_time - last_sample_time)/8400.0f;  
     last_sample_time = this_sample_time;   
     // Ensure ADCs are expected ones to simplify the logic below
@@ -569,7 +570,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     // If the corresponding timer is counting up, we just sampled in SVM vector 0, i.e. real current
     // If we are counting down, we just sampled in SVM vector 7, with zero current
     
-    int axis_num = 0;
+
     axis.encoder_.abs_start_transaction();
     vbus_sense_adc_cb(&hadc1,true);
     
@@ -577,7 +578,6 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
      
     
 
-    bool update_timings = true;
 
     // update_brake_current(); todo
     
@@ -596,8 +596,14 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
     axis.motor_.current_meas_.phB =  1.06f*(0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC) ;//0.12
 
-    axis.control_loop_cb();
+    axis.motor_.current_meas_cb(timestamp);
+
+    axis.control_loop_cb(timestamp);
+
+    axis.motor_.pwm_update_cb(timestamp + TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1));
+
     axis.signal_current_meas(); 
+
     
 }
 
@@ -608,7 +614,7 @@ void send_notification(void)
 {
     
     Axis& axis = *axes[0];
-
+    (void)axis;
     
 }
 
@@ -648,7 +654,7 @@ void update_brake_current() {
     float Ibus_sum = 0.0f;
     for (size_t i = 0; i < AXIS_COUNT; ++i) {
         if (axes[i]->motor_.armed_state_ == Motor::ARMED_STATE_ARMED) {
-            Ibus_sum += axes[i]->motor_.current_control_.Ibus;
+            Ibus_sum += axes[i]->motor_.I_bus_;
         }
     }
     

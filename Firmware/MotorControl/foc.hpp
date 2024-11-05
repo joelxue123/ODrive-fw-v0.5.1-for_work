@@ -61,6 +61,8 @@ public:
     //float ibus_ = 0.0f;
     float final_v_alpha_ = 0.0f; // [V]
     float final_v_beta_ = 0.0f; // [V]
+    float final_v_d_ = 0.0f; // [V]
+    float final_v_q_ = 0.0f; // [V]
     float power_ = 0.0f; // [W] dot product of Vdq and Idq
 
 };

@@ -3,6 +3,6 @@
 
 #include <tuple>
 using float2D = std::pair<float, float>;
-struct Iph_ABC_t { float phA; float phB; float phC; };
+
 
 #endif

@@ -313,16 +313,7 @@ bool Controller::update() {
     // Torque per amp gain scheduling (ACIM)
     float vel_gain = config_.vel_gain;
     float vel_integrator_gain = config_.vel_integrator_gain;
-    if (axis_->motor_.config_.motor_type == Motor::MOTOR_TYPE_ACIM) {
-        float effective_flux = axis_->motor_.current_control_.acim_rotor_flux;
-        float minflux = axis_->motor_.config_.acim_gain_min_flux;
-        if (fabsf(effective_flux) < minflux)
-            effective_flux = std::copysignf(minflux, effective_flux);
-        vel_gain /= effective_flux;
-        vel_integrator_gain /= effective_flux;
-        // TODO: also scale the integral value which is also changing units.
-        // (or again just do control in torque units)
-    }
+
 
     // Velocity control
     torque = torque_setpoint_;

@@ -79,6 +79,8 @@ public:
 
         float CURRENT2TORQUE_COEFF[2*NUM_LINEARITY_SEG];
 
+        float I_bus_hard_min = -INFINITY;
+        float I_bus_hard_max = INFINITY;
         // custom property setters
         Motor* parent = nullptr;
         void set_pre_calibrated(bool value) {
@@ -94,8 +96,13 @@ public:
          const GateDriverHardwareConfig_t& gate_driver_config,
          Config_t& config);
 
-    bool arm();
-    void disarm();
+
+    bool arm(PhaseControlLaw<3>* control_law);
+    bool disarm();
+
+    void current_meas_cb(uint32_t timestamp);
+    void pwm_update_cb(uint32_t output_timestamp);
+
     void setup() {
         int32_t index = 0;
         DRV8301_setup();
@@ -120,7 +127,7 @@ public:
     void log_timing(TimingLog_t log_idx);
     float phase_current_from_adcval(uint32_t ADCValue, float phase_current_gain_coeff);
     bool measure_phase_resistance(float test_current, float max_voltage);
-    bool measure_phase_inductance(float voltage_low, float voltage_high);
+    bool measure_phase_inductance(float test_voltage);
     bool run_calibration();
     bool enqueue_modulation_timings(float mod_alpha, float mod_beta);
     bool enqueue_voltage_timings(float v_alpha, float v_beta);
@@ -130,6 +137,7 @@ public:
     void pos_linearity_ini(void);
     float current_Correct(int32_t Torque_Org);
     void abc_sign_calculation(float phase , int32_t *a, int32_t *b, int32_t *c);
+    void apply_pwm_timings(uint16_t timings[3], bool tentative);
     const MotorHardwareConfig_t& hw_config_;
     const GateDriverHardwareConfig_t gate_driver_config_;
     Config_t& config_;
@@ -157,12 +165,13 @@ public:
     Error error_ = ERROR_NONE;
     // Do not write to this variable directly!
     // It is for exclusive use by the safety_critical_... functions.
+    bool is_armed_ = false;
     ArmedState armed_state_ = ARMED_STATE_DISARMED; 
     bool is_calibrated_ = config_.pre_calibrated;
-    Iph_BC_t current_meas_ = {0.0f,0.0f, 0.0f};
+    Iph_BC_t current_meas_ ;
     Iph_BC_t DC_calib_ = {0.0f,0.0f, 0.0f};
     float phase_current_rev_gain_ = 0.0f; // Reverse gain for ADC to Amps (to be set by DRV8301_setup)
-    CurrentControl_t current_control_ = {
+    CurrentControl_t current_control1_ = {
         .p_gain = 0.0f,        // [V/A] should be auto set after resistance and inductance measurement
         .i_gain = 0.0f,        // [V/As] should be auto set after resistance and inductance measurement
         .v_current_control_integral_d = 0.0f,
@@ -218,8 +227,20 @@ public:
     NotchFilter notch_filter_;
     float dec_bemf_ = 0;
 
+    float I_bus_ = 0.0f; // this motors contribution to the bus current
+    float max_allowed_current_ = 0.0f; // [A] set in setup()
+    float max_dc_calib_ = 0.0f; // [A] set in setup()
 
-FieldOrientedController current_control1_;
+
+    FieldOrientedController current_control_;
+    PhaseControlLaw<3>* control_law_;
+
+    InputPort<float> torque_setpoint_src_; // Usually points to the Controller object's output
+    InputPort<float> phase_vel_src_; // Usually points to the Encoder object's output
+    OutputPort<float2D> Vdq_setpoint_ = {{0.0f, 0.0f}}; // fed to the FOC
+    OutputPort<float2D> Idq_setpoint_ = {{0.0f, 0.0f}}; // fed to the FOC
+    
+
     void setting_motor_current_linearity(uint32_t index, float value);
     void setting_motor_torque_linearity(uint32_t index, float value);
     float get_motor_current_linearity(uint32_t index);

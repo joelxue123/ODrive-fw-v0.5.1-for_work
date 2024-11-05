@@ -330,16 +330,16 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
                 break;
         }
     }
-
-    bool run_lockin_spin(const LockinConfig_t &lockin_config);
+    bool run_lockin_spin(const LockinConfig_t &lockin_config, bool remain_armed,
+                std::function<bool(bool)> loop_cb = {} );
     bool run_sensorless_control_loop();
     bool run_closed_loop_control_loop();
     bool run_homing();
     bool run_idle_loop();
     static void enable_notch_filter(class Axis *axis,uint32_t value) {axis->motor_.notch_filter_enable_ = value;}
+    bool  wait_for_control_iteration();
 
-
-    void control_loop_cb(void)
+    void control_loop_cb(uint32_t timestamp)
     {
         // look for errors at axis level and also all subcomponents
         // bool checks_ok = do_checks();
@@ -354,15 +354,22 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
         if (!checks_ok_ || !updates_ok || !watchdog_ok) {
             // It's not useful to quit idle since that is the safe action
             // Also leaving idle would rearm the motors
-            safety_critical_disarm_motor_pwm(motor_);
+            motor_.disarm();
         }
         MEASURE_TIME(task_times_.controller_update) {
             if (controller_.update()) { // uses position and velocity from encoder
                 error_ |= Axis::ERROR_CONTROLLER_FAILED;
             }
         }
-        //motor_.update(torque_setpoint, encoder_.phase_, phase_vel);
 
+        MEASURE_TIME(task_times_.open_loop_controller_update)
+            open_loop_controller_.update(timestamp);
+
+        MEASURE_TIME(task_times_.current_controller_update)
+            motor_.current_control_.update(timestamp); // uses the output of controller_ or open_loop_contoller_ and encoder_ or sensorless_estimator_ or acim_estimator_
+
+        MEASURE_TIME(task_times_.encoder_update)
+            encoder_.update();
     }
 
 

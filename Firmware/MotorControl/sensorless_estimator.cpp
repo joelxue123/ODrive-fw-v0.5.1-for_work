@@ -53,8 +53,8 @@ bool SensorlessEstimator::update() {
     }
 
     // Flux state estimation done, store V_alpha_beta for next timestep
-    V_alpha_beta_memory_[0] = axis_->motor_.current_control_.final_v_alpha;
-    V_alpha_beta_memory_[1] = axis_->motor_.current_control_.final_v_beta * axis_->motor_.config_.direction;
+    V_alpha_beta_memory_[0] = axis_->motor_.current_control_.final_v_alpha_;
+    V_alpha_beta_memory_[1] = axis_->motor_.current_control_.final_v_beta_ * axis_->motor_.config_.direction;
 
     // PLL
     // TODO: the PLL part has some code duplication with the encoder PLL
@@ -89,14 +89,21 @@ bool SensorlessEstimator::update2()
 {
     float d_axis_emf = 0;
     float q_axis_emf = 0;
-   float w_ebase = axis_->motor_.config_.pole_pairs * 60.0f*  2.0f * M_PI;
+    float w_ebase = axis_->motor_.config_.pole_pairs * 60.0f*  2.0f * M_PI;
     float lambda_s =  0;
     float alpha_bw_lpf = 0;
 
+    std::optional<float2D> Idq_setpoint = axis_->motor_.current_control_.Idq_setpoint_;
+
+    if (!Idq_setpoint.has_value())
+    {
+        Idq_setpoint = {0.0f, 0.0f};
+    }
+
     lambda_s =  lambda_ * fsgn(vel_estimate_erad_);
     alpha_bw_lpf = 0.6f* w_ebase  + 1.0f*2*lambda_*fabs(vel_estimate_erad_);
-    d_axis_emf = axis_->motor_.current_control_.final_v_d - 1*axis_->motor_.config_.phase_resistance*axis_->motor_.current_control_.Id_setpoint + vel_estimate_erad_*1*axis_->motor_.config_.phase_inductance*axis_->motor_.current_control_.Iq_setpoint;
-    q_axis_emf = axis_->motor_.current_control_.final_v_q - 1*axis_->motor_.config_.phase_resistance*axis_->motor_.current_control_.Iq_setpoint - vel_estimate_erad_*1*axis_->motor_.config_.phase_inductance*axis_->motor_.current_control_.Id_setpoint;
+    d_axis_emf = axis_->motor_.current_control_.final_v_d_ - 1*axis_->motor_.config_.phase_resistance*Idq_setpoint->first + vel_estimate_erad_*1*axis_->motor_.config_.phase_inductance*Idq_setpoint->first;
+    q_axis_emf = axis_->motor_.current_control_.final_v_q_ - 1*axis_->motor_.config_.phase_resistance*Idq_setpoint->second - vel_estimate_erad_*1*axis_->motor_.config_.phase_inductance*Idq_setpoint->second;
 
     
     vel_estimate_erad_ += current_meas_period * alpha_bw_lpf * ( (q_axis_emf - lambda_s * d_axis_emf)/ config_.pm_flux_linkage - vel_estimate_erad_);

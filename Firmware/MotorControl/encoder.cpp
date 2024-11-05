@@ -167,7 +167,7 @@ bool Encoder::run_index_search() {
     }
     set_idx_subscribe();
 
-    bool status = axis_->run_lockin_spin(axis_->config_.calibration_lockin);
+    bool status = axis_->run_lockin_spin(axis_->config_.calibration_lockin,false);
     return status;
 }
 
@@ -180,7 +180,7 @@ bool Encoder::run_direction_find() {
     lockin_config.finish_on_distance = true;
     lockin_config.finish_on_enc_idx = false;
     lockin_config.finish_on_vel = false;
-    bool status = axis_->run_lockin_spin(lockin_config);
+    bool status = axis_->run_lockin_spin(lockin_config,false);
 
     if (status) {
         // Check response and direction
@@ -791,6 +791,8 @@ bool Encoder::update() {
     gear_vel_estimate_ = gear_vel_estimate_counts_ * GearboxOutputEncoder_cpr_inverse_;
 
     float pos_cpr_last = pos_cpr_;
+    (void)pos_cpr_last;
+
     pos_estimate_ = pos_estimate_counts_ / (float)config_.cpr;
     
 

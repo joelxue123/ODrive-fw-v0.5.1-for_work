@@ -328,17 +328,23 @@ void CANSimple::get_iq_callback(Axis* axis, can_Message_t& msg) {
         txmsg.isExt = axis->config_.can_node_id_extended;
         txmsg.len = 8;
 
+        std::optional<float2D> Idq_setpoint = axis->motor_.current_control_.Idq_setpoint_;
+
+        if(!Idq_setpoint.has_value()) {
+            Idq_setpoint = {0.0f, 0.0f};
+        }
+
         uint32_t floatBytes;
-        static_assert(sizeof axis->motor_.current_control_.Iq_setpoint == sizeof floatBytes);
-        std::memcpy(&floatBytes, &axis->motor_.current_control_.Iq_setpoint, sizeof floatBytes);
+        static_assert(sizeof Idq_setpoint->second == sizeof floatBytes);
+        std::memcpy(&floatBytes, &Idq_setpoint->second, sizeof floatBytes);
 
         txmsg.buf[0] = floatBytes;
         txmsg.buf[1] = floatBytes >> 8;
         txmsg.buf[2] = floatBytes >> 16;
         txmsg.buf[3] = floatBytes >> 24;
 
-        static_assert(sizeof floatBytes == sizeof axis->motor_.current_control_.Iq_measured);
-        std::memcpy(&floatBytes, &axis->motor_.current_control_.Iq_measured, sizeof floatBytes);
+        static_assert(sizeof floatBytes == sizeof axis->motor_.current_control_.Iq_measured_);
+        std::memcpy(&floatBytes, &axis->motor_.current_control_.Iq_measured_, sizeof floatBytes);
         txmsg.buf[4] = floatBytes;
         txmsg.buf[5] = floatBytes >> 8;
         txmsg.buf[6] = floatBytes >> 16;

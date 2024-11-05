@@ -2,7 +2,7 @@
 
 
 // if you use the oscilloscope feature you can bump up this value
-#define OSCILLOSCOPE_SIZE 4096
+
 
 void Oscilloscope::update() {
     float trigger_data = trigger_src_ ? *trigger_src_ : 0.0f;
