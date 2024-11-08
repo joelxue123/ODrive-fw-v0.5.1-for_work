@@ -128,9 +128,31 @@ void Controller::update_filter_gains() {
 
 
 static float limitVel(const float vel_limit, const float vel_estimate, const float vel_gain, const float torque) {
-    float Tmax = (vel_limit - vel_estimate) * vel_gain;
-    float Tmin = (-vel_limit - vel_estimate) * vel_gain;
-    return std::clamp(torque, Tmin, Tmax);
+
+    static const float hysteresis = 0.1f * vel_limit; // 5% hysteresis
+    static bool limiting = false;
+    float abs_vel_estimate = std::abs(vel_estimate);
+
+    if (limiting) {
+        if (abs_vel_estimate < vel_limit - hysteresis) {
+            limiting = false;
+        }
+    } else {
+        if (abs_vel_estimate > vel_limit) {
+            limiting = true;
+        }
+    }
+    if (limiting)
+    {
+        float Tmax = (vel_limit - vel_estimate) * vel_gain;
+        float Tmin = (-vel_limit - vel_estimate) * vel_gain;
+        return std::clamp(torque, Tmin, Tmax);
+    }
+    else
+    {
+        return torque;
+    }
+    
 }
 
 bool Controller::update() {
@@ -162,7 +184,8 @@ bool Controller::update() {
 
         }
 
-        torque = torque;
+        float vel_gain = config_.vel_gain;
+        torque = limitVel(config_.vel_limit, *vel_estimate, vel_gain, torque);
         // Torque limiting
         
         //float Tlim = axis_->motor_.max_available_torque() * axis_->motor_.config_.gear_ratio;
