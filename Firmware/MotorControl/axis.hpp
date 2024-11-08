@@ -156,6 +156,7 @@ public:
 
         float turns_per_step = 1.0f / 1024.0f;
 
+        bool enable_sensorless_mode = false;
         float watchdog_timeout = 1.0f; // [s]
         bool enable_watchdog = true;
         
@@ -261,6 +262,8 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     bool do_checks();
     bool do_updates();
 
+  
+
     void watchdog_feed();
     bool watchdog_check();
 
@@ -336,6 +339,8 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     bool run_closed_loop_control_loop();
     bool run_homing();
     bool run_idle_loop();
+    bool start_closed_loop_control();
+    bool stop_closed_loop_control();
     static void enable_notch_filter(class Axis *axis,uint32_t value) {axis->motor_.notch_filter_enable_ = value;}
     bool  wait_for_control_iteration();
 
@@ -347,6 +352,23 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
         // Note: updates run even if checks fail
         
 
+        {
+            controller_.torque_output_.reset();
+            encoder_.phase_.reset();
+            encoder_.phase_vel_.reset();
+            encoder_.pos_estimate_.reset();
+            encoder_.vel_estimate_.reset();
+            motor_.Vdq_setpoint_.reset();
+            motor_.Idq_setpoint_.reset();
+            open_loop_controller_.Idq_setpoint_.reset();
+            open_loop_controller_.Vdq_setpoint_.reset();
+            open_loop_controller_.phase_.reset();
+            open_loop_controller_.phase_vel_.reset();
+            open_loop_controller_.total_distance_.reset();
+        }
+
+
+
         // make sure the watchdog is being fed. 
         bool watchdog_ok = watchdog_check();
         bool updates_ok = do_updates(); 
@@ -356,8 +378,12 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
             // Also leaving idle would rearm the motors
             motor_.disarm();
         }
+        //??? 是否放在这里呢？等待验证
+        MEASURE_TIME(task_times_.encoder_update)
+            encoder_.update();
+
         MEASURE_TIME(task_times_.controller_update) {
-            if (controller_.update()) { // uses position and velocity from encoder
+            if (!controller_.update()) { // uses position and velocity from encoder
                 error_ |= Axis::ERROR_CONTROLLER_FAILED;
             }
         }
@@ -365,11 +391,13 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
         MEASURE_TIME(task_times_.open_loop_controller_update)
             open_loop_controller_.update(timestamp);
 
+        MEASURE_TIME(task_times_.motor_update)
+            motor_.update(timestamp); // uses torque from controller and phase_vel from encoder
+
         MEASURE_TIME(task_times_.current_controller_update)
             motor_.current_control_.update(timestamp); // uses the output of controller_ or open_loop_contoller_ and encoder_ or sensorless_estimator_ or acim_estimator_
 
-        MEASURE_TIME(task_times_.encoder_update)
-            encoder_.update();
+
     }
 
 
@@ -410,7 +438,7 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     // variables exposed on protocol
     Error error_ = ERROR_NONE;
     bool step_dir_active_ = false; // auto enabled after calibration, based on config.enable_step_dir
-
+    int64_t steps_ = 0; // Steps counted at interface
     // updated from config in constructor, and on protocol hook
     GPIO_TypeDef* step_port_;
     uint16_t step_pin_;

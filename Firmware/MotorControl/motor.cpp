@@ -46,6 +46,7 @@ struct ResistanceMeasurementControlLaw : AlphaBetaFrameController {
         }
     }
 
+
     ODriveIntf::MotorIntf::Error get_alpha_beta_output(
             uint32_t output_timestamp,
             std::optional<float2D>* mod_alpha_beta,
@@ -180,28 +181,28 @@ Motor::Motor(const MotorHardwareConfig_t& hw_config,
  */
 void Motor::apply_pwm_timings(uint16_t timings[3], bool tentative) {
 
-        TIM_HandleTypeDef* htim = hw_config_.timer;
-        TIM_TypeDef* tim = htim->Instance;
-        tim->CCR1 = timings[0];
-        tim->CCR2 = timings[1];
-        tim->CCR3 = timings[2];
-        
-        if (!tentative) {
-            if (is_armed_) {
-                // Set the Automatic Output Enable so that the Master Output Enable
-                // bit will be automatically enabled on the next update event.
-                tim->BDTR |= TIM_BDTR_AOE;
-            }
-        }
-        
-        // If a timer update event occurred just now while we were updating the
-        // timings, we can't be sure what values the shadow registers now contain,
-        // so we must disarm the motor.
-        // (this also protects against the case where the update interrupt has too
-        // low priority, but that should not happen)
-        //if (__HAL_TIM_GET_FLAG(htim, TIM_FLAG_UPDATE)) {
-        //    disarm_with_error(ERROR_CONTROL_DEADLINE_MISSED);
-        //}
+    (void)tentative;
+    hw_config_.timer->Instance->CCR1 = timings[0];
+    hw_config_.timer->Instance->CCR2 = timings[1];
+    hw_config_.timer->Instance->CCR3 = timings[2];
+
+    if (armed_state_ == ARMED_STATE_WAITING_FOR_TIMINGS) {
+        // timings were just loaded into the timer registers
+        // the timer register are buffered, so they won't have an effect
+        // on the output just yet so we need to wait until the next
+        // interrupt before we actually enable the output
+        armed_state_ = ARMED_STATE_WAITING_FOR_UPDATE;
+    } else if (armed_state_ == ARMED_STATE_WAITING_FOR_UPDATE) {
+        // now we waited long enough. Enter armed state and
+        // enable the actual PWM outputs.
+        armed_state_ = ARMED_STATE_ARMED;
+        __HAL_TIM_MOE_ENABLE(hw_config_.timer);  // enable pwm outputs
+    } else if (armed_state_ == Motor::ARMED_STATE_ARMED) {
+        // nothing to do, PWM is running, all good
+    } else {
+        // unknown state oh no
+       disarm();
+    }
 
 }
 
@@ -258,7 +259,9 @@ bool Motor::disarm()
     uint32_t mask = cpu_enter_critical();
     bool was_armed = armed_state_ != Motor::ARMED_STATE_DISARMED;
     armed_state_ = Motor::ARMED_STATE_DISARMED;
-    __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(hw_config_.timer); //进入刹车模式 2024-10-11
+    __HAL_TIM_MOE_DISABLE_UNCONDITIONALLY(hw_config_.timer); 
+    control_law_ = nullptr;
+    is_armed_ = false;
     cpu_exit_critical(mask);
     return was_armed;
 
@@ -594,7 +597,16 @@ float Motor::convert_torque_from_current(float current,float *current2torque_coe
     return current * torque_constant;
 }
 
-
+bool Motor::check_for_current_saturation(const uint32_t ADCValue)
+{
+        // Make sure the measurements don't come too close to the current sensor's hardware limitations
+    if (ADCValue < CURRENT_ADC_LOWER_BOUND || ADCValue > CURRENT_ADC_UPPER_BOUND) {
+        error_ |= ERROR_CURRENT_SENSE_SATURATION;
+        axis_->axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_CURRENT_LIMIT_VIOLATION;
+        return false;
+    }
+    return true;
+}
 
 float Motor::phase_current_from_adcval(uint32_t ADCValue, float phase_current_gain_coeff) {
 
@@ -604,12 +616,7 @@ float Motor::phase_current_from_adcval(uint32_t ADCValue, float phase_current_ga
     float shunt_volt = amp_out_volt * phase_current_rev_gain_;
     float current = shunt_volt * hw_config_.shunt_conductance * phase_current_gain_coeff;
 
-        // Make sure the measurements don't come too close to the current sensor's hardware limitations
-    if (ADCValue < CURRENT_ADC_LOWER_BOUND || ADCValue > CURRENT_ADC_UPPER_BOUND) {
-        error_ |= ERROR_CURRENT_SENSE_SATURATION;
-        axis_->axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_CURRENT_LIMIT_VIOLATION;
-        return 0.0f;
-    }
+
 
     return current;
 }
@@ -1008,6 +1015,81 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
         default: set_error(ERROR_NOT_IMPLEMENTED_MOTOR_TYPE); return false; break;
     }
     return res;
+}
+
+
+
+
+
+
+void Motor::update(uint32_t timestamp) {
+    // Load torque setpoint, convert to motor direction
+    std::optional<float> maybe_torque = torque_setpoint_src_.present();
+    if (!maybe_torque.has_value()) {
+        error_ |= ERROR_UNKNOWN_TORQUE;
+        return;
+    }
+    float torque = direction_ * *maybe_torque;
+
+    // Load setpoints from previous iteration.
+    auto [id, iq] = Idq_setpoint_.previous()
+                     .value_or(float2D{0.0f, 0.0f});
+    // Load effective current limit
+    float ilim = axis_->motor_.effective_current_lim_;
+
+
+    id = std::clamp(id, -ilim*0.99f, ilim*0.99f); // 1% space reserved for Iq to avoid numerical issues
+
+
+    // Convert requested torque to current
+
+    iq = torque / axis_->motor_.config_.torque_constant;
+    
+
+    // 2-norm clamping where Id takes priority
+    float iq_lim_sqr = SQ(ilim) - SQ(id);
+    float Iq_lim = (iq_lim_sqr <= 0.0f) ? 0.0f : sqrt(iq_lim_sqr);
+    iq = std::clamp(iq, -Iq_lim, Iq_lim);
+
+    if (axis_->motor_.config_.motor_type != Motor::MOTOR_TYPE_GIMBAL) {
+        Idq_setpoint_ = {id, iq};
+    }
+
+    // This update call is in bit a weird position because it depends on the
+    // Id,q setpoint but outputs the phase velocity that we depend on later
+    // in this function.
+    // A cleaner fix would be to take the feedforward calculation out of here
+    // and turn it into a separate component.
+
+
+    float vd = 0.0f;
+    float vq = 0.0f;
+
+    std::optional<float> phase_vel = phase_vel_src_.present();
+
+    if (config_.R_wL_FF_enable) {
+        if (!phase_vel.has_value()) {
+            error_ |= ERROR_UNKNOWN_PHASE_VEL;
+            return;
+        }
+
+        vd -= *phase_vel * config_.phase_inductance * iq;
+        vq += *phase_vel * config_.phase_inductance * id;
+        vd += config_.phase_resistance * id;
+        vq += config_.phase_resistance * iq;
+    }
+
+    if (config_.bEMF_FF_enable) {
+        if (!phase_vel.has_value()) {
+            error_ |= ERROR_UNKNOWN_PHASE_VEL;
+            return;
+        }
+
+        vq += *phase_vel * 0.4444444f * (config_.torque_constant / config_.pole_pairs);
+    }
+
+    Vdq_setpoint_ = {vd, vq};
+
 }
 
 

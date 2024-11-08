@@ -208,8 +208,8 @@ enum TimingLog_t {
 #include <component.hpp>
 #include <phase_control_law.hpp>
 #include <foc.hpp>
-#include<open_loop_controller.hpp>
-#include<oscilloscope.hpp>
+#include <open_loop_controller.hpp>
+#include <oscilloscope.hpp>
 #include <motor.hpp>
 #include <encoder.hpp>
 #include <sensorless_estimator.hpp>

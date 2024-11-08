@@ -254,6 +254,8 @@ void initNotchFilter(NotchFilter* filter, float frequency, float sampleRate, flo
     filter->r = 1 - bandwidth / 2;
     filter->r = our_arm_sin_f32(w0) / (2*bandwidth);
     float cosw0 = our_arm_cos_f32(w0);
+
+    (void)cosw0;
     // filter->b1 = -2 * cosw0;
     // filter->b2 = 1;
     // filter->a1 = -2 * filter->r * cosw0;

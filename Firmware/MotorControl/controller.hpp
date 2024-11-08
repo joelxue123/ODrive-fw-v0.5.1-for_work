@@ -35,6 +35,7 @@ public:
         float torque_ramp_rate = 0.01f;          // Nm / sec
         bool circular_setpoints = false;
         float circular_setpoint_range = 1.0f; // Circular range when circular_setpoints is true. [turn]
+        uint32_t steps_per_circular_range = 1024;
         float inertia = 0.0f;                 // [Nm/(turn/s^2)]
         float input_filter_bandwidth = 2.0f;  // [1/s]
         float homing_speed = 0.25f;           // [turn/s]
@@ -74,6 +75,10 @@ public:
     void start_anticogging_calibration();
     bool anticogging_calibration(float pos_estimate, float vel_estimate);
 
+    void set_input_pos_and_steps(float const pos);
+
+    bool control_mode_updated();
+
     void update_filter_gains();
     bool update(void);
 
@@ -82,14 +87,12 @@ public:
 
     Error error_ = ERROR_NONE;
 
-    float* pos_estimate_linear_src_ = nullptr;
-    float* pos_estimate_circular_src_ = nullptr;
-    bool* pos_estimate_valid_src_ = nullptr;
-    float* vel_estimate_src_ = nullptr;
-    bool* vel_estimate_valid_src_ = nullptr;
-    float* pos_wrap_src_ = nullptr; 
-    float raw_data1_ =0;
-    float raw_data2_ =0;
+    InputPort<float> pos_estimate_linear_src_;
+    InputPort<float> pos_estimate_circular_src_;
+    InputPort<float> vel_estimate_src_;
+    InputPort<float> pos_wrap_src_; 
+
+
     float pos_setpoint_ = 0.0f; // [turns]
     float vel_setpoint_ = 0.0f; // [turn/s]
     // float vel_setpoint = 800.0f; <sensorless example>

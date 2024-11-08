@@ -40,6 +40,7 @@ public:
         uint16_t abs_485_cs_gpio_pin = 2;
         int32_t GearboxOutputEncoder_cpr = (1<<18);
         int32_t Gearoffset = 0;
+        int32_t direction =1;
         // custom setters
         Encoder* parent = nullptr;
         void set_use_index(bool value) { use_index = value; parent->set_idx_subscribe(); }
@@ -88,7 +89,8 @@ public:
     int32_t gear_single_turn_abs_=0;
     int32_t gear_single_turn_abs_by_user_ = 0;
     float interpolation_ = 0.0f;
-    float phase_ = 0.0f;        // [count]
+    OutputPort<float> phase_ = 0.0f;        // [count]
+    OutputPort<float> phase_vel_ = 0.0f; // [rad/s]
     float GearboxOutputEncoder_phase_ = 0.0f;        // [count]
     float pos_estimate_counts_ = 0.0f;  // [count]
     float pos_cpr_counts_ = 0.0f;  // [count]
@@ -102,8 +104,8 @@ public:
     int32_t sencond_pos_abs_ = 0;
     float spi_error_rate_ = 0.0f;
 
-    float pos_estimate_ = 0.0f; // [turn]
-    float vel_estimate_ = 0.0f; // [turn/s]
+    OutputPort<float> pos_estimate_ = 0.0f; // [turn]
+    OutputPort<float> vel_estimate_ = 0.0f; // [turn/s]
     float pos_cpr_ = 0.0f;      // [turn]
     float pos_circular_ = 0.0f; // [turn]
 

@@ -551,6 +551,8 @@ interfaces:
           UnknownGains:
           UnknownPhaseEstimate:
           UnknownCurrentCommand:
+          UnknownTorque:
+          UnknownPhaseVel:
           BadTiming:
           ControllerFailed:
           ControllerInitializing:
@@ -757,8 +759,6 @@ interfaces:
       trajectory_done: readonly bool
       vel_integrator_torque: float32
       anticogging_valid: bool
-      raw_data1: float32
-      raw_data2: float32
       config:
         c_is_class: False
         attributes:
@@ -875,15 +875,27 @@ interfaces:
       shadow_count: readonly int32
       count_in_cpr: readonly int32
       interpolation: readonly float32
-      phase: readonly float32
-      pos_estimate: readonly float32
+      phase: {type: readonly float32, c_getter: phase_.any().value_or(0.0f)}
+
+      pos_estimate: 
+        type: readonly float32
+        c_getter: pos_estimate_.any().value_or(0.0f)
+        unit: turns
+        doc: Linear position estimate of the encoder, in turns.  Also known as "multi-turn" position.
+
       gearboxpos: readonly float32
       pos_estimate_counts: readonly float32
       pos_cpr: readonly float32
       pos_cpr_counts: readonly float32
       pos_circular: readonly float32
       hall_state: readonly uint8
-      vel_estimate: readonly float32
+
+      vel_estimate:
+        type: readonly float32
+        c_getter: vel_estimate_.any().value_or(0.0f)
+        unit: turn/s
+        doc: Estimate of the linear velocity of an axis in turn/s
+
       vel_estimate_counts: readonly float32
       calib_scan_response: readonly float32
       pos_abs: int32
@@ -906,6 +918,7 @@ interfaces:
           offset: int32
           pre_calibrated: { type: bool, c_setter: set_pre_calibrated }
           offset_float: float32
+          direction: int32
           enable_phase_interpolation: bool
           bandwidth: { type: float32, c_setter: set_bandwidth }
           calib_range: float32

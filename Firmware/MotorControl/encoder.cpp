@@ -203,109 +203,136 @@ bool Encoder::run_direction_find() {
 // and the encoder state 0.
 // TODO: Do the scan with current, not voltage!
 bool Encoder::run_offset_calibration() {
+
     const float start_lock_duration = 1.0f;
-    const int num_steps = (int)(config_.calib_scan_distance / config_.calib_scan_omega * (float)current_meas_hz);
-
-    // Require index found if enabled
-    if (config_.use_index && !index_found_) {
-        set_error(ERROR_INDEX_NOT_FOUND_YET);
-        return false;
-    }
-
+    
     // We use shadow_count_ to do the calibration, but the offset is used by count_in_cpr_
     // Therefore we have to sync them for calibration
     shadow_count_ = count_in_cpr_;
 
-    float voltage_magnitude;
-    if (axis_->motor_.config_.motor_type == Motor::MOTOR_TYPE_HIGH_CURRENT)
-        voltage_magnitude = axis_->motor_.config_.calibration_current * axis_->motor_.config_.phase_resistance;
-    else if (axis_->motor_.config_.motor_type == Motor::MOTOR_TYPE_GIMBAL)
-        voltage_magnitude = axis_->motor_.config_.calibration_current;
-    else
-        return false;
+    uint32_t mask = cpu_enter_critical();
+    {
+        // Reset state variables
+        axis_->open_loop_controller_.Idq_setpoint_ = {0.0f, 0.0f};
+        axis_->open_loop_controller_.Vdq_setpoint_ = {0.0f, 0.0f};
+        axis_->open_loop_controller_.phase_ = 0.0f;
+        axis_->open_loop_controller_.phase_vel_ = 0.0f;
 
-    // go to motor zero phase for start_lock_duration to get ready to scan
-    int i = 0;
-    axis_->run_control_loop([&](){
+        float max_current_ramp = axis_->motor_.config_.calibration_current / start_lock_duration * 2.0f;
+        axis_->open_loop_controller_.max_current_ramp_ = max_current_ramp;
+        axis_->open_loop_controller_.max_voltage_ramp_ = max_current_ramp;
+        axis_->open_loop_controller_.max_phase_vel_ramp_ = INFINITY;
+        axis_->open_loop_controller_.target_current_ = axis_->motor_.config_.motor_type != Motor::MOTOR_TYPE_GIMBAL ? axis_->motor_.config_.calibration_current : 0.0f;
+        axis_->open_loop_controller_.target_voltage_ = axis_->motor_.config_.motor_type != Motor::MOTOR_TYPE_GIMBAL ? 0.0f : axis_->motor_.config_.calibration_current;
+        axis_->open_loop_controller_.target_vel_ = 0.0f;
+        axis_->open_loop_controller_.total_distance_ = 0.0f;
+        axis_->open_loop_controller_.phase_ = axis_->open_loop_controller_.initial_phase_ = wrap_pm_pi(0 - config_.calib_scan_distance / 2.0f);
 
-    axis_->motor_.I_phase_ = 0.5f*(-M_PI);
-        if (!axis_->motor_.enqueue_voltage_timings(voltage_magnitude, 0.0f))
-            return false; // error set inside enqueue_voltage_timings
-        axis_->motor_.log_timing(TIMING_LOG_ENC_CALIB);
-        return ++i < start_lock_duration * current_meas_hz;
-    });
-    if (axis_->error_ != Axis::ERROR_NONE)
-        return false;
+        axis_->motor_.current_control_.enable_current_control_src_ = (axis_->motor_.config_.motor_type != Motor::MOTOR_TYPE_GIMBAL);
+        axis_->motor_.current_control_.Idq_setpoint_src_.connect_to(&axis_->open_loop_controller_.Idq_setpoint_);
+        axis_->motor_.current_control_.Vdq_setpoint_src_.connect_to(&axis_->open_loop_controller_.Vdq_setpoint_);
+        
+        axis_->motor_.current_control_.phase_src_.connect_to(&axis_->open_loop_controller_.phase_);
+
+        axis_->motor_.phase_vel_src_.connect_to(&axis_->open_loop_controller_.phase_vel_);
+        axis_->motor_.current_control_.phase_vel_src_.connect_to(&axis_->open_loop_controller_.phase_vel_);
+    }
+    cpu_exit_critical(mask);
+
+    axis_->wait_for_control_iteration();
+
+    axis_->motor_.arm(&axis_->motor_.current_control_);
+
+    // go to start position of forward scan for start_lock_duration to get ready to scan
+    for (size_t i = 0; i < (size_t)(start_lock_duration * 1000.0f); ++i) {
+        if (!axis_->motor_.is_armed_) {
+            return false; // TODO: return "disarmed" error code
+        }
+        if (axis_->requested_state_ != Axis::AXIS_STATE_UNDEFINED) {
+            axis_->motor_.disarm();
+            return false; // TODO: return "aborted" error code
+        }
+        osDelay(1);
+    }
+
 
     int32_t init_enc_val = shadow_count_;
+    uint32_t num_steps = 0;
     int64_t encvaluesum = 0;
 
-    // scan forward
-    i = 0;
-    axis_->run_control_loop([&]() {
-        float phase = wrap_pm_pi(config_.calib_scan_distance * (float)i / (float)num_steps - config_.calib_scan_distance / 2.0f);
-        
-        float v_alpha = voltage_magnitude * our_arm_cos_f32(phase);
-        float v_beta = voltage_magnitude * our_arm_sin_f32(phase);
-        axis_->motor_.I_phase_ = phase + (-M_PI)*0.5f;
-        if (!axis_->motor_.enqueue_voltage_timings(v_alpha, v_beta))
-            return false; // error set inside enqueue_voltage_timings
-        axis_->motor_.log_timing(TIMING_LOG_ENC_CALIB);
+    mask = cpu_enter_critical();
+    {
+        axis_->open_loop_controller_.target_vel_ = config_.calib_scan_omega;
+        axis_->open_loop_controller_.total_distance_ = 0.0f;
+    }
+    cpu_exit_critical(mask);
 
+    // scan forward
+    while ((axis_->requested_state_ == Axis::AXIS_STATE_UNDEFINED) && axis_->motor_.is_armed_) {
+        bool reached_target_dist = axis_->open_loop_controller_.total_distance_.any().value_or(-INFINITY) >= config_.calib_scan_distance;
+        if (reached_target_dist) {
+            break;
+        }
         encvaluesum += shadow_count_;
-        
-        return ++i < num_steps;
-    });
-    if (axis_->error_ != Axis::ERROR_NONE)
-        return false;
+        num_steps++;
+        osDelay(1);
+    }
 
     // Check response and direction
     if (shadow_count_ > init_enc_val + 8) {
         // motor same dir as encoder
-        axis_->motor_.config_.direction = 1;
+        config_.direction = 1;
     } else if (shadow_count_ < init_enc_val - 8) {
         // motor opposite dir as encoder
-        axis_->motor_.config_.direction = -1;
+        config_.direction = -1;
     } else {
         // Encoder response error
         set_error(ERROR_NO_RESPONSE);
+        axis_->motor_.disarm();
         return false;
     }
 
-    //TODO avoid recomputing elec_rad_per_enc every time
     // Check CPR
     float elec_rad_per_enc = axis_->motor_.config_.pole_pairs * 2 * M_PI * (1.0f / (float)(config_.cpr));
     float expected_encoder_delta = config_.calib_scan_distance / elec_rad_per_enc;
     calib_scan_response_ = std::abs(shadow_count_ - init_enc_val);
     if (std::abs(calib_scan_response_ - expected_encoder_delta) / expected_encoder_delta > config_.calib_range) {
         set_error(ERROR_CPR_POLEPAIRS_MISMATCH);
+        axis_->motor_.disarm();
         return false;
     }
 
+    mask = cpu_enter_critical();
+    {
+        axis_->open_loop_controller_.target_vel_ = -config_.calib_scan_omega;
+    }
+    cpu_exit_critical(mask);
+
     // scan backwards
-    i = 0;
-    axis_->run_control_loop([&]() {
-        float phase = wrap_pm_pi(-config_.calib_scan_distance * (float)i / (float)num_steps + config_.calib_scan_distance / 2.0f);
-        float v_alpha = voltage_magnitude * our_arm_cos_f32(phase);
-        float v_beta = voltage_magnitude * our_arm_sin_f32(phase);
-        axis_->motor_.I_phase_ = phase + (-M_PI)*0.5f;
-        if (!axis_->motor_.enqueue_voltage_timings(v_alpha, v_beta))
-            return false; // error set inside enqueue_voltage_timings
-        axis_->motor_.log_timing(TIMING_LOG_ENC_CALIB);
-
+    while ((axis_->requested_state_ == Axis::AXIS_STATE_UNDEFINED) && axis_->motor_.is_armed_) {
+        bool reached_target_dist = axis_->open_loop_controller_.total_distance_.any().value_or(INFINITY) <= 0.0f;
+        if (reached_target_dist) {
+            break;
+        }
         encvaluesum += shadow_count_;
-        
-        return ++i < num_steps;
-    });
-    if (axis_->error_ != Axis::ERROR_NONE)
-        return false;
+        num_steps++;
+        osDelay(1);
+    }
 
-    config_.offset = encvaluesum / (num_steps * 2);
-    int32_t residual = encvaluesum - ((int64_t)config_.offset * (int64_t)(num_steps * 2));
-    config_.offset_float = (float)residual / (float)(num_steps * 2) + 0.5f;  // add 0.5 to center-align state to phase
+    // Motor disarmed because of an error
+    if (!axis_->motor_.is_armed_) {
+        return false;
+    }
+
+    axis_->motor_.disarm();
+
+    config_.offset = encvaluesum / num_steps;
+    int32_t residual = encvaluesum - ((int64_t)config_.offset * (int64_t)num_steps);
+    config_.offset_float = (float)residual / (float)num_steps + 0.5f;  // add 0.5 to center-align state to phase
 
     is_ready_ = true;
     return true;
+
 }
 
 static bool decode_hall(uint8_t hall_state, int32_t* hall_cnt) {
@@ -666,7 +693,6 @@ bool Encoder::update() {
             pos_abs_  = ((rawVal & 0x0000ff00)) | ( (rawVal & 0x00ff0000)>>16 ) ;
             pos_abs_ = config_.cpr - pos_abs_; //取反
 
-
             bool encoder_error_detected = false;
             
             if (abs_spi_pos_updated_ == false) {
@@ -822,10 +848,14 @@ bool Encoder::update() {
     float elec_rad_per_enc = axis_->motor_.config_.pole_pairs * 2 * M_PI * cpr_inverse_;
     float ph = elec_rad_per_enc * (interpolated_enc - config_.offset_float);
     // ph = fmodf(ph, 2*M_PI);
-    phase_ = wrap_pm_pi(ph);
 
     vel_estimate_valid_ = true;
     pos_estimate_valid_ = true;
+ 
+   if (is_ready_) {
+        phase_ = wrap_pm_pi(ph) * config_.direction;
+        phase_vel_ = (2*M_PI) * (*vel_estimate_.present())* axis_->motor_.config_.pole_pairs * config_.direction;
+    }
 
     return true;
 }

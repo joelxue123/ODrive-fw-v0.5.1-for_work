@@ -204,18 +204,20 @@ void CANSimple::get_encoder_estimates_callback(Axis* axis, can_Message_t& msg) {
 
         // Undefined behaviour!
         // uint32_t floatBytes = *(reinterpret_cast<int32_t*>(&(axis->encoder_.pos_estimate_)));
+        float pos_estimate = *axis->encoder_.pos_estimate_.any();
 
         uint32_t floatBytes;
-        static_assert(sizeof axis->encoder_.pos_estimate_ == sizeof floatBytes);
-        std::memcpy(&floatBytes, &axis->encoder_.pos_estimate_, sizeof floatBytes);
+        static_assert(sizeof pos_estimate == sizeof floatBytes);
+        std::memcpy(&floatBytes, &pos_estimate, sizeof floatBytes);
 
         txmsg.buf[0] = floatBytes;
         txmsg.buf[1] = floatBytes >> 8;
         txmsg.buf[2] = floatBytes >> 16;
         txmsg.buf[3] = floatBytes >> 24;
 
-        static_assert(sizeof floatBytes == sizeof axis->encoder_.vel_estimate_);
-        std::memcpy(&floatBytes, &axis->encoder_.vel_estimate_, sizeof floatBytes);
+        float vel_estimate = *axis->encoder_.vel_estimate_.any();
+        static_assert(sizeof floatBytes == sizeof vel_estimate);
+        std::memcpy(&floatBytes, &vel_estimate, sizeof floatBytes);
         txmsg.buf[4] = floatBytes;
         txmsg.buf[5] = floatBytes >> 8;
         txmsg.buf[6] = floatBytes >> 16;

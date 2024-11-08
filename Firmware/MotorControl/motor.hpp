@@ -79,6 +79,9 @@ public:
 
         float CURRENT2TORQUE_COEFF[2*NUM_LINEARITY_SEG];
 
+        bool R_wL_FF_enable = false; // Enable feedforwards for R*I and w*L*I terms
+        bool bEMF_FF_enable = false; // Enable feedforward for bEMF
+
         float I_bus_hard_min = -INFINITY;
         float I_bus_hard_max = INFINITY;
         // custom property setters
@@ -126,6 +129,7 @@ public:
     float max_available_torque();
     void log_timing(TimingLog_t log_idx);
     float phase_current_from_adcval(uint32_t ADCValue, float phase_current_gain_coeff);
+    bool check_for_current_saturation(const uint32_t ADCValue);
     bool measure_phase_resistance(float test_current, float max_voltage);
     bool measure_phase_inductance(float test_voltage);
     bool run_calibration();
@@ -134,6 +138,7 @@ public:
     bool FOC_voltage(float v_d, float v_q, float pwm_phase);
     bool FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_phase);
     bool update(float current_setpoint, float phase, float phase_vel);
+    void update(uint32_t timestamp);
     void pos_linearity_ini(void);
     float current_Correct(int32_t Torque_Org);
     void abc_sign_calculation(float phase , int32_t *a, int32_t *b, int32_t *c);
@@ -233,10 +238,12 @@ public:
 
 
     FieldOrientedController current_control_;
-    PhaseControlLaw<3>* control_law_;
+    PhaseControlLaw<3>* control_law_ = nullptr;
 
     InputPort<float> torque_setpoint_src_; // Usually points to the Controller object's output
     InputPort<float> phase_vel_src_; // Usually points to the Encoder object's output
+    float direction_ = 0.0f; // if -1 then positive torque is converted to negative Iq
+
     OutputPort<float2D> Vdq_setpoint_ = {{0.0f, 0.0f}}; // fed to the FOC
     OutputPort<float2D> Idq_setpoint_ = {{0.0f, 0.0f}}; // fed to the FOC
     

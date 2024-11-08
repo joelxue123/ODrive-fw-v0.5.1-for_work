@@ -536,18 +536,18 @@ void vbus_sense_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
 volatile uint32_t timestamp_ = 0;
 
 
-
 #include <stm32f405xx.h>
 #include <stm32f4xx_hal.h>  // Sets up the correct chip specifc defines required by arm_math
 // This is the callback from the ADC that we expect after the PWM has triggered an ADC conversion.
 // Timing diagram: Firmware/timing_diagram_v3.png
-static uint32_t this_sample_time = 0;
-static uint32_t last_sample_time = 0;
+
 void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
 
     Axis& axis = *axes[0];
     
-    timestamp_ += TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1);
+    axis.motor_.log_timing(TIMING_LOG_ADC_CB_I);
+
+    timestamp_ += TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1 + 1);
     uint32_t timestamp = timestamp_;
 
     axis.encoder_.set_cs_high();
@@ -555,10 +555,9 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     constexpr float calib_filter_k = CURRENT_MEAS_PERIOD / calib_tau;
     (void)calib_filter_k;
 
-    this_sample_time = 2 * htim13.Instance->CNT;
-    axis.motor_.timing_log_[TIMING_LOG_ADC_CB_I] = (8400+this_sample_time - last_sample_time);
+
    // current_meas_period = CURRENT_MEAS_PERIOD * (8400.f+this_sample_time - last_sample_time)/8400.0f;  
-    last_sample_time = this_sample_time;   
+    
     // Ensure ADCs are expected ones to simplify the logic below
     if (!(hadc == &hadc2 || hadc == &hadc3)) {
         low_level_fault(Motor::ERROR_ADC_FAILED);
@@ -585,12 +584,22 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     uint32_t ADCValue_dc_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_1);
     uint32_t ADCValue_a = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_2);
     uint32_t ADCValue_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_2);
+
+    axis.motor_.check_for_current_saturation(ADCValue_dc_a);
+    axis.motor_.check_for_current_saturation(ADCValue_dc_c);
+    axis.motor_.check_for_current_saturation(ADCValue_a);
+    axis.motor_.check_for_current_saturation(ADCValue_c);
+
+
     smooth_filter(ADCValue_dc_a, &dc_current_a);
     smooth_filter(ADCValue_dc_c, &dc_current_c);
+
     float current_a = axis.motor_.phase_current_from_adcval(ADCValue_a,0.94f);
     float current_c = axis.motor_.phase_current_from_adcval(ADCValue_c,0.74f);//0.718
     axis.motor_.DC_calib_.phA = axis.motor_.phase_current_from_adcval(dc_current_a.filtered_value,0.94f);
     axis.motor_.DC_calib_.phC = axis.motor_.phase_current_from_adcval(dc_current_c.filtered_value,0.74f);
+
+
 
     axis.motor_.current_meas_.phA = current_a - axis.motor_.DC_calib_.phA;
     axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
@@ -603,7 +612,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     axis.motor_.pwm_update_cb(timestamp + TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1));
 
     axis.signal_current_meas(); 
-
+    axis.motor_.log_timing(TIMING_LOG_ADC_CB_DC);
     
 }
 
