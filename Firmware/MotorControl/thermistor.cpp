@@ -25,11 +25,11 @@ void ThermistorCurrentLimiter::update() {
     float voltage = get_adc_voltage_channel(14);
     float normalized_voltage = voltage / adc_ref_voltage;
     temperature_ = horner_fma(normalized_voltage, coefficients_, num_coeffs_);
-    temperature_q15_ = (int32_t)temperature_;
+    temperature_int_ = (int32_t)temperature_;
     voltage = get_adc_voltage_channel(15);
     normalized_voltage = voltage / adc_ref_voltage;
     aux_temperature_ = horner_fma(normalized_voltage, aux_coefficients_, num_coeffs_);
-    aux_temperature_q15_ = (int32_t)aux_temperature_;
+    aux_temperature_int_ = (int32_t)aux_temperature_;
 
 }
 

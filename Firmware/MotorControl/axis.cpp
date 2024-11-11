@@ -92,18 +92,13 @@ void Axis::get_axis_state(axis_state_t* state)
 
     float actual_torque = motor_.convert_torque_from_current(motor_.current_control_.Iq_measured_, motor_.config_.CURRENT2TORQUE_COEFF, motor_.NUM_LINEARITY_SEG,  motor_.CALIBRATION_INCREMENT);
     state->erro =  axis_state_.erro;
-    state->pos = ((encoder_.gearboxpos_q15_ * position_coeff_motor2encos)>>15) +32768;   // 2pi*12.5*32768
-    if(config_.gear_vel_used == true)
-    {
-        state->vel =(int32_t)(encoder_.gear_vel_estimate_ * speed_coeff_motor2encos) + 2048;   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
-    }
-    else
-    {
-       state->vel = ((encoder_.vel_estimate_q11_* speed_coeff_motor2encos)>>15) + 2048;   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
-    }
+    state->pos = ((encoder_.gearboxpos_q15_ * position_coeff_motor2encos_q15_)>>15) +32768;   // 2pi*12.5*32768
+
+    state->vel = ((encoder_.vel_estimate_q11_* speed_coeff_motor2encos_q11_)>>11) + 2048;   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
+
     state->cur = (int32_t)(actual_torque *current_coeff_motor2encos) + 2048;  //这是有问题的代码，不要忘记 2024-10-8
-    state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_q15_ *2 + 50 ;
-    state->mos_temperature = (int32_t)fet_thermistor_.temperature_q15_ *2 + 50;
+    state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_int_ *2 + 50 ;
+    state->mos_temperature = (int32_t)fet_thermistor_.temperature_int_ *2 + 50;
     
 }
 
@@ -115,14 +110,9 @@ void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
     motor_.using_old_torque_constant_ = false;
 
     controller_.config_.kp = ((float)axis_pvt_parm->kp)*1.0f;   //1000/4096
-    if(config_.gear_vel_used == true)
-    {
-        controller_.config_.kd = ((float)axis_pvt_parm->kd) * 0.1953f;      // 100/512
-    }
-    else
-    {
-        controller_.config_.kd = ((float)axis_pvt_parm->kd) * 0.0195f;      // 10/512
-    }
+
+    controller_.config_.kd = ((float)axis_pvt_parm->kd) * 0.0195f;      // 10/512
+
     
     controller_.pos_setpoint_ = (axis_pvt_parm->pos_setpoint - 32768)*position_coeff_encos2motor;  //12.5/2/pi / 32768
     controller_.vel_setpoint_ = (axis_pvt_parm->vel_setpoint - 2048) * speed_coeff_encos2motor;   // 36/2/pi / 2048
@@ -147,18 +137,14 @@ void Axis::setup() {
     bool sensorless_mode = config_.enable_sensorless_mode;
 
     gear_ratio_inverse_  = 1/motor_.config_.gear_ratio;
-    if(config_.gear_vel_used == true)
-    {
-        speed_coeff_motor2encos = (int32_t)(65535.f*2*M_PI/config_.speed_base);
-    }
-    else
-    {
-        speed_coeff_motor2encos = (int32_t)(65535.f*2*M_PI/config_.speed_base/motor_.config_.gear_ratio);
-    }
+
+    speed_coeff_motor2encos = 2*M_PI/config_.speed_base/motor_.config_.gear_ratio;
+    speed_coeff_motor2encos_q11_ =(int32_t) (2048.f*speed_coeff_motor2encos);
     
-    speed_coeff_encos2motor = 1.0f / speed_coeff_motor2encos;
-    position_coeff_motor2encos = (int32_t)(2*M_PI*32768/config_.position_base);
-    position_coeff_encos2motor = 1.0f / position_coeff_motor2encos;
+    speed_coeff_encos2motor = 1.0f / (2048.f*speed_coeff_motor2encos);
+    position_coeff_motor2encos = 2*M_PI/config_.position_base;
+    position_coeff_motor2encos_q15_ = (int32_t)(32768.f*position_coeff_motor2encos);
+    position_coeff_encos2motor = 1.0f / (32758*position_coeff_motor2encos);
     current_coeff_motor2encos = (float)(2048.0f/config_.current_base);
     // Does nothing - Motor and encoder setup called separately.
     axis_state_.erro = 0;
