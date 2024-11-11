@@ -576,15 +576,14 @@ float Motor::getting_current2torque_slope(uint32_t index)
         return 0;
     }
 }
-
-int32_t Motor::convert_torque_from_current(const int32_t current_q15,const int32_t *current2torque_coeff,const uint32_t coeff_size,const int32_t current_step)
+float Motor::convert_torque_from_current(float current,float *current2torque_coeff,uint32_t coeff_size,float current_step)
 {
-    uint32_t idex = (uint32_t)((abs(current_q15) *current_step)); 
-    int32_t torque_constant = 0;
+    uint32_t idex = (uint32_t)((fabsf(current) *current_step)); 
+    float torque_constant = 0;
 
     if(using_old_torque_constant_ == true)
     {
-        return current_q15;
+        return current;
     }
     
     if( idex > (coeff_size -1) )
@@ -592,10 +591,11 @@ int32_t Motor::convert_torque_from_current(const int32_t current_q15,const int32
         idex = coeff_size -1;
     }
     
-    torque_constant = current2torque_coeff[2*idex + (current_q15 < 0)];
+    torque_constant = current2torque_coeff[2*idex + (current < 0.0f)];
     
-    return (current_q15 * torque_constant>>12);
+    return current * torque_constant;
 }
+
 
 bool Motor::check_for_current_saturation(const uint32_t ADCValue)
 {

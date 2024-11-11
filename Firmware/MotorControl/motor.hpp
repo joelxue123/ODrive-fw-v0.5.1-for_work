@@ -41,7 +41,7 @@ public:
         float async_phase_offset; // [rad electrical]
     };
     static constexpr int32_t NUM_LINEARITY_SEG = 60;
-    static constexpr int32_t CALIBRATION_INCREMENT = 1;
+    static constexpr float CALIBRATION_INCREMENT = 1;
     // NOTE: for gimbal motors, all units of Nm are instead V.
     // example: vel_gain is [V/(turn/s)] instead of [Nm/(turn/s)]
     // example: current_lim and calibration_current will instead determine the maximum voltage applied to the motor.
@@ -77,7 +77,7 @@ public:
         float Torque_LINEARITY_[NUM_LINEARITY_SEG];
         float CURRENT_LINEARITY_[NUM_LINEARITY_SEG];
 
-        int32_t CURRENT2TORQUE_COEFF[2*NUM_LINEARITY_SEG];
+        float CURRENT2TORQUE_COEFF[2*NUM_LINEARITY_SEG];
 
         bool R_wL_FF_enable = false; // Enable feedforwards for R*I and w*L*I terms
         bool bEMF_FF_enable = false; // Enable feedforward for bEMF
@@ -258,7 +258,7 @@ public:
     float get_negative_torque_slope(uint32_t index);
     void  setting_current2torque_slope(uint32_t index, float value);
     float getting_current2torque_slope(uint32_t index);
-    int32_t convert_torque_from_current(const int32_t current_q15,const int32_t *current2torque_coeff,const uint32_t coeff_size,const int32_t current_step);
+    float convert_torque_from_current(float current,float *current2torque_coeff,uint32_t coeff_size,float current_step);
     void pos_linearity_init(void);
 };
 

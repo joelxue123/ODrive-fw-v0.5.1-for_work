@@ -90,18 +90,18 @@ static void step_cb_wrapper(void* ctx) {
 void Axis::get_axis_state(axis_state_t* state)
 {
 
-    int32_t actual_torque = motor_.convert_torque_from_current((int32_t)motor_.current_control_.Iq_measured_, motor_.config_.CURRENT2TORQUE_COEFF, motor_.NUM_LINEARITY_SEG,  motor_.CALIBRATION_INCREMENT);
+    float actual_torque = motor_.convert_torque_from_current(motor_.current_control_.Iq_measured_, motor_.config_.CURRENT2TORQUE_COEFF, motor_.NUM_LINEARITY_SEG,  motor_.CALIBRATION_INCREMENT);
     state->erro =  axis_state_.erro;
     state->pos = ((encoder_.gearboxpos_q15_ * position_coeff_motor2encos)>>15) +32768;   // 2pi*12.5*32768
     if(config_.gear_vel_used == true)
     {
-        state->vel =encoder_.gear_vel_estimate_ * speed_coeff_motor2encos + 2048;   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
+        state->vel =(int32_t)(encoder_.gear_vel_estimate_ * speed_coeff_motor2encos) + 2048;   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
     }
     else
     {
        state->vel = ((encoder_.vel_estimate_q11_* speed_coeff_motor2encos)>>15) + 2048;   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
     }
-    state->cur = ((actual_torque *current_coeff_motor2encos)>>15) + 2048;  //这是有问题的代码，不要忘记 2024-10-8
+    state->cur = (int32_t)(actual_torque *current_coeff_motor2encos) + 2048;  //这是有问题的代码，不要忘记 2024-10-8
     state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_q15_ *2 + 50 ;
     state->mos_temperature = (int32_t)fet_thermistor_.temperature_q15_ *2 + 50;
     
@@ -159,7 +159,7 @@ void Axis::setup() {
     speed_coeff_encos2motor = 1.0f / speed_coeff_motor2encos;
     position_coeff_motor2encos = (int32_t)(2*M_PI*32768/config_.position_base);
     position_coeff_encos2motor = 1.0f / position_coeff_motor2encos;
-    current_coeff_motor2encos = (int32_t)(65535.0f/config_.current_base);
+    current_coeff_motor2encos = (float)(2048.0f/config_.current_base);
     // Does nothing - Motor and encoder setup called separately.
     axis_state_.erro = 0;
 
