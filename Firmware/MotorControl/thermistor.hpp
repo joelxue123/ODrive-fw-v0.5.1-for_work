@@ -26,7 +26,9 @@ public:
     const float* const aux_coefficients_;
     const size_t num_coeffs_;
     float temperature_;
+    int32_t temperature_q15_;
     float aux_temperature_;
+    int32_t aux_temperature_q15_;
     const float& temp_limit_lower_;
     const float& temp_limit_upper_;
     const bool& enabled_;

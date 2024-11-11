@@ -545,7 +545,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
 
     Axis& axis = *axes[0];
     
-    axis.motor_.log_timing(TIMING_LOG_ADC_CB_I);
+  //  axis.motor_.log_timing(TIMING_LOG_ADC_CB_I);
 
     timestamp_ += TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1 + 1);
     uint32_t timestamp = timestamp_;
@@ -580,10 +580,10 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
 
     // update_brake_current(); todo
     
-    uint32_t ADCValue_dc_a = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_1);
-    uint32_t ADCValue_dc_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_1);
-    uint32_t ADCValue_a = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_2);
-    uint32_t ADCValue_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_2);
+    int32_t ADCValue_dc_a = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_1);
+    int32_t ADCValue_dc_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_1);
+    int32_t ADCValue_a = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_2);
+    int32_t ADCValue_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_2);
 
     axis.motor_.check_for_current_saturation(ADCValue_dc_a);
     axis.motor_.check_for_current_saturation(ADCValue_dc_c);
@@ -594,15 +594,16 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     smooth_filter(ADCValue_dc_a, &dc_current_a);
     smooth_filter(ADCValue_dc_c, &dc_current_c);
 
-    float current_a = axis.motor_.phase_current_from_adcval(ADCValue_a,0.94f);
-    float current_c = axis.motor_.phase_current_from_adcval(ADCValue_c,0.74f);//0.718
-    axis.motor_.DC_calib_.phA = axis.motor_.phase_current_from_adcval(dc_current_a.filtered_value,0.94f);
-    axis.motor_.DC_calib_.phC = axis.motor_.phase_current_from_adcval(dc_current_c.filtered_value,0.74f);
+  //  float current_a = axis.motor_.phase_current_from_adcval(ADCValue_a,0.94f);
+   // float current_c = axis.motor_.phase_current_from_adcval(ADCValue_c,0.74f);//0.718
+  //  axis.motor_.DC_calib_.phA = axis.motor_.phase_current_from_adcval(ADCValue_dc_a,0.94f);
+  //  axis.motor_.DC_calib_.phC = axis.motor_.phase_current_from_adcval(ADCValue_dc_c,0.74f);
 
+    axis.motor_.current_meas_.phA = axis.motor_.phase_current_from_adcval((ADCValue_a - dc_current_a.filtered_value) ,0.94f);
+    axis.motor_.current_meas_.phC = axis.motor_.phase_current_from_adcval((ADCValue_c - dc_current_c.filtered_value) ,0.74f);
 
-
-    axis.motor_.current_meas_.phA = current_a - axis.motor_.DC_calib_.phA;
-    axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
+ //   axis.motor_.current_meas_.phA = current_a - axis.motor_.DC_calib_.phA;
+ //   axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
     axis.motor_.current_meas_.phB =  1.06f*(0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC) ;//0.12
 
     axis.motor_.current_meas_cb(timestamp);
@@ -612,7 +613,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     axis.motor_.pwm_update_cb(timestamp + TIM_1_8_PERIOD_CLOCKS * (TIM_1_8_RCR + 1));
 
     axis.signal_current_meas(); 
-    axis.motor_.log_timing(TIMING_LOG_ADC_CB_DC);
+ //   axis.motor_.log_timing(TIMING_LOG_ADC_CB_DC);
     
 }
 

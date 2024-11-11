@@ -1329,6 +1329,19 @@ void HAL_CAN_IRQHandler(CAN_HandleTypeDef *hcan)
   uint32_t rf1rflags = READ_REG(hcan->Instance->RF1R);
   uint32_t esrflags = READ_REG(hcan->Instance->ESR);
 
+
+  /* Receive FIFO 0 message pending interrupt management *********************/
+  if ((interrupts & CAN_IT_RX_FIFO0_MSG_PENDING) != RESET)
+  {
+    /* Check if message is still pending */
+    if ((hcan->Instance->RF0R & CAN_RF0R_FMP0) != RESET)
+    {
+      /* Receive FIFO 0 mesage pending Callback */
+      /* Call weak (surcharged) callback */
+      HAL_CAN_RxFifo0MsgPendingCallback(hcan);
+      return;
+    }
+  }
   /* Transmit Mailbox empty interrupt management *****************************/
   if ((interrupts & CAN_IT_TX_MAILBOX_EMPTY) != RESET)
   {
@@ -1459,17 +1472,6 @@ void HAL_CAN_IRQHandler(CAN_HandleTypeDef *hcan)
     }
   }
 
-  /* Receive FIFO 0 message pending interrupt management *********************/
-  if ((interrupts & CAN_IT_RX_FIFO0_MSG_PENDING) != RESET)
-  {
-    /* Check if message is still pending */
-    if ((hcan->Instance->RF0R & CAN_RF0R_FMP0) != RESET)
-    {
-      /* Receive FIFO 0 mesage pending Callback */
-      /* Call weak (surcharged) callback */
-      HAL_CAN_RxFifo0MsgPendingCallback(hcan);
-    }
-  }
 
   /* Receive FIFO 1 overrun interrupt management *****************************/
   if ((interrupts & CAN_IT_RX_FIFO1_OVERRUN) != RESET)

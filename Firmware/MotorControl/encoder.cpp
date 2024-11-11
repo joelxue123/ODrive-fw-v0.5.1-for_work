@@ -761,6 +761,7 @@ bool Encoder::update() {
 
             GearboxOutputEncoder_counts = GearboxOutputEncoder_turns_*2*HALF_CPR+ gear_single_turn_abs_by_user_;
             gearboxpos_ = GearboxOutputEncoder_counts * GearboxOutputEncoder_cpr_inverse_;
+            gearboxpos_q15_ = (int32_t)(gearboxpos_ * 32768.f);
             
 
         }break;
@@ -821,6 +822,7 @@ bool Encoder::update() {
 
 
     vel_estimate_ = vel_estimate_counts_ * cpr_inverse_;
+    vel_estimate_q11_ = (int32_t)(*vel_estimate_.present() * 2048.0f);
     gear_vel_estimate_ = gear_vel_estimate_counts_ * GearboxOutputEncoder_cpr_inverse_;
 
     float pos_cpr_last = pos_cpr_;

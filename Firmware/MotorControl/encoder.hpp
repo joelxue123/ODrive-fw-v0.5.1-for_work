@@ -106,10 +106,12 @@ public:
 
     OutputPort<float> pos_estimate_ = 0.0f; // [turn]
     OutputPort<float> vel_estimate_ = 0.0f; // [turn/s]
+    int32_t vel_estimate_q11_ = 0;
     float pos_cpr_ = 0.0f;      // [turn]
     float pos_circular_ = 0.0f; // [turn]
 
     float gearboxpos_ = 0;
+    int32_t gearboxpos_q15_ = 0;
     
     bool pos_estimate_valid_ = false;
     bool vel_estimate_valid_ = false;

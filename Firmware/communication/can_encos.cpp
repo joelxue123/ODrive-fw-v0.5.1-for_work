@@ -71,14 +71,15 @@ void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
                 {
                     encos_cmd_pvt_t *cmd = (encos_cmd_pvt_t *)msg.buf;
                     Axis::axis_pvt_parm_t pvt_parm;
+
+                    encos_ack_type_1(axis);
+
                     pvt_parm.kp = (cmd->kp_h << 7) + cmd->kp_l;
                     pvt_parm.kd = (cmd->kd_h << 8) + cmd->kd_l;
                     pvt_parm.pos_setpoint = (cmd->pos_h << 8) + cmd->pos_l;
                     pvt_parm.vel_setpoint = (cmd->vel_h << 4) + cmd->vel_l;
                     pvt_parm.torque_setpoint = (cmd->tor_h << 8) + cmd->tor_l;
                     axis->set_axis_pvt_parm(&pvt_parm);
-
-                    encos_ack_type_1(axis);
                 }
                 break;
             }

@@ -90,21 +90,20 @@ static void step_cb_wrapper(void* ctx) {
 void Axis::get_axis_state(axis_state_t* state)
 {
 
-    float actual_torque = motor_.convert_torque_from_current(motor_.current_control_.Iq_measured_, motor_.config_.CURRENT2TORQUE_COEFF, motor_.NUM_LINEARITY_SEG,  motor_.CALIBRATION_INCREMENT);
+    int32_t actual_torque = motor_.convert_torque_from_current((int32_t)motor_.current_control_.Iq_measured_, motor_.config_.CURRENT2TORQUE_COEFF, motor_.NUM_LINEARITY_SEG,  motor_.CALIBRATION_INCREMENT);
     state->erro =  axis_state_.erro;
-    state->pos = saturation((int32_t)(encoder_.gearboxpos_ * position_coeff_motor2encos +32768),0,65535 );   // 2pi*12.5*32768
+    state->pos = ((encoder_.gearboxpos_q15_ * position_coeff_motor2encos)>>15) +32768;   // 2pi*12.5*32768
     if(config_.gear_vel_used == true)
     {
-        state->vel = saturation((int32_t)(encoder_.gear_vel_estimate_ * speed_coeff_motor2encos + 2048),0,4095);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
+        state->vel =encoder_.gear_vel_estimate_ * speed_coeff_motor2encos + 2048;   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
     }
     else
     {
-        state->vel = saturation((int32_t)(encoder_.vel_estimate_.any().value_or(0.0f)* speed_coeff_motor2encos + 2048),0,4095);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
+       state->vel = ((encoder_.vel_estimate_q11_* speed_coeff_motor2encos)>>15) + 2048;   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
     }
-   
-    state->cur = saturation((int32_t)(actual_torque *current_coeff_motor2encos + 2048),10,4090);  //这是有问题的代码，不要忘记 2024-10-8
-    state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
-    state->mos_temperature = (int32_t)fet_thermistor_.temperature_ *2 + 50;
+    state->cur = ((actual_torque *current_coeff_motor2encos)>>15) + 2048;  //这是有问题的代码，不要忘记 2024-10-8
+    state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_q15_ *2 + 50 ;
+    state->mos_temperature = (int32_t)fet_thermistor_.temperature_q15_ *2 + 50;
     
 }
 
@@ -150,17 +149,17 @@ void Axis::setup() {
     gear_ratio_inverse_  = 1/motor_.config_.gear_ratio;
     if(config_.gear_vel_used == true)
     {
-        speed_coeff_motor2encos = 2*M_PI*2048/config_.speed_base;
+        speed_coeff_motor2encos = (int32_t)(65535.f*2*M_PI/config_.speed_base);
     }
     else
     {
-        speed_coeff_motor2encos = 2*M_PI*2048/config_.speed_base/motor_.config_.gear_ratio;
+        speed_coeff_motor2encos = (int32_t)(65535.f*2*M_PI/config_.speed_base/motor_.config_.gear_ratio);
     }
     
     speed_coeff_encos2motor = 1.0f / speed_coeff_motor2encos;
-    position_coeff_motor2encos = 2*M_PI*32768/config_.position_base;
+    position_coeff_motor2encos = (int32_t)(2*M_PI*32768/config_.position_base);
     position_coeff_encos2motor = 1.0f / position_coeff_motor2encos;
-    current_coeff_motor2encos = 2048.0f/config_.current_base;
+    current_coeff_motor2encos = (int32_t)(65535.0f/config_.current_base);
     // Does nothing - Motor and encoder setup called separately.
     axis_state_.erro = 0;
 
@@ -187,10 +186,11 @@ static void run_state_machine_loop_wrapper(void* ctx) {
 
 // @brief Starts run_state_machine_loop in a new thread
 void Axis::start_thread() {
-    osThreadDef(thread_def, run_state_machine_loop_wrapper, osPriorityRealtime, 0, stack_size_ / sizeof(StackType_t)); //hw_config_.thread_priority
+    osThreadDef(thread_def, run_state_machine_loop_wrapper, osPriorityHigh, 0, stack_size_ / sizeof(StackType_t)); //hw_config_.thread_priority  
     thread_id_ = osThreadCreate(osThread(thread_def), this);
     thread_id_valid_ = true;
 }
+
 
 // @brief Unblocks the control loop thread.
 // This is called from the current sense interrupt handler.

@@ -379,7 +379,7 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
             motor_.disarm();
         }
         //??? 是否放在这里呢？等待验证
-        MEASURE_TIME(task_times_.encoder_update)
+     //   MEASURE_TIME(task_times_.encoder_update)
             encoder_.update();
 
         MEASURE_TIME(task_times_.controller_update) {
@@ -388,13 +388,13 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
             }
         }
 
-        MEASURE_TIME(task_times_.open_loop_controller_update)
-            open_loop_controller_.update(timestamp);
+        // MEASURE_TIME(task_times_.open_loop_controller_update)
+        //     open_loop_controller_.update(timestamp);
 
-        MEASURE_TIME(task_times_.motor_update)
+      //  MEASURE_TIME(task_times_.motor_update)
             motor_.update(timestamp); // uses torque from controller and phase_vel from encoder
 
-        MEASURE_TIME(task_times_.current_controller_update)
+      //  MEASURE_TIME(task_times_.current_controller_update)
             motor_.current_control_.update(timestamp); // uses the output of controller_ or open_loop_contoller_ and encoder_ or sensorless_estimator_ or acim_estimator_
 
 
@@ -457,11 +457,11 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     float position_base_inverse_ = 12.5f;
     float speed_base_inverse_ = 18.0f;
     float current_base_inverse_ = 120.0f;  
-    float speed_coeff_motor2encos = 2*M_PI*2048/18.0f/16.0f;
+    int32_t speed_coeff_motor2encos = (int32_t)(65535.f*2*M_PI/18.0f/16.0f);
     float speed_coeff_encos2motor = 18.0f*16.0f/(2*M_PI*2048);
-    float position_coeff_motor2encos = 2*M_PI*32768/12.5f;
+    int32_t position_coeff_motor2encos = (int32_t)(2*M_PI*32768/12.5f);
     float position_coeff_encos2motor = 12.5f / (2*M_PI*32768);
-    float current_coeff_motor2encos = 2048.0f/60.f;
+    int32_t current_coeff_motor2encos = (int32_t)(65535.0f/60.f);
     float can_raw_ = 0.0f;
     
     // watchdog
