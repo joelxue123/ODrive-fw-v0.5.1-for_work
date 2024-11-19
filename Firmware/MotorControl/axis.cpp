@@ -727,6 +727,8 @@ bool Axis::run_idle_loop() {
 // Infinite loop that does calibration and enters main control loop as appropriate
 void Axis::run_state_machine_loop() {
 
+    // Set the initial state
+    motor_.measure_current_offset();
     // arm!
     motor_.arm();
 

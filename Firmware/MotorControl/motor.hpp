@@ -120,6 +120,7 @@ public:
     float phase_current_from_adcval(uint32_t ADCValue, float phase_current_gain_coeff);
     bool measure_phase_resistance(float test_current, float max_voltage);
     bool measure_phase_inductance(float voltage_low, float voltage_high);
+    void measure_current_offset();
     bool run_calibration();
     bool enqueue_modulation_timings(float mod_alpha, float mod_beta);
     bool enqueue_voltage_timings(float v_alpha, float v_beta);
@@ -160,6 +161,7 @@ public:
     Iph_BC_t current_meas_ = {0.0f,0.0f, 0.0f};
     Iph_BC_t DC_calib_ = {0.0f,0.0f, 0.0f};
     float phase_current_rev_gain_ = 0.0f; // Reverse gain for ADC to Amps (to be set by DRV8301_setup)
+    float phase_current_extern_amp_rev_gain_ = 1.0f/20.f; // Reverse gain for ADC to Amps (to be set by ad840)
     CurrentControl_t current_control_ = {
         .p_gain = 0.0f,        // [V/A] should be auto set after resistance and inductance measurement
         .i_gain = 0.0f,        // [V/As] should be auto set after resistance and inductance measurement

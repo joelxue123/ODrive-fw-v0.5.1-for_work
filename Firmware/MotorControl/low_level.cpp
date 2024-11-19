@@ -585,20 +585,15 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
 
     // update_brake_current(); todo
     
-    uint32_t ADCValue_dc_a = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_1);
-    uint32_t ADCValue_dc_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_1);
     uint32_t ADCValue_a = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_2);
-    uint32_t ADCValue_c = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_2);
-    smooth_filter(ADCValue_dc_a, &dc_current_a);
-    smooth_filter(ADCValue_dc_c, &dc_current_c);
-    float current_a = axis.motor_.phase_current_from_adcval(ADCValue_a,0.94f);
-    float current_c = axis.motor_.phase_current_from_adcval(ADCValue_c,0.74f);//0.718
-    axis.motor_.DC_calib_.phA = axis.motor_.phase_current_from_adcval(dc_current_a.filtered_value,0.94f);
-    axis.motor_.DC_calib_.phC = axis.motor_.phase_current_from_adcval(dc_current_c.filtered_value,0.74f);
+    uint32_t ADCValue_b = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_2);
+
+    float current_a = axis.motor_.phase_current_from_adcval(ADCValue_a,1.0f);
+    float current_b = axis.motor_.phase_current_from_adcval(ADCValue_b,1.0f);//0.718
 
     axis.motor_.current_meas_.phA = current_a - axis.motor_.DC_calib_.phA;
-    axis.motor_.current_meas_.phC = current_c - axis.motor_.DC_calib_.phC;
-    axis.motor_.current_meas_.phB =  1.06f*(0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phC) ;
+    axis.motor_.current_meas_.phB = current_b - axis.motor_.DC_calib_.phB;
+    axis.motor_.current_meas_.phC =  1.0f*(0 - axis.motor_.current_meas_.phA - axis.motor_.current_meas_.phB) ;
 
    NVIC->STIR = ControlLoop_IRQn;
 }

@@ -388,7 +388,7 @@ float Motor::convert_torque_from_current(float current,float *current2torque_coe
 float Motor::phase_current_from_adcval(uint32_t ADCValue, float phase_current_gain_coeff) {
     int adcval_bal = (int)ADCValue - (1 << 11);
     float amp_out_volt = (3.3f / (float)(1 << 12)) * (float)adcval_bal;
-    float shunt_volt = amp_out_volt * phase_current_rev_gain_;
+    float shunt_volt = amp_out_volt * phase_current_extern_amp_rev_gain_;
     float current = shunt_volt * hw_config_.shunt_conductance * phase_current_gain_coeff;
     return current;
 }
@@ -472,6 +472,31 @@ bool Motor::measure_phase_inductance(float voltage_low, float voltage_high) {
     return true;
 }
 
+
+void Motor::measure_current_offset(void) 
+{
+    size_t t = 0;
+    static const int num_cycles = 5000;
+    
+    float motor_current_a_sum = 0.f;
+    float motor_current_b_sum = 0.f;
+
+    axis_->motor_.DC_calib_.phA = 0.0f;
+    axis_->motor_.DC_calib_.phB = 0.0f;
+    
+    
+    axis_->run_control_loop([&](){
+        motor_current_a_sum += axis_->motor_.current_meas_.phA;
+        motor_current_b_sum += axis_->motor_.current_meas_.phB;
+        return ++t < (num_cycles);
+    });
+
+    
+    axis_->motor_.DC_calib_.phA = motor_current_a_sum / (float)num_cycles;
+    axis_->motor_.DC_calib_.phB = motor_current_b_sum / (float)num_cycles;
+    
+
+}
 
 bool Motor::run_calibration() {
     float R_calib_max_voltage = config_.resistance_calib_max_voltage;
