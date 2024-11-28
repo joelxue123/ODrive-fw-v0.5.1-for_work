@@ -359,7 +359,7 @@ bool Encoder::abs_spi_init(){
     spi->Init.CLKPolarity = SPI_POLARITY_HIGH;
     spi->Init.CLKPhase = SPI_PHASE_2EDGE;
     spi->Init.NSS = SPI_NSS_SOFT;
-    spi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+    spi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
     spi->Init.FirstBit = SPI_FIRSTBIT_MSB;
     spi->Init.TIMode = SPI_TIMODE_DISABLE;
     spi->Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -378,7 +378,7 @@ bool Encoder::abs_spi_init(){
     spi->Init.CLKPolarity = SPI_POLARITY_HIGH;
     spi->Init.CLKPhase = SPI_PHASE_2EDGE;
     spi->Init.NSS = SPI_NSS_SOFT;
-    spi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+    spi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
     spi->Init.FirstBit = SPI_FIRSTBIT_MSB;
     spi->Init.TIMode = SPI_TIMODE_DISABLE;
     spi->Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -660,6 +660,8 @@ bool Encoder::update() {
         case MODE_SPI_ABS_CUI: 
         case MODE_SPI_ABS_AEAT: {
 
+        axis_->motor_.log_timing(TIMING_LOG_ENC_CALIB);
+
             uint32_t rawVal = *(uint32_t *)&abs_spi_dma_rx_[0];
             pos_abs_  = ((rawVal & 0x0000ff00)) | ( (rawVal & 0x00ff0000)>>16 ) ;
             pos_abs_ = config_.cpr - pos_abs_; //取反
@@ -671,7 +673,7 @@ bool Encoder::update() {
                     //todo                    
             } else {
                // bool dma_flag = __HAL_DMA_GET_FLAG(hw_config_.motor_spi->hdmatx, DMA_FLAG_TCIF1_5);
-                if( (abs_spi_dma_rx_[0] != 0xA6)  ) 
+                if( (abs_spi_dma_rx_[0] != 0xA6) || __HAL_DMA_GET_FLAG(hw_config_.motor_spi->hdmatx, DMA_FLAG_TCIF1_5) == RESET ) 
                 {
                     encoder_error_detected = true;
                    raw_data1_++;

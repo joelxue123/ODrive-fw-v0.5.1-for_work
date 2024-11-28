@@ -152,7 +152,7 @@ public:
         uint32_t offset;       
         
         uint32_t ext_cfg[PARAM_LEN];
-        float position_base = 6.25f;
+        float position_base = 12.5f;
         float speed_base = 18.0f;
         float current_base = 60.0f;    
         bool  gear_vel_used = false;    

@@ -558,10 +558,10 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     constexpr float calib_filter_k = CURRENT_MEAS_PERIOD / calib_tau;
     
 
-    this_sample_time = 2 * htim13.Instance->CNT;
-    axis.motor_.timing_log_[TIMING_LOG_ADC_CB_I] = (8400.f+this_sample_time - last_sample_time);
+    //this_sample_time = 2 * htim13.Instance->CNT;
+    //axis.motor_.timing_log_[TIMING_LOG_ADC_CB_I] = (8400.f+this_sample_time - last_sample_time);
    // current_meas_period = CURRENT_MEAS_PERIOD * (8400.f+this_sample_time - last_sample_time)/8400.0f;  
-    last_sample_time = this_sample_time;   
+   // last_sample_time = this_sample_time;   
     // Ensure ADCs are expected ones to simplify the logic below
     if (!(hadc == &hadc2 || hadc == &hadc3)) {
         low_level_fault(Motor::ERROR_ADC_FAILED);
@@ -575,6 +575,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     
     int axis_num = 0;
     axis.encoder_.abs_start_transaction();
+    axis.motor_.log_timing(TIMING_LOG_GENERAL);
     vbus_sense_adc_cb(&hadc1,true);
     
     // Check the timing of the sequencing
