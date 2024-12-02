@@ -369,6 +369,8 @@ interfaces:
       trap_traj: TrapezoidalTrajectory
       min_endstop: Endstop
       max_endstop: Endstop
+      is_gear_position: { type: bool, c_setter: set_encos_position_src }
+      pos_src_value: { type: float32, c_name: "pos_src_[0]" } 
     functions:
       watchdog_feed:
         doc: Feed the watchdog to prevent watchdog timeouts.

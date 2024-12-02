@@ -195,7 +195,7 @@ public:
     float Id_filter = 0;
     float Iq_filter2 = 0;
     float Id_filter2 = 0;
-    float Idq_filter_k_ = 0.4f;
+    float Idq_filter_k_ = 0.04f;
     float Idq_filter_k2_ = 0.01f;
     bool using_old_torque_constant_ = true;
     float L_Slop_Array_P_[NUM_LINEARITY_SEG] = {2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f,2.5f};

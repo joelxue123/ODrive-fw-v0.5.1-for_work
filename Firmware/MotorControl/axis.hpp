@@ -402,6 +402,23 @@ bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
     bool checks_ok_ = true;
 
     uint32_t set_torque_raw_data_ = 0;
+
+    
+    bool is_gear_position_ = true;
+    float* pos_src_ = nullptr;
+    void set_encos_position_src(bool value){
+        is_gear_position_ = value;
+        if(true == is_gear_position_ )
+        {
+            pos_src_ = &encoder_.gearboxpos_;
+        }
+        else
+        {
+            pos_src_ = &encoder_.pos_estimate_;
+        }
+        
+    }
+
 };
 
 

@@ -89,7 +89,8 @@ void Axis::get_axis_state(axis_state_t* state)
     float actual_torque = motor_.convert_torque_from_current(motor_.current_control_.Iq_measured, motor_.config_.CURRENT2TORQUE_COEFF, motor_.NUM_LINEARITY_SEG,  motor_.CALIBRATION_INCREMENT);
     state->erro =  axis_state_.erro;
     
-    state->pos = saturation((int32_t)(encoder_.gearboxpos_ * position_coeff_motor2encos +32768),0,65535 );   // 2pi*12.5*32768
+    
+    state->pos = saturation((int32_t)((*pos_src_) * position_coeff_motor2encos +32768),0,65535 );   // 2pi*12.5*32768
     //state->pos =(int16_t)(encoder_.gearboxpos_ * position_coeff_motor2encos +32768);   // 2pi*12.5*32768
     if(config_.gear_vel_used == true)
     {
@@ -159,6 +160,7 @@ void Axis::setup() {
     current_coeff_motor2encos = 2048.0f/config_.current_base;
     // Does nothing - Motor and encoder setup called separately.
     axis_state_.erro = 0;
+    pos_src_ = &encoder_.gearboxpos_;
 }
 
 static void run_state_machine_loop_wrapper(void* ctx) {

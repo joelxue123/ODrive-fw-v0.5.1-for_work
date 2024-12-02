@@ -492,8 +492,8 @@ void Motor::measure_current_offset(void)
     });
 
     
-    axis_->motor_.DC_calib_.phA = motor_current_a_sum / (float)num_cycles;
-    axis_->motor_.DC_calib_.phB = motor_current_b_sum / (float)num_cycles;
+    axis_->motor_.DC_calib_.phA = motor_current_a_sum / (float)(num_cycles - 1);
+    axis_->motor_.DC_calib_.phB = motor_current_b_sum / (float)(num_cycles - 1);
     
 
 }
