@@ -42,13 +42,15 @@ public:
         EXT_CONFIG_REG_ENABLE_DC_BUS_OVER_VOLTAGE_FILTER = 1,
         EXT_CONFIG_REG_ENABLE_DC_BUS_UNDER_VOLTAGE_FILTER = 2,
         EXT_CONFIG_REG_ENABLE_OVER_TEMP_FILTER = 3,
-        EXT_CONFIG_REG_ENABLE_CURRENT_LIMIT_VIOLATION_FILTER = 4
+        EXT_CONFIG_REG_ENABLE_CURRENT_LIMIT_VIOLATION_FILTER = 4,
+        EXT_CONFIG_REG_KP_GAIN= 5,
+        EXT_CONFIG_REG_KD_GAIN= 6,
 
     };
     typedef void (*ext_config_reg_callback_fun)(class Axis *axis,uint32_t reg_value);
     ext_config_reg_callback_fun ext_config_reg_callback_fun_[PARAM_LEN] =
     {
-        enable_notch_filter,
+        nullptr,
         nullptr,
         nullptr,
         nullptr,
@@ -113,6 +115,7 @@ public:
         nullptr,
         nullptr,
     };
+
 
     static LockinConfig_t default_calibration();
     static LockinConfig_t default_sensorless();
@@ -161,6 +164,20 @@ public:
         void set_step_gpio_pin(uint16_t value) { step_gpio_pin = value; parent->decode_step_dir_pins(); }
         void set_dir_gpio_pin(uint16_t value) { dir_gpio_pin = value; parent->decode_step_dir_pins(); }
     };
+    float kp_gain_ = 3.0f;
+    float kd_gain_ = 3.0f;
+    bool set_ext_config(const uint32_t reg, const uint32_t value) {
+        if (reg < PARAM_LEN) {
+            config_.ext_cfg[reg] = value;
+            if(ext_config_reg_callback_fun_[reg])
+            {
+                ext_config_reg_callback_fun_[reg](this,value);
+            }
+            return true;
+        }
+        return false;
+    }
+
 
     struct Homing_t {
         bool is_homed = false;
@@ -206,9 +223,10 @@ bool set_nodeID(uint32_t id) {
 bool get_nodeID(uint32_t &id) { id = config_.can_node_id; return true; };
 
 
-    enum thread_signals {
-        M_SIGNAL_PH_CURRENT_MEAS = 1u << 0
-    };
+
+enum thread_signals {
+    M_SIGNAL_PH_CURRENT_MEAS = 1u << 0
+};
 
     Axis(int axis_num,
             const AxisHardwareConfig_t& hw_config,

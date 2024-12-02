@@ -81,6 +81,30 @@ void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
                     encos_ack_type_1(axis);
                 }
                 break;
+            case 6:
+                {
+                    bool success = false;
+                    uint32_t reg_addr = (msg.buf[1]<<8) | msg.buf[2];
+                    uint32_t reg_num = msg.buf[3];
+                    // Validate message length (following pattern from other handlers)
+                    if (msg.len != 8 || reg_num > 2) { // Max 2 registers per message due to 8-byte limit
+                        success = false;
+                    } else {
+                        for (int i = 0; i < reg_num && success; i++) {
+                            uint32_t value = (msg.buf[4 + i*2] << 8) + msg.buf[5 + i*2];
+                            success &= axis->set_ext_config(reg_addr + i, value);
+                        }
+
+                        if (success) {
+                            odrv.save_configuration();
+                        }
+                    }
+                    encos_ack_type_1(axis);
+                    
+                }
+                break;
+            default:
+                break;
             }
             break;
         }

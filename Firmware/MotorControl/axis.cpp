@@ -114,14 +114,14 @@ void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
 
     motor_.using_old_torque_constant_ = false;
 
-    controller_.config_.kp = ((float)axis_pvt_parm->kp)*1.0f;   //1000/4096
+    controller_.config_.kp =  kp_gain_*((float)axis_pvt_parm->kp)*1.0f;   //1000/4096
     if(config_.gear_vel_used == true)
     {
-        controller_.config_.kd = ((float)axis_pvt_parm->kd) * 0.1953f;      // 100/512
+        controller_.config_.kd = kd_gain_*((float)axis_pvt_parm->kd) * 0.1953f;      // 100/512
     }
     else
     {
-        controller_.config_.kd = ((float)axis_pvt_parm->kd) * 0.0195f;      // 10/512
+        controller_.config_.kd = kd_gain_*((float)axis_pvt_parm->kd) * 0.0195f;      // 10/512
     }
     
     controller_.pos_setpoint_ = (axis_pvt_parm->pos_setpoint - 32768)*position_coeff_encos2motor;  //12.5/2/pi / 32768
@@ -161,6 +161,17 @@ void Axis::setup() {
     // Does nothing - Motor and encoder setup called separately.
     axis_state_.erro = 0;
     pos_src_ = &encoder_.gearboxpos_;
+    if(config_.ext_cfg[EXT_CONFIG_REG_KP_GAIN] != 0)
+    {
+        kp_gain_ = (float)config_.ext_cfg[EXT_CONFIG_REG_KP_GAIN]/10.f;
+        kd_gain_ = (float)config_.ext_cfg[EXT_CONFIG_REG_KD_GAIN]/10.f;  
+    }
+    else
+    {
+        kp_gain_ = 3.0f;
+        kd_gain_ = 3.0f;
+    }
+   
 }
 
 static void run_state_machine_loop_wrapper(void* ctx) {

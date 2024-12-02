@@ -59,6 +59,10 @@
         "thread": "cpp",
         "odrive_main.h": "c",
         "usart.h": "c",
-        "optional": "cpp"
+        "optional": "cpp",
+        "*.ipp": "cpp",
+        "variant": "cpp",
+        "climits": "cpp",
+        "cfloat": "cpp"
     }
 }
