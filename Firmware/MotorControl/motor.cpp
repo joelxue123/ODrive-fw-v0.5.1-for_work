@@ -98,7 +98,7 @@ void Motor::DRV8301_setup() {
     if(gain_snap_down == gain_choices.crend())
        --gain_snap_down;
 
-    // Values for current controller
+    // Values for current controller                                
     phase_current_rev_gain_ = 1.0f / gain_snap_down->first;
     // Clip all current control to actual usable range
     current_control_.max_allowed_current = max_unity_gain_current * phase_current_rev_gain_;
