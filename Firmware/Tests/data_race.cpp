@@ -9,13 +9,13 @@ void increment_function() {
     }
 }
 
-int main() {
-    std::thread t1(increment_function);
-    std::thread t2(increment_function);
+// int main() {
+//     std::thread t1(increment_function);
+//     std::thread t2(increment_function);
 
-    t1.join();
-    t2.join();
+//     t1.join();
+//     t2.join();
 
-    std::cout << "Final value: " << shared_variable << std::endl;
-    return 0;
-}
+//     std::cout << "Final value: " << shared_variable << std::endl;
+//     return 0;
+// }

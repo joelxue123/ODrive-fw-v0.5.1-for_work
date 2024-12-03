@@ -47,74 +47,27 @@ public:
         EXT_CONFIG_REG_KD_GAIN= 6,
 
     };
-    typedef void (*ext_config_reg_callback_fun)(class Axis *axis,uint32_t reg_value);
-    ext_config_reg_callback_fun ext_config_reg_callback_fun_[PARAM_LEN] =
-    {
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-        nullptr,
-    };
+
+typedef void (*ext_config_reg_callback_fun)(class Axis* axis, const uint32_t reg_value);
+ 
+
+
+ typedef struct 
+{
+    enum EXT_CONFIG_REG reg;
+    ext_config_reg_callback_fun callback;
+
+}ext_config_reg_callback_fun_t;
+
+ext_config_reg_callback_fun_t ext_config_reg_callback_fun_[PARAM_LEN] = {
+    {EXT_CONFIG_REG_ENABLE_NOTCH_FILTER, nullptr},
+    {EXT_CONFIG_REG_ENABLE_DC_BUS_OVER_VOLTAGE_FILTER, nullptr},
+    {EXT_CONFIG_REG_ENABLE_DC_BUS_UNDER_VOLTAGE_FILTER, nullptr},
+    {EXT_CONFIG_REG_ENABLE_OVER_TEMP_FILTER, nullptr},
+    {EXT_CONFIG_REG_ENABLE_CURRENT_LIMIT_VIOLATION_FILTER, nullptr},
+    {EXT_CONFIG_REG_KP_GAIN, [](class Axis* axis, const uint32_t value) { axis->kp_gain_ = value; }},
+    {EXT_CONFIG_REG_KD_GAIN, [](class Axis* axis, const uint32_t value) { axis->kd_gain_ = value; }}
+};
 
 
     static LockinConfig_t default_calibration();
@@ -169,9 +122,13 @@ public:
     bool set_ext_config(const uint32_t reg, const uint32_t value) {
         if (reg < PARAM_LEN) {
             config_.ext_cfg[reg] = value;
-            if(ext_config_reg_callback_fun_[reg])
-            {
-                ext_config_reg_callback_fun_[reg](this,value);
+            // 使用传统的索引遍历
+            for(uint32_t i = 0; i < sizeof(ext_config_reg_callback_fun_)/sizeof(ext_config_reg_callback_fun_t); ++i) {
+                if(ext_config_reg_callback_fun_[i].reg == reg && 
+                ext_config_reg_callback_fun_[i].callback != nullptr) {
+                    ext_config_reg_callback_fun_[i].callback(this,value);
+                    break;
+                }
             }
             return true;
         }
