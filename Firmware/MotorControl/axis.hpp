@@ -65,8 +65,8 @@ ext_config_reg_callback_fun_t ext_config_reg_callback_fun_[PARAM_LEN] = {
     {EXT_CONFIG_REG_ENABLE_DC_BUS_UNDER_VOLTAGE_FILTER, nullptr},
     {EXT_CONFIG_REG_ENABLE_OVER_TEMP_FILTER, nullptr},
     {EXT_CONFIG_REG_ENABLE_CURRENT_LIMIT_VIOLATION_FILTER, nullptr},
-    {EXT_CONFIG_REG_KP_GAIN, [](class Axis* axis, const uint32_t value) { axis->kp_gain_ = value; }},
-    {EXT_CONFIG_REG_KD_GAIN, [](class Axis* axis, const uint32_t value) { axis->kd_gain_ = value; }}
+    {EXT_CONFIG_REG_KP_GAIN, [](class Axis* axis, const uint32_t value) { axis->kp_gain_ = value/10.f; }},
+    {EXT_CONFIG_REG_KD_GAIN, [](class Axis* axis, const uint32_t value) { axis->kd_gain_ = value/10.f; }}
 };
 
 
