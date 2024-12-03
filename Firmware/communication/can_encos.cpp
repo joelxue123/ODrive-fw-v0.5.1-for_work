@@ -66,7 +66,8 @@ void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
             }
             break;
         case 8:
-            switch (msg.buf[0] >> 5) {
+            int cmd =msg.buf[0] >> 5;
+            switch (cmd) {
             case 0:
                 {
                     encos_cmd_pvt_t *cmd = (encos_cmd_pvt_t *)msg.buf;
@@ -81,28 +82,7 @@ void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
                     encos_ack_type_1(axis);
                 }
                 break;
-            case 6:
-                {
-                    bool success = false;
-                    uint32_t reg_addr = (msg.buf[1]<<8) | msg.buf[2];
-                    uint32_t reg_num = msg.buf[3];
-                    // Validate message length (following pattern from other handlers)
-                    if (msg.len != 8 || reg_num > 2) { // Max 2 registers per message due to 8-byte limit
-                        success = false;
-                    } else {
-                        for (int i = 0; i < reg_num && success; i++) {
-                            uint32_t value = (msg.buf[4 + i*2] << 8) + msg.buf[5 + i*2];
-                            success &= axis->set_ext_config(reg_addr + i, value);
-                        }
 
-                        if (success) {
-                            odrv.save_configuration();
-                        }
-                    }
-                    encos_ack_type_1(axis);
-                    
-                }
-                break;
             default:
                 break;
             }
@@ -213,25 +193,26 @@ void encos_cmd_handle(Axis* &axis, can_Message_t& msg)
             break;
         }
     } else if (0x7FE == msg.id && msg.len >= 3) {
-        uint32_t id = (msg.buf[0] << 8) + msg.buf[1];
+        uint32_t id = msg.buf[0];
         if (axis->config_.can_node_id == id) {
-            uint8_t index = msg.buf[2];
-            bool success = false;
 
-            if (0xFF == index) {
-                odrv.save_configuration();
-                success = true;
-            } else if (index < sizeof(axis->config_.ext_cfg) / sizeof(axis->config_.ext_cfg[0])) {
-                if (7 == msg.len){
-                    uint32_t value = (msg.buf[3] << 24) + (msg.buf[4] << 16) + (msg.buf[5] << 8) + msg.buf[6];
-                    axis->config_.ext_cfg[index] = value;
-                    success = true;
-                    if(axis->ext_config_reg_callback_fun_[index])
-                    {
-                        axis->ext_config_reg_callback_fun_[index](axis,value);
-                    }
+            bool success = true;
+            uint32_t reg_addr = (msg.buf[1]<<8) | msg.buf[2];
+            uint32_t reg_num = msg.buf[3];
+            // Validate message length (following pattern from other handlers)
+            if (msg.len != 8 || reg_num > 2) { // Max 2 registers per message due to 8-byte limit
+                success = false;
+            } else {
+                for (int i = 0; i < reg_num && success; i++) {
+                    uint32_t value = (msg.buf[4 + i*2] << 8) + msg.buf[5 + i*2];
+                    success &= axis->set_ext_config(reg_addr + i, value);
+                }
+
+                if (success) {
+                    odrv.save_configuration();
                 }
             }
+
 
             can_Message_t txmsg;
             txmsg.id = 0x7FE;
@@ -254,7 +235,7 @@ void CANEncos::handle_can_message(can_Message_t& msg)
         if (axes[i]->config_.can_node_id_extended != msg.isExt)
             continue;
 
-        if (0x7FF == msg.id) {
+        if (0x7FF == msg.id || 0x7FE == msg.id) {
             encos_cmd_handle(axes[i], msg);
             continue;
         }
