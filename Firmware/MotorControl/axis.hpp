@@ -117,8 +117,8 @@ ext_config_reg_callback_fun_t ext_config_reg_callback_fun_[PARAM_LEN] = {
         void set_step_gpio_pin(uint16_t value) { step_gpio_pin = value; parent->decode_step_dir_pins(); }
         void set_dir_gpio_pin(uint16_t value) { dir_gpio_pin = value; parent->decode_step_dir_pins(); }
     };
-    float kp_gain_ = 3.0f;
-    float kd_gain_ = 3.0f;
+    float kp_gain_ = 1.0f;
+    float kd_gain_ = 1.0f;
     bool set_ext_config(const uint32_t reg, const uint32_t value) {
         if (reg < PARAM_LEN) {
             config_.ext_cfg[reg] = value;
@@ -364,11 +364,11 @@ enum thread_signals {
     float gear_ratio_inverse_ = 1.0f/16.f;
     float position_base_inverse_ = 12.5f;
     float speed_base_inverse_ = 18.0f;
-    float current_base_inverse_ = 120.0f;  
-    float speed_coeff_motor2encos = 2*M_PI*2048/18.0f/16.0f;
-    float speed_coeff_encos2motor = 18.0f*16.0f/(2*M_PI*2048);
-    float position_coeff_motor2encos = 2*M_PI*32768/6.25f;
-    float position_coeff_encos2motor = 6.25f / (2*M_PI*32768);
+    float current_base_inverse_ = 70.0f;  
+    float speed_coeff_motor2encos = 2048/18.0f/16.0f;
+    float speed_coeff_encos2motor = 18.0f*16.0f/(2048);
+    float position_coeff_motor2encos = 32768/12.5f;
+    float position_coeff_encos2motor = 12.5f / (32768);
     float current_coeff_motor2encos = 2048.0f/60.f;
     float can_raw_ = 0.0f;
     
