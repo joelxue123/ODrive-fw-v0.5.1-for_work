@@ -1,4 +1,4 @@
-data = importdata("BoosterMotorEncosTest.csv");
+data = importdata("BoosterMotorEncosTest0_1_90.csv");
 
 x = data.data(:,13);
 y = data.data(:,3)*180/3.1415;

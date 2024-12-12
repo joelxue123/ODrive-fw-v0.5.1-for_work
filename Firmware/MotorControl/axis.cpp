@@ -168,8 +168,8 @@ void Axis::setup() {
     }
     else
     {
-        kp_gain_ = 3.0f;
-        kd_gain_ = 3.0f;
+        kp_gain_ = 1.0f;
+        kd_gain_ = 1.0f;
     }
    
 }
