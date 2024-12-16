@@ -365,8 +365,8 @@ enum thread_signals {
     float position_base_inverse_ = 12.5f;
     float speed_base_inverse_ = 18.0f;
     float current_base_inverse_ = 70.0f;  
-    float speed_coeff_motor2encos = 2048/18.0f/16.0f;
-    float speed_coeff_encos2motor = 18.0f*16.0f/(2048);
+    float speed_coeff_motor2encos = 2048/18.0f;
+    float speed_coeff_encos2motor = 18.0f/(2048);
     float position_coeff_motor2encos = 32768/12.5f;
     float position_coeff_encos2motor = 12.5f / (32768);
     float current_coeff_motor2encos = 2048.0f/60.f;
@@ -385,11 +385,11 @@ enum thread_signals {
         is_gear_position_ = value;
         if(true == is_gear_position_ )
         {
-            pos_src_ = &encoder_.gearboxpos_;
+            pos_src_ = &encoder_.gear_boxpos_rad_;
         }
         else
         {
-            pos_src_ = &encoder_.pos_estimate_;
+            pos_src_ = &encoder_.pos_estimate_rad_;
         }
         
     }

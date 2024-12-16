@@ -733,7 +733,8 @@ bool Encoder::update() {
             }
             
             GearboxOutputEncoder_counts = GearboxOutputEncoder_turns_*2*HALF_CPR+ gear_single_turn_abs_by_user_;
-            gearboxpos_ = GearboxOutputEncoder_counts * GearboxOutputEncoder_cpr_inverse_;
+            gearboxpos_ = GearboxOutputEncoder_counts * GearboxOutputEncoder_cpr_inverse_; 
+            gear_boxpos_rad_ = gearboxpos_ * 2 * PI;
             
 
         }break;
@@ -794,10 +795,12 @@ bool Encoder::update() {
 
 
     vel_estimate_ = vel_estimate_counts_ * cpr_inverse_;
-    gear_vel_estimate_ = gear_vel_estimate_counts_ * GearboxOutputEncoder_cpr_inverse_;
+    gear_vel_estimate_rad_ = vel_estimate_ * 2.0f * M_PI*axis_->gear_ratio_inverse_;
+    gear_outside_vel_estimate_rad_ = gear_vel_estimate_counts_ * GearboxOutputEncoder_cpr_inverse_* 2.0f * M_PI;
 
     float pos_cpr_last = pos_cpr_;
     pos_estimate_ = pos_estimate_counts_ / (float)config_.cpr;
+    pos_estimate_rad_  = pos_estimate_ * 2.0f * M_PI;
     
 
     //// run encoder count interpolation

@@ -90,11 +90,16 @@ void Axis::get_axis_state(axis_state_t* state)
     state->erro =  axis_state_.erro;
     
     
-    state->pos = saturation((int32_t)((*pos_src_) * position_coeff_motor2encos*2*M_PI +32768),0,65535 );   // 2pi*12.5*32768
-    //state->pos =(int16_t)(encoder_.gearboxpos_ * position_coeff_motor2encos +32768);   // 2pi*12.5*32768
+    state->pos = saturation((int32_t)((*pos_src_) * position_coeff_motor2encos +32768),0,65535 );   // 2pi*12.5*32768
 
-    state->vel = saturation((int32_t)(2*M_PI*encoder_.vel_estimate_ * speed_coeff_motor2encos + 2048),0,4095);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
-
+    if(config_.gear_vel_used == true)
+    {
+        state->vel = saturation((int32_t)(encoder_.gear_outside_vel_estimate_rad_ * speed_coeff_motor2encos + 2048),0,4095);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
+    }
+    else
+    {
+        state->vel = saturation((int32_t)(encoder_.gear_vel_estimate_rad_ *speed_coeff_motor2encos + 2048),0,4095);   // 1/2/pi/36*2048/16将速度的系数再减半 22.3402f
+    }
    
     state->cur = saturation((int32_t)(actual_torque *current_coeff_motor2encos + 2048),10,4090);  //这是有问题的代码，不要忘记 2024-10-8
     state->motor_temperature = (int32_t)fet_thermistor_.aux_temperature_ *2 + 50 ;
@@ -113,8 +118,8 @@ void Axis::set_axis_pvt_parm(axis_pvt_parm_t *axis_pvt_parm)
 
     controller_.config_.kd = kd_gain_*((float)axis_pvt_parm->kd) *0.009765625f;      // 5/512
     
-    controller_.pos_setpoint_ = (axis_pvt_parm->pos_setpoint - 32768)*position_coeff_encos2motor;  //12.5/2/pi / 32768
-    controller_.vel_setpoint_ = (axis_pvt_parm->vel_setpoint - 2048) * speed_coeff_encos2motor;   // 36/2/pi / 2048
+    controller_.pos_setpoint_ = (axis_pvt_parm->pos_setpoint - 32768)*position_coeff_encos2motor;  //12.5/ 32768
+    controller_.vel_setpoint_ = (axis_pvt_parm->vel_setpoint - 2048) * speed_coeff_encos2motor;   // 18/ 2048
 
     torque_setpoint = axis_pvt_parm->torque_setpoint - 2048;
     controller_.input_torque_ = torque_setpoint*motor_.config_.motor_torque_base * 4.8828e-04f;
@@ -133,23 +138,17 @@ void Axis::set_axis_current(int16_t current)
 
 // @brief Does Nothing
 void Axis::setup() {
-    gear_ratio_inverse_  = 1/motor_.config_.gear_ratio;
-    if(config_.gear_vel_used == true)
-    {
-        speed_coeff_motor2encos = 2048/config_.speed_base;
-    }
-    else
-    {
-        speed_coeff_motor2encos = 2048/config_.speed_base/motor_.config_.gear_ratio;
-    }
-    
+    gear_ratio_inverse_  = 1.0f/motor_.config_.gear_ratio;
+
+    speed_coeff_motor2encos = 2048/config_.speed_base;
+
     speed_coeff_encos2motor = 1.0f / speed_coeff_motor2encos;
     position_coeff_motor2encos = 32768/config_.position_base;
     position_coeff_encos2motor = 1.0f / position_coeff_motor2encos;
     current_coeff_motor2encos = 2048.0f/config_.current_base;
     // Does nothing - Motor and encoder setup called separately.
     axis_state_.erro = 0;
-    pos_src_ = &encoder_.gearboxpos_;
+    pos_src_ = &encoder_.gear_boxpos_rad_;
     if(config_.ext_cfg[EXT_CONFIG_REG_KP_GAIN] != 0)
     {
         kp_gain_ = (float)config_.ext_cfg[EXT_CONFIG_REG_KP_GAIN]/10.f;

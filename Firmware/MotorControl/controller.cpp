@@ -34,7 +34,7 @@ bool Controller::select_encoder(size_t encoder_num) {
         pos_wrap_src_ = &config_.circular_setpoint_range;
         pos_estimate_linear_src_ = &ax->encoder_.pos_estimate_;
         pos_estimate_valid_src_ = &ax->encoder_.pos_estimate_valid_;
-        vel_estimate_src_ = &ax->encoder_.vel_estimate_;
+        vel_estimate_src_ = &ax->encoder_.gear_vel_estimate_rad_;
         vel_estimate_valid_src_ = &ax->encoder_.vel_estimate_valid_;
         return true;
     } else {
@@ -172,8 +172,14 @@ bool Controller::update(float* torque_setpoint_output) {
         float kp = config_.kp;
         float kd = config_.kd;
         
-
-        torque = kp*(pos_setpoint_ - axis_->encoder_.gearboxpos_*2*M_PI) + input_torque_ + kd*(vel_setpoint_ - (*vel_estimate_src)*2*M_PI*axis_->gear_ratio_inverse_);
+        if(axis_->config_.gear_vel_used == true)
+        {
+            torque = kp*(pos_setpoint_ - axis_->encoder_.gear_boxpos_rad_) + input_torque_ + kd*(vel_setpoint_ - axis_->encoder_.gear_outside_vel_estimate_rad_);
+        }
+        else
+        {
+            torque = kp*(pos_setpoint_ - axis_->encoder_.gear_boxpos_rad_) + input_torque_ + kd*(vel_setpoint_ - (*vel_estimate_src));
+        }
 
         
         float vel_gain = config_.vel_gain;

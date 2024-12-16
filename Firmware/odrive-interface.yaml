@@ -373,6 +373,7 @@ interfaces:
       pos_src_value: { type: float32, c_name: "pos_src_[0]" } 
       kp_gain:  float32
       kd_gain:  float32
+      gear_ratio_inverse: float32
       
     functions:
       watchdog_feed:
@@ -838,18 +839,20 @@ interfaces:
       phase: readonly float32
       pos_estimate: readonly float32
       gearboxpos: readonly float32
+      gear_boxpos_rad: readonly float32
       pos_estimate_counts: readonly float32
       pos_cpr: readonly float32
       pos_cpr_counts: readonly float32
       pos_circular: readonly float32
       hall_state: readonly uint8
       vel_estimate: readonly float32
+      gear_vel_estimate_rad: readonly float32
       vel_estimate_counts: readonly float32
       calib_scan_response: readonly float32
       pos_abs: int32
       sencond_pos_abs: int32
       spi_error_rate: readonly float32
-      gear_vel_estimate: float32  
+      gear_outside_vel_estimate_rad: float32  
       raw_data1: uint32
       config:
         c_is_class: False

@@ -103,11 +103,14 @@ public:
     float spi_error_rate_ = 0.0f;
 
     float pos_estimate_ = 0.0f; // [turn]
+    float pos_estimate_rad_ = 0.0f;// rad
     float vel_estimate_ = 0.0f; // [turn/s]
+    float gear_vel_estimate_rad_ = 0.0f; // [rad/s]
     float pos_cpr_ = 0.0f;      // [turn]
     float pos_circular_ = 0.0f; // [turn]
 
     float gearboxpos_ = 0;
+    float gear_boxpos_rad_ = 0;// [rad]
     
     bool pos_estimate_valid_ = false;
     bool vel_estimate_valid_ = false;
@@ -117,7 +120,7 @@ public:
 
     float gear_pos_cpr_counts_ = 0.0f;
     float gear_vel_estimate_counts_ = 0.0f;
-    float gear_vel_estimate_ = 0.0f;
+    float gear_outside_vel_estimate_rad_ = 0.0f;
 
 
 
