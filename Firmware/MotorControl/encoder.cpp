@@ -135,7 +135,7 @@ void Encoder::set_linear_count(int32_t count) {
 
     //Write hardware last
     hw_config_.timer->Instance->CNT = count;
-
+    config_.Gearoffset = gear_single_turn_abs_;
     cpu_exit_critical(prim);
 }
 
@@ -359,7 +359,7 @@ bool Encoder::abs_spi_init(){
     spi->Init.CLKPolarity = SPI_POLARITY_HIGH;
     spi->Init.CLKPhase = SPI_PHASE_2EDGE;
     spi->Init.NSS = SPI_NSS_SOFT;
-    spi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+    spi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
     spi->Init.FirstBit = SPI_FIRSTBIT_MSB;
     spi->Init.TIMode = SPI_TIMODE_DISABLE;
     spi->Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -378,7 +378,7 @@ bool Encoder::abs_spi_init(){
     spi->Init.CLKPolarity = SPI_POLARITY_HIGH;
     spi->Init.CLKPhase = SPI_PHASE_2EDGE;
     spi->Init.NSS = SPI_NSS_SOFT;
-    spi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
+    spi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
     spi->Init.FirstBit = SPI_FIRSTBIT_MSB;
     spi->Init.TIMode = SPI_TIMODE_DISABLE;
     spi->Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -520,10 +520,10 @@ bool Encoder::abs_spi_start_transaction(){
         HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_, GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_RESET);
         
       //  HAL_SPI_TransmitReceive_DMA(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 3);
-        transmit_spi(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
+        transmit_spi(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 6);
         
       //  HAL_SPI_TransmitReceive_DMA(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
-        transmit_spi(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 4); 
+        transmit_spi(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 6); 
         abs_spi_pos_updated_ = true;
     }
     return true;
@@ -661,7 +661,7 @@ bool Encoder::update() {
         case MODE_SPI_ABS_AEAT: {
 
             uint32_t rawVal = *(uint32_t *)&abs_spi_dma_rx_[0];
-            pos_abs_  = ((rawVal & 0x0000ff00)) | ( (rawVal & 0x00ff0000)>>16 ) ;
+            pos_abs_  = (abs_spi_dma_rx_[2]<<13) | (abs_spi_dma_rx_[1]<<5) | (abs_spi_dma_rx_[0]>>3) ;
             pos_abs_ = config_.cpr - pos_abs_; //取反
 
 
@@ -671,7 +671,7 @@ bool Encoder::update() {
                     //todo                    
             } else {
                // bool dma_flag = __HAL_DMA_GET_FLAG(hw_config_.motor_spi->hdmatx, DMA_FLAG_TCIF1_5);
-                if( (abs_spi_dma_rx_[0] != 0xA6)  ) 
+                if( (abs_spi_dma_rx_[0] != 0xA0)  ) 
                 {
                     encoder_error_detected = true;
                    raw_data1_++;
@@ -694,13 +694,15 @@ bool Encoder::update() {
             }
 
             rawVal = *(uint32_t *)&GearboxOutputEncoder_spi_dma_rx_[0];
-            sencond_pos_abs_ =  ((rawVal & 0x0000ff00)<<8) | ( (rawVal & 0x00ff0000)>>8 )| ( (rawVal & 0xff000000)>>24 )  ;
-            sencond_pos_abs_ >>= 6;
-            sencond_pos_abs_ = config_.GearboxOutputEncoder_cpr - sencond_pos_abs_; //取反
+            sencond_pos_abs_ =  (GearboxOutputEncoder_spi_dma_rx_[2]<<16) | (GearboxOutputEncoder_spi_dma_rx_[3]<<8) | (GearboxOutputEncoder_spi_dma_rx_[4]&0xf8) ; ;
+            sencond_pos_abs_ >>= 3;
+            sencond_pos_abs_ =(1<<21) - sencond_pos_abs_; //取反
             
             gear_single_turn_abs_ = sencond_pos_abs_;
 
             gear_single_turn_abs_by_user_ = gear_single_turn_abs_ - config_.Gearoffset;
+            gear_pos_deg_ = (float)gear_single_turn_abs_by_user_ * 360.f /(float)(1<<21);
+
             while(gear_single_turn_abs_by_user_ > HALF_CPR) {
                 gear_single_turn_abs_by_user_ -= 2 * HALF_CPR;
             }

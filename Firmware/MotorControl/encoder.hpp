@@ -38,8 +38,9 @@ public:
         uint16_t sincos_gpio_pin_cos = 4;
 
         uint16_t abs_485_cs_gpio_pin = 2;
-        int32_t GearboxOutputEncoder_cpr = (1<<18);
+        int32_t GearboxOutputEncoder_cpr = (1<<21);
         int32_t Gearoffset = 0;
+        
         // custom setters
         Encoder* parent = nullptr;
         void set_use_index(bool value) { use_index = value; parent->set_idx_subscribe(); }
@@ -101,7 +102,7 @@ public:
     int32_t pos_abs_ = 0;
     int32_t sencond_pos_abs_ = 0;
     float spi_error_rate_ = 0.0f;
-
+    float gear_pos_deg_ = 0.0f;
     float pos_estimate_ = 0.0f; // [turn]
     float vel_estimate_ = 0.0f; // [turn/s]
     float pos_cpr_ = 0.0f;      // [turn]
@@ -136,11 +137,11 @@ public:
     void abs_spi_cs_pin_init();
     void abs_485_cs_pin_init();
     void set_cs_high(void);
-    uint8_t abs_spi_dma_tx_[4] = {0xA6,0x00,0x00,0x00};
-    uint8_t abs_spi_dma_rx_[4];
+    uint8_t abs_spi_dma_tx_[6] = {0xA0,0x03,0x00,0x00,0x00,0x00};
+    uint8_t abs_spi_dma_rx_[6];
 
-    uint8_t GearboxOutputEncoder_spi_dma_tx_[4] = {0xA6,0x00,0x00,0x00};
-    uint8_t GearboxOutputEncoder_spi_dma_rx_[4];
+    uint8_t GearboxOutputEncoder_spi_dma_tx_[6] = {0xA0,0x03,0x00,0x00,0x00,0x00};
+    uint8_t GearboxOutputEncoder_spi_dma_rx_[6];
 
     uint8_t abs_485_dma_tx_[4] = {0xA6,0x00,0x00,0x00};
     uint8_t abs_485_dma_rx_[7];
@@ -156,7 +157,7 @@ public:
     GPIO_TypeDef* GearboxOutputEncoder_spi_cs_port_;
     uint16_t GearboxOutputEncoder_spi_cs_pin_;
 
-    void set_zero_pos (void) { pos_estimate_counts_ = shadow_count_ ;  }
+    void set_zero_pos (void) { pos_estimate_counts_ = shadow_count_ ; }
 
     uint32_t abs_spi_cr1;
     uint32_t abs_spi_cr2;
