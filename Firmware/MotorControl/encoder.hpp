@@ -146,7 +146,7 @@ public:
     bool start_encoder_test_thread();
     bool stop_encoder_test_thread();
 
-    uint8_t abs_spi_dma_tx_[4] = {0xA6,0x00,0x00,0x00};
+    uint8_t abs_spi_dma_tx_[4] = {0x00,0x00,0x00,0x00};
     uint8_t abs_spi_dma_rx_[4];
 
     uint8_t GearboxOutputEncoder_spi_dma_tx_[4] = {0xA6,0x00,0x00,0x00};

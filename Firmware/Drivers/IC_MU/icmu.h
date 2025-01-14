@@ -3,6 +3,7 @@
 
 #include "stdbool.h"
 #include "stdint.h"
+#include "spi_rw.h"
 
 // drivers
 
@@ -13,12 +14,7 @@ extern "C" {
 #endif
 
 
-typedef struct {
-	SPI_HandleTypeDef *spi_handle;
-	GPIO_TypeDef *cs_port;
-	uint16_t cs_pin;
 
-}spi_hardware_t;
 
 extern SPI_HandleTypeDef hspi1;
 
@@ -72,7 +68,7 @@ uint8_t icmu_reg_status(void);
 int8_t get_MU_Value_block(void);
 
 //void SPI1_MU_Init(void);
-void SPI1_Init(void);
+
 void SPI1_MU_DMA_FastRead_Init(void);
 
 void icmu_cmu_mu(uint8_t cmd);

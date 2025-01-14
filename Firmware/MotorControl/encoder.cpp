@@ -45,7 +45,7 @@ void Encoder::setup() {
     GearboxOutputEncoder_spi_hardware_.cs_pin = MU128_2_Pin;
 
     gear_mu150_status_ = icmu_spi_init(&GearboxOutputEncoder_spi_hardware_);
-    motor_mu150_status_ = icmu_spi_init(&motor_spi_hardware_);
+
 
     mode_ = config_.mode;
     abs_spi_cs_pin_init();
@@ -454,7 +454,7 @@ bool Encoder::abs_spi_init(){
     spi->Init.CLKPolarity = SPI_POLARITY_HIGH;
     spi->Init.CLKPhase = SPI_PHASE_2EDGE;
     spi->Init.NSS = SPI_NSS_SOFT;
-    spi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_8;
+    spi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
     spi->Init.FirstBit = SPI_FIRSTBIT_MSB;
     spi->Init.TIMode = SPI_TIMODE_DISABLE;
     spi->Init.CRCCalculation = SPI_CRCCALCULATION_DISABLE;
@@ -615,7 +615,7 @@ bool Encoder::abs_spi_start_transaction(){
         HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_, GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_RESET);
         
       //  HAL_SPI_TransmitReceive_DMA(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 3);
-        transmit_spi(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
+        transmit_spi(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 2);
         
       //  HAL_SPI_TransmitReceive_DMA(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
         transmit_spi(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 4); 
@@ -755,10 +755,12 @@ bool Encoder::update() {
         case MODE_SPI_ABS_CUI: 
         case MODE_SPI_ABS_AEAT: {
 
-        axis_->motor_.log_timing(TIMING_LOG_ENC_CALIB);
-
+            axis_->motor_.log_timing(TIMING_LOG_ENC_CALIB);
+            
             uint32_t rawVal = *(uint32_t *)&abs_spi_dma_rx_[0];
-            pos_abs_  = ((rawVal & 0x0000ff00)) | ( (rawVal & 0x00ff0000)>>16 ) ;
+            
+            pos_abs_ = ((rawVal&0xff)<<8) | ((rawVal&0xff00)>>8);
+            
             pos_abs_ = config_.cpr - pos_abs_; //取反
 
 
@@ -770,7 +772,7 @@ bool Encoder::update() {
                // bool dma_flag = __HAL_DMA_GET_FLAG(hw_config_.motor_spi->hdmatx, DMA_FLAG_TCIF1_5);
                 if( (abs_spi_dma_rx_[0] != 0xA6) || __HAL_DMA_GET_FLAG(hw_config_.motor_spi->hdmatx, DMA_FLAG_TCIF1_5) == RESET ) 
                 {
-                    encoder_error_detected = true;
+                    //encoder_error_detected = true;
                    raw_data1_++;
                 }
                 abs_spi_dma_rx_[0] = 0;
