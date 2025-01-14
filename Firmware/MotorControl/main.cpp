@@ -223,6 +223,7 @@ void vApplicationStackOverflowHook(xTaskHandle *pxTask, signed portCHAR *pcTaskN
 void vApplicationIdleHook(void) {
     if (odrv.system_stats_.fully_booted) {
         odrv.system_stats_.uptime = xTaskGetTickCount();
+        odrv.system_stats_.thread_nums = uxTaskGetNumberOfTasks();
         odrv.system_stats_.min_heap_space = xPortGetMinimumEverFreeHeapSize();
         odrv.system_stats_.min_stack_space_comms = uxTaskGetStackHighWaterMark(comm_thread) * sizeof(StackType_t);
         odrv.system_stats_.min_stack_space_axis0 = uxTaskGetStackHighWaterMark(axes[0]->thread_id_) * sizeof(StackType_t);
@@ -308,7 +309,7 @@ int odrive_main(void) {
         axes[i]->start_thread();
     }
 
-    start_analog_thread();
+    start_analog_fault_thread();
 
     odrv.system_stats_.fully_booted = true;
     return 0;

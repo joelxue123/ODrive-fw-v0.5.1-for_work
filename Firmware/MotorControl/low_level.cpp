@@ -780,7 +780,7 @@ void handle_pulse(int gpio_num, uint32_t high_time) {
     float value = odrv.config_.pwm_mappings[gpio_num - 1].min +
                   (fraction * (odrv.config_.pwm_mappings[gpio_num - 1].max - odrv.config_.pwm_mappings[gpio_num - 1].min));
 
-    fibre::set_endpoint_from_float(odrv.config_.pwm_mappings[gpio_num - 1].endpoint, value);
+    //fibre::set_endpoint_from_float(odrv.config_.pwm_mappings[gpio_num - 1].endpoint, value);
 }
 
 void pwm_in_cb(int channel, uint32_t timestamp) {
@@ -811,24 +811,27 @@ static void update_analog_endpoint(const struct PWMMapping_t *map, int gpio)
 {
     float fraction = get_adc_voltage(get_gpio_port_by_pin(gpio), get_gpio_pin_by_pin(gpio)) / 3.3f;
     float value = map->min + (fraction * (map->max - map->min));
-    fibre::set_endpoint_from_float(map->endpoint, value);
+    //fibre::set_endpoint_from_float(map->endpoint, value);
 }
 
-static void analog_polling_thread(void *)
+static void analog_fault_polling_thread(void *)
 {
     while (true) {
+        // Update analog endpoints
         for (int i = 0; i < GPIO_COUNT; i++) {
             struct PWMMapping_t *map = &odrv.config_.analog_mappings[i];
 
             if (fibre::is_endpoint_ref_valid(map->endpoint))
                 update_analog_endpoint(map, i + 1);
         }
+        //update fault checkout
+
         osDelay(10);
     }
 }
 
-void start_analog_thread() {
-    osThreadDef(thread_def, analog_polling_thread, osPriorityLow, 0, 512 / sizeof(StackType_t));
+void start_analog_fault_thread() {
+    osThreadDef(thread_def, analog_fault_polling_thread, osPriorityLow, 0, 512 / sizeof(StackType_t));
     osThreadCreate(osThread(thread_def), NULL);
 }
 

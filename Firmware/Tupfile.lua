@@ -131,6 +131,9 @@ FLAGS += '-mfloat-abi=hard'
 
 FLAGS += { '-Wall', '-Wdouble-promotion', '-Wfloat-conversion', '-fdata-sections', '-ffunction-sections'}
 
+
+
+
 -- linker flags
 LDFLAGS += '-T'..boarddir..'/STM32F405RGTx_FLASH.ld'
 LDFLAGS += '-L'..boarddir..'/Drivers/CMSIS/Lib' -- lib dir
@@ -144,12 +147,16 @@ if tup.getconfig("DEBUG") == "true" then
     OPT += '-Og'
 else
     OPT += '-O3'
+    
 end
 
 -- common flags for ASM, C and C++
 --OPT += '-ffast-math -fno-finite-math-only'
 tup.append_table(FLAGS, OPT)
 tup.append_table(LDFLAGS, OPT)
+
+
+
 
 toolchain = GCCToolchain('arm-none-eabi-', 'build', FLAGS, LDFLAGS)
 
@@ -167,6 +174,7 @@ end
 -- TODO: cleaner separation of the platform code and the rest
 stm_includes += '.'
 stm_includes += 'Drivers/DRV8301'
+stm_includes += 'Drivers/IC_MU'
 stm_sources += boarddir..'/Src/syscalls.c'
 build{
     name='stm_platform',
@@ -185,6 +193,7 @@ build{
     packages={'stm_platform'},
     sources={
         'Drivers/DRV8301/drv8301.c',
+        'Drivers/IC_MU/icmu.c',
         'MotorControl/utils.cpp',
         'MotorControl/arm_sin_f32.c',
         'MotorControl/arm_cos_f32.c',
@@ -213,6 +222,7 @@ build{
     },
     includes={
         'Drivers/DRV8301',
+        'Drivers/IC_MU',
         'MotorControl',
         'fibre/cpp/include',
         '.',

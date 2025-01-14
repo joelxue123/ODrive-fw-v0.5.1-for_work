@@ -29,6 +29,8 @@ extern uint16_t adc_measurements_[ADC_CHANNEL_COUNT];
 /* Exported macro ------------------------------------------------------------*/
 /* Exported functions --------------------------------------------------------*/
 
+
+
 void safety_critical_arm_motor_pwm(Motor& motor);
 bool safety_critical_disarm_motor_pwm(Motor& motor);
 void safety_critical_apply_motor_pwm_timings(Motor& motor, uint16_t timings[3]);
@@ -56,7 +58,7 @@ float get_adc_voltage(const GPIO_TypeDef* const GPIO_port, uint16_t GPIO_pin);
 uint16_t channel_from_gpio(const GPIO_TypeDef* const GPIO_port, uint16_t GPIO_pin);
 float get_adc_voltage_channel(uint16_t channel);
 void pwm_in_init();
-void start_analog_thread();
+void start_analog_fault_thread();
 
 void update_brake_current();
 

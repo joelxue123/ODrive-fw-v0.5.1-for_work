@@ -4,7 +4,7 @@
 #ifndef __ODRIVE_MAIN_H
 #error "This file should not be included directly. Include odrive_main.h instead."
 #endif
-
+#include "icmu.h"
 
 class Encoder : public ODriveIntf::EncoderIntf {
 public:
@@ -122,7 +122,9 @@ public:
     float gear_vel_estimate_counts_ = 0.0f;
     float gear_outside_vel_estimate_rad_ = 0.0f;
 
-
+    float acceleration_threshold_;
+    float prev_vel_estimate_counts_;
+    float acceleration_estimate_;
 
     int16_t tim_cnt_sample_ = 0; // 
     // Updated by low_level pwm_adc_cb
@@ -139,6 +141,11 @@ public:
     void abs_spi_cs_pin_init();
     void abs_485_cs_pin_init();
     void set_cs_high(void);
+    void mu_wr_reg_init();
+    bool signal_encoder_thread();
+    bool start_encoder_test_thread();
+    bool stop_encoder_test_thread();
+
     uint8_t abs_spi_dma_tx_[4] = {0xA6,0x00,0x00,0x00};
     uint8_t abs_spi_dma_rx_[4];
 
@@ -150,6 +157,13 @@ public:
 
     bool abs_spi_pos_updated_ = false;
     bool first_init_ = true;
+
+
+    uint8_t gear_mu150_status_ = 0;
+    uint8_t motor_mu150_status_ = 0;
+    spi_hardware_t motor_spi_hardware_;
+    spi_hardware_t GearboxOutputEncoder_spi_hardware_;
+
 
     Mode mode_ = MODE_SPI_ABS_RLS;
 

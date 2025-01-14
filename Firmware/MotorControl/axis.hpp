@@ -272,7 +272,11 @@ enum thread_signals {
                 // It's not useful to quit idle since that is the safe action
                 // Also leaving idle would rearm the motors
                 if (current_state_ != AXIS_STATE_IDLE)
+                {
+                    error_ |= ERROR_UNKNOWN_ERROR;
                     break;
+                }
+                    
             }
 
 

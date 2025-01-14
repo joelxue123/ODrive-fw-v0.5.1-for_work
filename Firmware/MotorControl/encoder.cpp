@@ -23,6 +23,9 @@ static void enc_index_cb_wrapper(void* ctx) {
 
 void Encoder::set_cs_high(void)
 {
+    if(config_.is_high_speed_encode_query_enabled == false)
+        return ;
+
     if(mode_ & MODE_FLAG_ABS)
     {  
         HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_SET);
@@ -33,6 +36,16 @@ void Encoder::set_cs_high(void)
 void Encoder::setup() {
    // HAL_TIM_Encoder_Start(hw_config_.timer, TIM_CHANNEL_ALL);
    // set_idx_subscribe();
+    motor_spi_hardware_.spi_handle = &hspi3;
+    motor_spi_hardware_.cs_port = MU128_1_GPIO_Port;
+    motor_spi_hardware_.cs_pin = MU128_1_Pin;
+
+    GearboxOutputEncoder_spi_hardware_.spi_handle = &hspi1;
+    GearboxOutputEncoder_spi_hardware_.cs_port = MU128_2_GPIO_Port;
+    GearboxOutputEncoder_spi_hardware_.cs_pin = MU128_2_Pin;
+
+    gear_mu150_status_ = icmu_spi_init(&GearboxOutputEncoder_spi_hardware_);
+    motor_mu150_status_ = icmu_spi_init(&motor_spi_hardware_);
 
     mode_ = config_.mode;
     abs_spi_cs_pin_init();
@@ -51,7 +64,88 @@ void Encoder::setup() {
     
     cpr_inverse_ = 1.0f / config_.cpr;
     GearboxOutputEncoder_cpr_inverse_ = 1.0f / config_.GearboxOutputEncoder_cpr;
+        // Initialize previous velocity for acceleration calculation
+    prev_vel_estimate_counts_ = 0.0f;
+    
+    // Set a default acceleration threshold
+    acceleration_threshold_ = 100000.0f; // Example value, adjust as needed
 }
+
+void Encoder::mu_wr_reg_init(void)
+{
+    
+
+    motor_spi_hardware_.spi_handle = &hspi3;
+    motor_spi_hardware_.cs_port = MU128_1_GPIO_Port;
+    motor_spi_hardware_.cs_pin = MU128_1_Pin;
+
+    GearboxOutputEncoder_spi_hardware_.spi_handle = &hspi1;
+    GearboxOutputEncoder_spi_hardware_.cs_port = MU128_2_GPIO_Port;
+    GearboxOutputEncoder_spi_hardware_.cs_pin = MU128_2_Pin;
+
+    gear_mu150_status_ = icmu_spi_init(&GearboxOutputEncoder_spi_hardware_);
+    motor_mu150_status_ = icmu_spi_init(&motor_spi_hardware_);
+}
+
+#define SIGNAL_ENCODER_TEST_READY   0x01
+osThreadId encoder_test_thread_id_ = NULL;
+
+bool Encoder::signal_encoder_thread(void) {
+    if(encoder_test_thread_id_)
+    {
+        osSignalSet(encoder_test_thread_id_, SIGNAL_ENCODER_TEST_READY);
+        return true;
+    }
+    return false;
+    
+        
+}
+
+
+static void encoder_test_thread_warper(void* ctx)
+{
+    Encoder* encoder = reinterpret_cast<Encoder*>(ctx);
+    encoder->config_.is_high_speed_encode_query_enabled = false;
+    while(true)
+    {
+        osEvent evt = osSignalWait(SIGNAL_ENCODER_TEST_READY, osWaitForever);
+        if (evt.status == osEventSignal) {
+            encoder->mu_wr_reg_init();
+        }
+        else {
+            return;
+        }
+    }
+}
+
+
+bool Encoder::start_encoder_test_thread() {
+    if (encoder_test_thread_id_ != NULL) {
+        return false; // Thread already running
+    }
+
+    
+
+    osThreadDef(thread_def, encoder_test_thread_warper, osPriorityLow, 0, 512 / sizeof(StackType_t));
+    encoder_test_thread_id_ = osThreadCreate(osThread(thread_def), this);
+    if (encoder_test_thread_id_ == NULL) {
+        //set_error(ERROR_ENCODER_THREAD_INIT_FAILED);
+        return true;
+    }
+    return true;
+}
+
+bool Encoder::stop_encoder_test_thread() {
+    if (encoder_test_thread_id_ != NULL) {
+        osThreadTerminate(encoder_test_thread_id_);
+        encoder_test_thread_id_ = NULL;
+        return true;
+    }
+    else {
+        return false;
+    }
+}
+
 
 void Encoder::set_error(Error error) {
     vel_estimate_valid_ = false;
@@ -227,7 +321,8 @@ bool Encoder::run_offset_calibration() {
     axis_->run_control_loop([&](){
 
     axis_->motor_.I_phase_ = 0.5f*(-M_PI);
-        if (!axis_->motor_.enqueue_voltage_timings(voltage_magnitude, 0.0f))
+    float v_alpha  = voltage_magnitude * i / (float)(start_lock_duration * current_meas_hz);
+        if (!axis_->motor_.enqueue_voltage_timings(v_alpha, 0.0f))
             return false; // error set inside enqueue_voltage_timings
         axis_->motor_.log_timing(TIMING_LOG_ENC_CALIB);
         return ++i < start_lock_duration * current_meas_hz;
@@ -466,7 +561,7 @@ void Encoder::abs_485_cs_pin_init(){
 bool Encoder::abs_start_transaction(){
 
     if(config_.is_high_speed_encode_query_enabled == false)
-    return true;
+        return true;
 
     if (mode_ & MODE_FLAG_485_ABS){
         abs_485_start_transaction();
@@ -797,6 +892,16 @@ bool Encoder::update() {
     vel_estimate_ = vel_estimate_counts_ * cpr_inverse_;
     gear_vel_estimate_rad_ = vel_estimate_ * 2.0f * M_PI*axis_->gear_ratio_inverse_;
     gear_outside_vel_estimate_rad_ = gear_vel_estimate_counts_ * GearboxOutputEncoder_cpr_inverse_* 2.0f * M_PI;
+
+
+    // Calculate acceleration
+    acceleration_estimate_ = (vel_estimate_counts_ - prev_vel_estimate_counts_) / current_meas_period;
+    prev_vel_estimate_counts_ = vel_estimate_counts_;
+
+    // Check if acceleration exceeds the threshold
+    if (std::abs(acceleration_estimate_) > 10000000) {
+        //set_error(ERROR_UNSTABLE_ACCELERATION);
+    }
 
     float pos_cpr_last = pos_cpr_;
     pos_estimate_ = pos_estimate_counts_ / (float)config_.cpr;

@@ -67,6 +67,7 @@ interfaces:
           stack_usage_usb_irq: readonly uint32
           stack_usage_startup: readonly uint32
           stack_usage_can: readonly uint32
+          thread_nums: readonly uint32
           usb:
             c_is_class: False
             attributes:
@@ -187,6 +188,7 @@ interfaces:
       can: { type: Can, c_name: get_can() }
       test_property: uint32
 
+
     functions:
       test_function: { in: { delta: int32 }, out: { cnt: int32 } }
       get_oscilloscope_val: { in: { index: uint32 }, out: { val: float32 } }
@@ -196,6 +198,8 @@ interfaces:
       erase_configuration:
       reboot:
       enter_dfu_mode:
+   
+
 
   ODrive.Can:
     c_is_class: True
@@ -289,6 +293,8 @@ interfaces:
             doc: the min endstop was not enabled during homing
           OverTemp:
             doc: Check `fet_thermistor.error` and `motor_thermistor.error` for more information.
+          UnknownError:
+            doc: An error occurred that is not covered by the other error flags.
       step_dir_active: readonly bool
       current_state: readonly AxisState
       requested_state: AxisState
@@ -405,6 +411,7 @@ interfaces:
       finish_on_vel: bool
       finish_on_distance: bool
       finish_on_enc_idx: bool
+      
 
 
   ODrive.ThermistorCurrentLimiter:
@@ -451,6 +458,8 @@ interfaces:
             type: float32
             doc: The upper limit when current limit reaches 0 Amps and an over temperature error is triggered.
           enabled: { type: bool, doc: Whether this thermistor is enabled. }
+ 
+      
 
   ODrive.Motor:
     c_is_class: True
@@ -564,6 +573,7 @@ interfaces:
       torque_setpoint_notch_filterd: float32
       notch_filter_enable: uint32
       dec_bemf: float32
+      flux_link: float32
       current_control:
         c_is_class: False
         attributes:
@@ -831,6 +841,7 @@ interfaces:
           AbsSpiTimeout:
           AbsSpiComFail:
           AbsSpiNotReady:
+          UnstableAcceleration:
       is_ready: readonly bool
       index_found: readonly bool
       shadow_count: readonly int32
@@ -854,6 +865,8 @@ interfaces:
       spi_error_rate: readonly float32
       gear_outside_vel_estimate_rad: float32  
       raw_data1: uint32
+      gear_mu150_status: uint8
+      motor_mu150_status: uint8
       config:
         c_is_class: False
         attributes:
@@ -882,6 +895,9 @@ interfaces:
     functions:
       set_linear_count: { in: { count: int32 } }
       set_zero_pos:
+      signal_encoder_thread: { out: { success: bool } }
+      start_encoder_test_thread: { out: { success: bool } }
+      stop_encoder_test_thread: { out: { success: bool } }
 
   ODrive.SensorlessEstimator:
     c_is_class: True
@@ -983,6 +999,9 @@ valuetypes:
       Homing:
         brief: Run axis homing function.
         doc: Endstops must be enabled to use this feature.
+      MotorFlux:
+        brief: MotorFlux function.
+        doc: calculate flux.
 
   ODrive.ThermistorCurrentLimiter.Error:
     nullflag: None

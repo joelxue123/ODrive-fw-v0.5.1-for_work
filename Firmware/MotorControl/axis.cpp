@@ -158,8 +158,8 @@ void Axis::setup() {
     {
         kp_gain_ = 1.0f;
         kd_gain_ = 1.0f;
-        config_.ext_cfg[EXT_CONFIG_REG_KP_GAIN] = kp_gain_*10.f;
-        config_.ext_cfg[EXT_CONFIG_REG_KD_GAIN] = kd_gain_*10.f;
+        config_.ext_cfg[EXT_CONFIG_REG_KP_GAIN] = static_cast<int32_t>(kp_gain_*10.f);
+        config_.ext_cfg[EXT_CONFIG_REG_KD_GAIN] = static_cast<int32_t>(kd_gain_*10.f);
     }
    
 }
@@ -809,6 +809,8 @@ void Axis::run_state_machine_loop() {
                 if (!motor_.is_calibrated_ || motor_.config_.direction==0)
                     goto invalid_state_label;
                 status = run_lockin_spin(config_.general_lockin);
+                
+
             } break;
 
             case AXIS_STATE_SENSORLESS_CONTROL: {
@@ -837,6 +839,10 @@ void Axis::run_state_machine_loop() {
                 run_idle_loop();
                 status = motor_.arm(); // done with idling - try to arm the motor
             } break;
+            case AXIS_STATE_MOTOR_FLUX: {
+                status = motor_.measure_flux_linkage();
+            } break;
+
 
             default:
             invalid_state_label:
@@ -849,6 +855,7 @@ void Axis::run_state_machine_loop() {
         if (!status) {
             std::fill(task_chain_.begin(), task_chain_.end(), AXIS_STATE_UNDEFINED);
             current_state_ = AXIS_STATE_IDLE;
+            error_ |= ERROR_INVALID_STATE;
         } else {
             std::rotate(task_chain_.begin(), task_chain_.begin() + 1, task_chain_.end());
             task_chain_.back() = AXIS_STATE_UNDEFINED;

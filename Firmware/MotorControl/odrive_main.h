@@ -74,6 +74,7 @@ typedef struct {
 
     USBStats_t& usb = usb_stats_;
     I2CStats_t& i2c = i2c_stats_;
+    uint32_t thread_nums;
 } SystemStats_t;
 
 struct PWMMapping_t {

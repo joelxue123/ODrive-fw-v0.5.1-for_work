@@ -127,6 +127,8 @@ public:
     bool FOC_voltage(float v_d, float v_q, float pwm_phase);
     bool FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_phase);
     bool update(float current_setpoint, float phase, float phase_vel);
+    bool update1(float current_setpoint, float phase, float phase_vel);
+    bool update2(float current_setpoint, float phase, float phase_vel);
     void pos_linearity_ini(void);
     float current_Correct(int32_t Torque_Org);
     void abc_sign_calculation(float phase , int32_t *a, int32_t *b, int32_t *c);
@@ -217,6 +219,7 @@ public:
     uint32_t notch_filter_enable_ = 0;
     NotchFilter notch_filter_;
     float dec_bemf_ = 0;
+    float flux_link_;
     void setting_motor_current_linearity(uint32_t index, float value);
     void setting_motor_torque_linearity(uint32_t index, float value);
     float get_motor_current_linearity(uint32_t index);
@@ -229,6 +232,7 @@ public:
     float getting_current2torque_slope(uint32_t index);
     float convert_torque_from_current(float current,float *current2torque_coeff,uint32_t coeff_size,float current_step);
     void pos_linearity_init(void);
+    bool measure_flux_linkage(void);
 };
 
 #endif // __MOTOR_HPP
