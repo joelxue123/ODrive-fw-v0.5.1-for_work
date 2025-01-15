@@ -46,9 +46,10 @@ void Encoder::setup() {
 
     gear_mu150_status_ = icmu_spi_init(&GearboxOutputEncoder_spi_hardware_);
 
-    osMessageQDef(encoder_queue, 16, EncoderCommand);
+    osMessageQDef(encoder_queue, 1, sizeof(EncoderCommand));
     encoder_queue_id_ = osMessageCreate(osMessageQ(encoder_queue), NULL);
-
+    MA600_Init(&motor_spi_hardware_);
+    writeMagAlphaRegister(&motor_spi_hardware_,0x02, 104);
 
     mode_ = config_.mode;
     abs_spi_cs_pin_init();
@@ -105,14 +106,15 @@ bool Encoder::signal_encoder_thread(void) {
     return false;    
 }
 
+
 bool Encoder::signal_encoder_thread_func( uint8_t cmd_type, uint8_t reg, uint8_t data) {
+    static EncoderCommand cmd;
     if(encoder_queue_id_)
     {
-        EncoderCommand cmd = {
-            .cmd_type = cmd_type,
-            .reg = reg,
-            .data = data
-        };
+        
+        cmd.cmd_type = cmd_type;
+        cmd.reg = reg;
+        cmd.data = data;
         
         return osMessagePut(encoder_queue_id_, (uint32_t)&cmd, 0) == osOK;
     }
@@ -125,9 +127,11 @@ static void encoder_test_thread_warper(void* ctx)
 {
     Encoder* encoder = reinterpret_cast<Encoder*>(ctx);
     encoder->config_.is_high_speed_encode_query_enabled = false;
+    MA600_Init(&(encoder->motor_spi_hardware_));
     while(true)
     {
         osEvent evt = osMessageGet(encoder->encoder_queue_id_, osWaitForever);
+        
         if(evt.status == osEventMessage) {
             Encoder::EncoderCommand* cmd = (Encoder::EncoderCommand*)evt.value.p;
             switch(cmd->cmd_type) {
@@ -139,7 +143,14 @@ static void encoder_test_thread_warper(void* ctx)
                     // Handle read
                     encoder->reg_data_ = readMagAlphaRegister(&(encoder->motor_spi_hardware_),cmd->reg);
                     break;
+                default:
+                    readMagAlphaRegister(&(encoder->motor_spi_hardware_),0x00);
+                    break;
             }
+
+            encoder->encoder_cmd_type_ = cmd->cmd_type;
+            
+
         }
     }
 }
@@ -152,7 +163,7 @@ bool Encoder::start_encoder_test_thread() {
 
     
 
-    osThreadDef(thread_def, encoder_test_thread_warper, osPriorityLow, 0, 512 / sizeof(StackType_t));
+    osThreadDef(thread_def, encoder_test_thread_warper, osPriorityLow, 0, 1024 / sizeof(StackType_t));
     encoder_test_thread_id_ = osThreadCreate(osThread(thread_def), this);
     if (encoder_test_thread_id_ == NULL) {
         //set_error(ERROR_ENCODER_THREAD_INIT_FAILED);

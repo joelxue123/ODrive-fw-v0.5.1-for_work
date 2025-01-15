@@ -15,20 +15,12 @@ void MA600_Init(spi_hardware_t *spi_hardware)
   uint8_t regValue;
   bool error;
 	
-	//Example of MagAlpha Register Settings (Set Reg 0 to 0x80)
-  regAddress = 0;
-  regValue = 0x80;
+
 
   SPI_Init(spi_hardware->spi_handle);
 
-  //Read the initial register value
-  readbackRegValue=readMagAlphaRegister(spi_hardware,regAddress);
-  //write the register with the desired value
-  readbackRegValue=writeMagAlphaRegister(spi_hardware,regAddress, regValue);
 
-  //remove warning during compilation
-  (void)readbackRegValue;
-  (void)error;
+
 }
 
 uint16_t readMagAlphaAngle(spi_hardware_t *spi_hardware)
@@ -85,7 +77,7 @@ uint8_t readMagAlphaRegister(spi_hardware_t *spi_hardware,uint8_t address)
     rxData[rx_cnt++]  = SPI_RW(spi_hardware,txData[tx_cnt++]);
 
 
-  registerReadbackValue=rxData[2];
+  registerReadbackValue=rxData[3];
   return registerReadbackValue;
 }
 
@@ -96,8 +88,8 @@ uint8_t writeMagAlphaRegister(spi_hardware_t *spi_hardware,uint8_t address, uint
     uint8_t tx_cnt = 0;
     uint8_t rx_cnt = 0;
 
-    txData[0]=MA600_CMD_REG_WRITE&0xff;
-    txData[1]=(MA600_CMD_REG_WRITE>>8)&0xff;
+    txData[0]=0xea;
+    txData[1]=0x54;
     txData[2]=address;
     txData[3]=value;
     txData[4]=0x00;
@@ -127,7 +119,7 @@ uint8_t writeMagAlphaRegister(spi_hardware_t *spi_hardware,uint8_t address, uint
     rxData[rx_cnt++]  = SPI_RW(spi_hardware,txData[tx_cnt++]);
     rxData[rx_cnt++]  = SPI_RW(spi_hardware,txData[tx_cnt++]);
 
-  registerReadbackValue=rxData[4];
+  registerReadbackValue=rxData[5];
   return registerReadbackValue;
 }
 

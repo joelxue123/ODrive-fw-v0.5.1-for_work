@@ -52,12 +52,15 @@ public:
 
     };
 
-    // Command structure
-    struct EncoderCommand {
-        uint8_t cmd_type;    // READ/WRITE
-        uint8_t reg;         // Register address
-        uint8_t data;        // Data for write
-    };
+ // Ensure 32-bit alignment
+#pragma pack(4)
+struct EncoderCommand {
+    uint32_t cmd_type;    // Aligned to 32-bits
+    uint32_t reg;         // Aligned to 32-bits
+    uint32_t data;        // Aligned to 32-bits
+    uint32_t magic;       // Debug validation
+};
+#pragma pack()
 
     Encoder(const EncoderHardwareConfig_t& hw_config,
             Config_t& config, const Motor::Config_t& motor_config);
@@ -165,6 +168,7 @@ public:
     // Queue handle
     osMessageQId encoder_queue_id_;
     uint8_t reg_data_ = 0;
+    uint8_t encoder_cmd_type_;
     void mu_wr_reg_init();
     bool signal_encoder_thread();
     bool start_encoder_test_thread();
