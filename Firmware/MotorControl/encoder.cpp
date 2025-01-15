@@ -46,6 +46,9 @@ void Encoder::setup() {
 
     gear_mu150_status_ = icmu_spi_init(&GearboxOutputEncoder_spi_hardware_);
 
+    osMessageQDef(encoder_queue, 16, EncoderCommand);
+    encoder_queue_id_ = osMessageCreate(osMessageQ(encoder_queue), NULL);
+
 
     mode_ = config_.mode;
     abs_spi_cs_pin_init();
@@ -88,6 +91,9 @@ void Encoder::mu_wr_reg_init(void)
 }
 
 #define SIGNAL_ENCODER_TEST_READY   0x01
+#define SIGNAL_ENCODER_REG_READ     0x02
+#define SIGNAL_ENCODER_REG_WRITE    0x03
+
 osThreadId encoder_test_thread_id_ = NULL;
 
 bool Encoder::signal_encoder_thread(void) {
@@ -96,10 +102,23 @@ bool Encoder::signal_encoder_thread(void) {
         osSignalSet(encoder_test_thread_id_, SIGNAL_ENCODER_TEST_READY);
         return true;
     }
-    return false;
-    
-        
+    return false;    
 }
+
+bool Encoder::signal_encoder_thread_func( uint8_t cmd_type, uint8_t reg, uint8_t data) {
+    if(encoder_queue_id_)
+    {
+        EncoderCommand cmd = {
+            .cmd_type = cmd_type,
+            .reg = reg,
+            .data = data
+        };
+        
+        return osMessagePut(encoder_queue_id_, (uint32_t)&cmd, 0) == osOK;
+    }
+    return false;
+}
+
 
 
 static void encoder_test_thread_warper(void* ctx)
@@ -108,12 +127,19 @@ static void encoder_test_thread_warper(void* ctx)
     encoder->config_.is_high_speed_encode_query_enabled = false;
     while(true)
     {
-        osEvent evt = osSignalWait(SIGNAL_ENCODER_TEST_READY, osWaitForever);
-        if (evt.status == osEventSignal) {
-            encoder->mu_wr_reg_init();
-        }
-        else {
-            return;
+        osEvent evt = osMessageGet(encoder->encoder_queue_id_, osWaitForever);
+        if(evt.status == osEventMessage) {
+            Encoder::EncoderCommand* cmd = (Encoder::EncoderCommand*)evt.value.p;
+            switch(cmd->cmd_type) {
+                case SIGNAL_ENCODER_REG_WRITE:
+                    // Handle write
+                    encoder->reg_data_ = writeMagAlphaRegister(&(encoder->motor_spi_hardware_),cmd->reg, cmd->data);
+                    break;
+                case SIGNAL_ENCODER_REG_READ:
+                    // Handle read
+                    encoder->reg_data_ = readMagAlphaRegister(&(encoder->motor_spi_hardware_),cmd->reg);
+                    break;
+            }
         }
     }
 }

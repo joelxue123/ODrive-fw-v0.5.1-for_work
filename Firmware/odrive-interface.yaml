@@ -898,6 +898,7 @@ interfaces:
       signal_encoder_thread: { out: { success: bool } }
       start_encoder_test_thread: { out: { success: bool } }
       stop_encoder_test_thread: { out: { success: bool } }
+      signal_encoder_thread_func: { in: {cmd_type: uint8, reg: uint8, data: uint8 },   out: { success: bool } }
 
   ODrive.SensorlessEstimator:
     c_is_class: True

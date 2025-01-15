@@ -5,6 +5,7 @@
 #error "This file should not be included directly. Include odrive_main.h instead."
 #endif
 #include "icmu.h"
+#include "ma600.h"
 
 class Encoder : public ODriveIntf::EncoderIntf {
 public:
@@ -49,6 +50,13 @@ public:
         void set_bandwidth(float value) { bandwidth = value; parent->update_pll_gains(); }
         void set_is_high_speed_encode_query_enabled (bool value) { is_high_speed_encode_query_enabled = value; parent->set_spi_enable(); }
 
+    };
+
+    // Command structure
+    struct EncoderCommand {
+        uint8_t cmd_type;    // READ/WRITE
+        uint8_t reg;         // Register address
+        uint8_t data;        // Data for write
     };
 
     Encoder(const EncoderHardwareConfig_t& hw_config,
@@ -141,10 +149,33 @@ public:
     void abs_spi_cs_pin_init();
     void abs_485_cs_pin_init();
     void set_cs_high(void);
+
+
+
+
+
+
+
+
+
+
+
+
+
+    // Queue handle
+    osMessageQId encoder_queue_id_;
+    uint8_t reg_data_ = 0;
     void mu_wr_reg_init();
     bool signal_encoder_thread();
     bool start_encoder_test_thread();
     bool stop_encoder_test_thread();
+    bool signal_encoder_thread_func( uint8_t cmd_type, uint8_t reg, uint8_t data);
+
+
+
+
+
+    //～处理编码器通信的线程xin ～
 
     uint8_t abs_spi_dma_tx_[4] = {0x00,0x00,0x00,0x00};
     uint8_t abs_spi_dma_rx_[4];

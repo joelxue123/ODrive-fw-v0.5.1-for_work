@@ -195,6 +195,7 @@ build{
         'Drivers/DRV8301/drv8301.c',
         'Drivers/IC_MU/icmu.c',
         'Drivers/IC_MU/spi_rw.c',
+        'Drivers/IC_MU/ma600.c',
         'MotorControl/utils.cpp',
         'MotorControl/arm_sin_f32.c',
         'MotorControl/arm_cos_f32.c',
