@@ -732,7 +732,7 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     Id_filter += Idq_filter_k_ * (Id - Id_filter);
     
     float dec_vd=0, dec_vq=0,pm_flux_linkage=0;
-    pm_flux_linkage =  0.7f*config_.torque_constant/ (config_.pole_pairs);
+    pm_flux_linkage =  0.6f*config_.torque_constant/ (config_.pole_pairs);
     dec_vd = Iq_filter * m_speed_est_fast * config_.phase_inductance;
     dec_vq = Id_filter * m_speed_est_fast * config_.phase_inductance;
     dec_bemf_ = m_speed_est_fast * pm_flux_linkage;
