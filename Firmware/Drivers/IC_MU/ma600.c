@@ -123,3 +123,49 @@ uint8_t writeMagAlphaRegister(spi_hardware_t *spi_hardware,uint8_t address, uint
   return registerReadbackValue;
 }
 
+uint8_t write_nvm(spi_hardware_t *spi_hardware)
+{
+    uint8_t txData[6];
+    uint8_t rxData[6];
+    uint8_t tx_cnt = 0;
+    uint8_t rx_cnt = 0;
+
+    txData[0]=0xea;
+    txData[1]=0x55;
+    txData[2]=0xea;
+    txData[3]=0x00;
+    txData[4]=0x00;
+    txData[5]=0x00;
+    uint8_t registerReadbackValue;
+
+
+    HAL_GPIO_WritePin(spi_hardware->cs_port, spi_hardware->cs_pin, GPIO_PIN_SET);
+    delay__ms(1);
+    HAL_GPIO_WritePin(spi_hardware->cs_port, spi_hardware->cs_pin, GPIO_PIN_RESET);
+    delay__ms(1);
+
+    rxData[rx_cnt++] = SPI_RW(spi_hardware,txData[tx_cnt++]);
+    rxData[rx_cnt++] = SPI_RW(spi_hardware,txData[tx_cnt++]);
+
+    HAL_GPIO_WritePin(spi_hardware->cs_port, spi_hardware->cs_pin, GPIO_PIN_SET);
+    delay__ms(1);
+    HAL_GPIO_WritePin(spi_hardware->cs_port, spi_hardware->cs_pin, GPIO_PIN_RESET);
+    delay__ms(1);
+    rxData[rx_cnt++]  = SPI_RW(spi_hardware,txData[tx_cnt++]);
+    rxData[rx_cnt++]  = SPI_RW(spi_hardware,txData[tx_cnt++]);
+
+    HAL_GPIO_WritePin(spi_hardware->cs_port, spi_hardware->cs_pin, GPIO_PIN_SET);
+    delay__ms(1);
+    HAL_GPIO_WritePin(spi_hardware->cs_port, spi_hardware->cs_pin, GPIO_PIN_RESET);
+    delay__ms(1);
+    rxData[rx_cnt++]  = SPI_RW(spi_hardware,txData[tx_cnt++]);
+    rxData[rx_cnt++]  = SPI_RW(spi_hardware,txData[tx_cnt++]);
+
+  registerReadbackValue=rxData[5];
+  return registerReadbackValue;
+}
+
+
+
+
+

@@ -505,6 +505,7 @@ void vbus_sense_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     uint32_t ADCValue = HAL_ADCEx_InjectedGetValue(hadc, ADC_INJECTED_RANK_1);
     vbus_voltage = ADCValue * voltage_scale;
 }
+[[maybe_unused]]static void decode_hall_samples(Encoder& enc, uint16_t GPIO_samples[num_GPIO]);
 
 static void decode_hall_samples(Encoder& enc, uint16_t GPIO_samples[num_GPIO]) {
     GPIO_TypeDef* hall_ports[] = {
@@ -548,14 +549,13 @@ static void decode_hall_samples(Encoder& enc, uint16_t GPIO_samples[num_GPIO]) {
 #include <stm32f4xx_hal.h>  // Sets up the correct chip specifc defines required by arm_math
 // This is the callback from the ADC that we expect after the PWM has triggered an ADC conversion.
 // Timing diagram: Firmware/timing_diagram_v3.png
-static float this_sample_time = 0;
-static float last_sample_time = 0;
+
 void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     Axis& axis = *axes[0];
     
     axis.encoder_.set_cs_high();
 #define calib_tau 0.2f  //@TOTO make more easily configurable
-    constexpr float calib_filter_k = CURRENT_MEAS_PERIOD / calib_tau;
+    //constexpr float calib_filter_k = CURRENT_MEAS_PERIOD / calib_tau;
     
 
     //this_sample_time = 2 * htim13.Instance->CNT;
@@ -574,6 +574,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     // If we are counting down, we just sampled in SVM vector 7, with zero current
     
     int axis_num = 0;
+    (void)axis_num; // unused
     axis.encoder_.abs_start_transaction();
     axis.motor_.log_timing(TIMING_LOG_GENERAL);
     vbus_sense_adc_cb(&hadc1,true);
@@ -583,6 +584,7 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     
 
     bool update_timings = true;
+    (void)update_timings; // unused
 
     // update_brake_current(); todo
     
@@ -777,9 +779,10 @@ void handle_pulse(int gpio_num, uint32_t high_time) {
     if (high_time > PWM_MAX_HIGH_TIME)
         high_time = PWM_MAX_HIGH_TIME;
     float fraction = (float)(high_time - PWM_MIN_HIGH_TIME) / (float)(PWM_MAX_HIGH_TIME - PWM_MIN_HIGH_TIME);
-    float value = odrv.config_.pwm_mappings[gpio_num - 1].min +
+    [[maybe_unused]] float value = odrv.config_.pwm_mappings[gpio_num - 1].min +
                   (fraction * (odrv.config_.pwm_mappings[gpio_num - 1].max - odrv.config_.pwm_mappings[gpio_num - 1].min));
 
+      
     //fibre::set_endpoint_from_float(odrv.config_.pwm_mappings[gpio_num - 1].endpoint, value);
 }
 
@@ -811,6 +814,7 @@ static void update_analog_endpoint(const struct PWMMapping_t *map, int gpio)
 {
     float fraction = get_adc_voltage(get_gpio_port_by_pin(gpio), get_gpio_pin_by_pin(gpio)) / 3.3f;
     float value = map->min + (fraction * (map->max - map->min));
+    (void)value;
     //fibre::set_endpoint_from_float(map->endpoint, value);
 }
 

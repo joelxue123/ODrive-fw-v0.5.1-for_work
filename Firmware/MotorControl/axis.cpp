@@ -353,7 +353,7 @@ struct Sin_t{
 
 };
 
-static float generateSineWave(struct Sin_t * rule, int32_t div,float wave_amplitude)
+[[maybe_unused]]static float generateSineWave(struct Sin_t * rule, int32_t div,float wave_amplitude)
 {
     struct Sin_t *sin_rule = rule;
     uint32_t sample_rate = sin_rule->sample_rate ;
@@ -508,7 +508,7 @@ bool Axis::run_lockin_spin(const LockinConfig_t &lockin_config) {
 
     if (!encoder_.index_found_)
         encoder_.set_idx_subscribe(true);
-
+    float mech_angle = 0;
     // Constant speed
     if (!spin_done()) {
         lockin_state_ = LOCKIN_STATE_CONST_VEL;
@@ -517,6 +517,8 @@ bool Axis::run_lockin_spin(const LockinConfig_t &lockin_config) {
             distance += vel * current_meas_period;
             phase = wrap_pm_pi(phase + vel * current_meas_period);
 
+            mech_angle +=  vel * current_meas_period / 21.0f;
+            phase_encodervalue_packed_ = (((int16_t)(mech_angle * 32768/ M_PI))<<16) | (uint16_t)(encoder_.pos_abs_);
             if (!motor_.update(lockin_config.current * motor_.config_.torque_constant, phase, vel))
                 return false;
             return !spin_done();

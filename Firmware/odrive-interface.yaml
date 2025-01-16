@@ -300,6 +300,7 @@ interfaces:
       requested_state: AxisState
       loop_counter: readonly uint32
       can_raw: float32
+      phase_encodervalue_packed: readonly uint32
       lockin_state:
         typeargs: { fibre.Property.mode: readonly }
         values:

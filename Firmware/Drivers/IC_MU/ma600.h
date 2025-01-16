@@ -31,7 +31,7 @@ void MA600_Init(spi_hardware_t *spi_hardware);
 uint16_t readMagAlphaAngle(spi_hardware_t *spi_hardware);
 uint8_t readMagAlphaRegister(spi_hardware_t *spi_hardware,uint8_t address);
 uint8_t writeMagAlphaRegister(spi_hardware_t *spi_hardware,uint8_t address, uint8_t value);
-
+uint8_t write_nvm(spi_hardware_t *spi_hardware);
 
 
 
