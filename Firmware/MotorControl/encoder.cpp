@@ -49,10 +49,10 @@ void Encoder::setup() {
     osMessageQDef(encoder_queue, 1, sizeof(EncoderCommand));
     encoder_queue_id_ = osMessageCreate(osMessageQ(encoder_queue), NULL);
     MA600_Init(&motor_spi_hardware_);
-    writeMagAlphaRegister(&motor_spi_hardware_,0x02, 161);
+    writeMagAlphaRegister(&motor_spi_hardware_,0x02, 156);
     writeMagAlphaRegister(&motor_spi_hardware_,0x03, 0x01);
-    write_nvm(&motor_spi_hardware_);
-    osDelay(1000);
+    //write_nvm(&motor_spi_hardware_);
+    //osDelay(1000);
 
     mode_ = config_.mode;
     abs_spi_cs_pin_init();
