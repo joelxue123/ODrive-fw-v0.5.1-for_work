@@ -187,7 +187,7 @@ int main(void)
   MX_TIM8_Init();
   MX_TIM3_Init();
   MX_TIM4_Init();
-  MX_SPI1_Init();
+  //MX_SPI1_Init();
   MX_SPI3_Init();
 
   MX_ADC3_Init();
