@@ -42,11 +42,7 @@ void Encoder::setup() {
 
     osMessageQDef(encoder_queue, 1, sizeof(EncoderCommand));
     encoder_queue_id_ = osMessageCreate(osMessageQ(encoder_queue), NULL);
-    MA600_Init(&motor_spi_hardware_);
-    writeMagAlphaRegister(&motor_spi_hardware_,0x02, 156);
-    writeMagAlphaRegister(&motor_spi_hardware_,0x03, 0x01);
-    //write_nvm(&motor_spi_hardware_);
-    //osDelay(1000);
+
 
     mode_ = config_.mode;
     abs_spi_cs_pin_init();
@@ -582,7 +578,7 @@ bool Encoder::abs_start_transaction(){
     }
     else if(mode_ & MODE_FLAG_ABS)
     {
-        abs_spi_start_transaction();
+        abs_spi_start_transaction(abs_spi_dma_tx_, abs_spi_dma_rx_, 2);
         //abs_spi_pos_updated_ = false;
     }
     else
@@ -618,8 +614,42 @@ bool Encoder::abs_485_start_transaction(){
     return true;
 }
 
+bool Encoder::send_spi_read_cmd(){
+    if (mode_ & MODE_FLAG_ABS){
+        if(hw_config_.motor_spi->State != HAL_SPI_STATE_READY){
+            set_error(ERROR_ABS_SPI_NOT_READY);
+            return false;
+        }
+        
+        HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_RESET);
 
-bool Encoder::abs_spi_start_transaction(){
+        uint16_t command = SPI_CMD_READ | (0x01 << 4)|0x02;
+        abs_spi_dma_tx_[0] = (command >> 8) & 0xFF;
+        abs_spi_dma_tx_[1] = command & 0xFF;
+        transmit_spi(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 2);
+    }
+    return true;
+}
+
+
+bool Encoder::read_spi_data(){
+    if (mode_ & MODE_FLAG_ABS){
+        if(hw_config_.motor_spi->State != HAL_SPI_STATE_READY){
+            set_error(ERROR_ABS_SPI_NOT_READY);
+            return false;
+        }
+        HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_RESET);
+        abs_spi_dma_tx_[0] = 0x00;
+        abs_spi_dma_tx_[1] = 0x00;
+        abs_spi_dma_tx_[2] = 0x00;
+        transmit_spi(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
+    }
+    return true;
+}
+
+
+
+bool Encoder::abs_spi_start_transaction(const uint8_t* tx_buf, uint8_t* rx_buf, const uint16_t size){
     if (mode_ & MODE_FLAG_ABS){
         if(hw_config_.motor_spi->State != HAL_SPI_STATE_READY){  
             set_error(ERROR_ABS_SPI_NOT_READY);
@@ -628,7 +658,7 @@ bool Encoder::abs_spi_start_transaction(){
         HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_RESET);
         
       //  HAL_SPI_TransmitReceive_DMA(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 3);
-        transmit_spi(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 2);
+        transmit_spi(hw_config_.motor_spi, (uint8_t*)tx_buf, (uint8_t*)rx_buf, 2);
         
       //  HAL_SPI_TransmitReceive_DMA(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
         abs_spi_pos_updated_ = true;

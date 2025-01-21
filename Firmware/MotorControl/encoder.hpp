@@ -146,12 +146,14 @@ struct EncoderCommand {
     bool abs_spi_init();
     bool abs_485_init();
     bool abs_start_transaction();
-    bool abs_spi_start_transaction();
+    bool abs_spi_start_transaction(const uint8_t* tx_buf, uint8_t* rx_buf, const uint16_t size);
     bool abs_485_start_transaction();
     void abs_spi_cb();
     void abs_spi_cs_pin_init();
     void abs_485_cs_pin_init();
     void set_cs_high(void);
+    bool read_spi_data();
+    bool send_spi_read_cmd();
 
 
 
@@ -176,10 +178,11 @@ struct EncoderCommand {
     bool signal_encoder_thread_func( uint8_t cmd_type, uint8_t reg, uint8_t data);
 
 
-
+#define SPI_CMD_READ  0x8000 // 读命令
 
 
     //～处理编码器通信的线程xin ～
+
 
     uint8_t abs_spi_dma_tx_[4] = {0x00,0x00,0x00,0x00};
     uint8_t abs_spi_dma_rx_[4];
