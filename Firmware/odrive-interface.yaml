@@ -867,6 +867,7 @@ interfaces:
       raw_data1: uint32
       gear_mu150_status: uint8
       motor_mu150_status: uint8
+      mt6835_status: uint8
       config:
         c_is_class: False
         attributes:

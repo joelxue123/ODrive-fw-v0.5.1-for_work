@@ -16,7 +16,7 @@
 #if HW_VERSION_MINOR <= 3
 #define SHUNT_RESISTANCE (675e-6f)
 #else
-#define SHUNT_RESISTANCE (1000e-6f)
+#define SHUNT_RESISTANCE (2000e-6f)
 #endif
 #endif
 
@@ -98,8 +98,8 @@ const BoardHardwareConfig_t hw_configs[2] = { {
         .hallB_pin = GPIO_3_Pin,
         .hallC_port = GPIO_3_GPIO_Port,
         .hallC_pin = GPIO_3_Pin,
-        .motor_spi = &hspi3,
-        .GearboxOutputEncoder_spi = &hspi1,
+        .motor_spi = &hspi1,
+        .GearboxOutputEncoder_spi = &hspi3,
     //    .uart = &huart4,
     },
     .motor_config = {

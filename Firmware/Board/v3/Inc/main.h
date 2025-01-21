@@ -127,10 +127,10 @@
 #define nFAULT_Pin GPIO_PIN_2
 #define nFAULT_GPIO_Port GPIOD
 
-#define MU128_1_Pin GPIO_PIN_4
+#define MU128_1_Pin GPIO_PIN_15
 #define MU128_1_GPIO_Port GPIOA
-#define MU128_2_Pin GPIO_PIN_15
-#define MU128_2_GPIO_Port GPIOA
+#define GEAR_CS_Pin GPIO_PIN_4
+#define GEAR_CS_GPIO_Port GPIOA
 
 
 #define LED_R_PIN GPIO_PIN_0
