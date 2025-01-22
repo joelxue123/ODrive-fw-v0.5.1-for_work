@@ -113,13 +113,17 @@ bool Encoder::signal_encoder_thread_func( uint8_t cmd_type, uint8_t reg, uint8_t
     return false;
 }
 
-
+void Encoder::cal_ena(void)
+{
+    HAL_GPIO_WritePin(CAL_ENA_GPIO_Port, CAL_ENA_Pin, GPIO_PIN_RESET);
+}
 
 static void encoder_test_thread_warper(void* ctx)
 {
     Encoder* encoder = reinterpret_cast<Encoder*>(ctx);
     encoder->config_.is_high_speed_encode_query_enabled = false;
-    MA600_Init(&(encoder->motor_spi_hardware_));
+    //MA600_Init(&(encoder->motor_spi_hardware_));
+    encoder->cal_ena();
     while(true)
     {
         osEvent evt = osMessageGet(encoder->encoder_queue_id_, osWaitForever);
@@ -480,7 +484,7 @@ bool Encoder::abs_spi_init(){
     spi->Init.Mode = SPI_MODE_MASTER;
     spi->Init.Direction = SPI_DIRECTION_2LINES;
     spi->Init.DataSize = SPI_DATASIZE_8BIT;
-    spi->Init.CLKPolarity = SPI_POLARITY_HIGH;
+    spi->Init.CLKPolarity = SPI_POLARITY_LOW;
     spi->Init.CLKPhase = SPI_PHASE_2EDGE;
     spi->Init.NSS = SPI_NSS_SOFT;
     spi->Init.BaudRatePrescaler = SPI_BAUDRATEPRESCALER_16;
@@ -495,6 +499,7 @@ bool Encoder::abs_spi_init(){
     HAL_SPI_Init(spi);
     __HAL_SPI_ENABLE(spi);
 
+    HAL_SPI_DeInit(hw_config_.GearboxOutputEncoder_spi);
     return true;
 }
 
@@ -623,7 +628,7 @@ bool Encoder::send_spi_read_cmd(){
         
         HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_RESET);
 
-        uint16_t command = SPI_CMD_READ | (0x01 << 4)|0x02;
+        uint16_t command = 0x8010;
         abs_spi_dma_tx_[0] = (command >> 8) & 0xFF;
         abs_spi_dma_tx_[1] = command & 0xFF;
         transmit_spi(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 2);
@@ -638,11 +643,10 @@ bool Encoder::read_spi_data(){
             set_error(ERROR_ABS_SPI_NOT_READY);
             return false;
         }
-        HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_RESET);
-        abs_spi_dma_tx_[0] = 0x00;
-        abs_spi_dma_tx_[1] = 0x00;
-        abs_spi_dma_tx_[2] = 0x00;
-        transmit_spi(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
+        abs_spi_dma_tx_[0] = 0xff;
+        abs_spi_dma_tx_[1] = 0xff;
+        abs_spi_dma_tx_[2] = 0xff;
+        transmit_spi(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 2);
     }
     return true;
 }
@@ -658,7 +662,7 @@ bool Encoder::abs_spi_start_transaction(const uint8_t* tx_buf, uint8_t* rx_buf, 
         HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_RESET);
         
       //  HAL_SPI_TransmitReceive_DMA(hw_config_.GearboxOutputEncoder_spi, (uint8_t*)GearboxOutputEncoder_spi_dma_tx_, (uint8_t*)GearboxOutputEncoder_spi_dma_rx_, 3);
-        transmit_spi(hw_config_.motor_spi, (uint8_t*)tx_buf, (uint8_t*)rx_buf, 2);
+        read_spi_data();
         
       //  HAL_SPI_TransmitReceive_DMA(hw_config_.motor_spi, (uint8_t*)abs_spi_dma_tx_, (uint8_t*)abs_spi_dma_rx_, 3);
         abs_spi_pos_updated_ = true;
@@ -754,6 +758,9 @@ bool Encoder::update() {
     // update internal encoder state.
     int32_t delta_enc = 0,gear_delta_enc = 0;
     int32_t pos_abs_latched = pos_abs_; //LATCH
+
+    set_cs_high();
+
     switch (mode_) {
         case MODE_INCREMENTAL: {
             //TODO: use count_in_cpr_ instead as shadow_count_ can overflow
@@ -979,6 +986,8 @@ bool Encoder::update() {
     vel_estimate_valid_ = true;
     pos_estimate_valid_ = true;
 
+    
+    send_spi_read_cmd();
     return true;
 }
 

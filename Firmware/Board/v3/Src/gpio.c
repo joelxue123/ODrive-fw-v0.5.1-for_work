@@ -135,6 +135,19 @@ void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(LED_R_GPIO_Port, LED_R_PIN, GPIO_PIN_SET);
   HAL_GPIO_WritePin(LED_G_GPIO_Port, LED_G_PIN, GPIO_PIN_SET);
   HAL_GPIO_WritePin(LED_B_GPIO_Port, LED_B_PIN, GPIO_PIN_RESET);
+
+   /*Configure GPIO pin : LED */
+  GPIO_InitStruct.Pin = CAL_ENA_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(CAL_ENA_GPIO_Port, &GPIO_InitStruct);
+  
+  HAL_GPIO_WritePin(CAL_ENA_GPIO_Port, CAL_ENA_Pin, GPIO_PIN_SET);
+
+
+
+
 }
 
 /* USER CODE BEGIN 2 */

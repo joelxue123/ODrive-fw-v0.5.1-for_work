@@ -517,7 +517,8 @@ bool Axis::run_lockin_spin(const LockinConfig_t &lockin_config) {
             distance += vel * current_meas_period;
             phase = wrap_pm_pi(phase + vel * current_meas_period);
 
-            mech_angle +=  vel * current_meas_period / 21.0f;
+            mech_angle +=  vel * current_meas_period *20.0f / 21.0f;
+            mech_angle = wrap_pm_pi(mech_angle);
             phase_encodervalue_packed_ = (((int16_t)(mech_angle * 32768/ M_PI))<<16) | (uint16_t)(encoder_.pos_abs_);
             if (!motor_.update(lockin_config.current * motor_.config_.torque_constant, phase, vel))
                 return false;

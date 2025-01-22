@@ -176,7 +176,7 @@ struct EncoderCommand {
     bool start_encoder_test_thread();
     bool stop_encoder_test_thread();
     bool signal_encoder_thread_func( uint8_t cmd_type, uint8_t reg, uint8_t data);
-
+    void cal_ena(void);
 
 #define SPI_CMD_READ  0x8000 // 读命令
 

@@ -141,6 +141,11 @@
 #define LED_B_GPIO_Port GPIOB
 
 
+
+#define CAL_ENA_Pin GPIO_PIN_5
+#define CAL_ENA_GPIO_Port GPIOB
+
+
 /* ########################## Assert Selection ############################## */
 /**
   * @brief Uncomment the line below to expanse the "assert_param" macro in the 

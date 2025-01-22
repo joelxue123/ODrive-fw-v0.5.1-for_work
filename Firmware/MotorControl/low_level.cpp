@@ -553,7 +553,7 @@ static void decode_hall_samples(Encoder& enc, uint16_t GPIO_samples[num_GPIO]) {
 void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
     Axis& axis = *axes[0];
     
-    axis.encoder_.set_cs_high();
+    
 #define calib_tau 0.2f  //@TOTO make more easily configurable
     //constexpr float calib_filter_k = CURRENT_MEAS_PERIOD / calib_tau;
     
