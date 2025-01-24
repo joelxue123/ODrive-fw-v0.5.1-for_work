@@ -193,7 +193,7 @@ interfaces:
       test_function: { in: { delta: int32 }, out: { cnt: int32 } }
       get_oscilloscope_val: { in: { index: uint32 }, out: { val: float32 } }
       set_motor_torque_coeff: { in: { index: uint32 }, out: { val: float32 } }
-      get_adc_voltage: { in: { gpio: uint32 }, out: { voltage: float32 } }
+      get_adc_voltage: { in: { channel: uint32 }, out: { voltage: float32 } }
       save_configuration:
       erase_configuration:
       reboot:

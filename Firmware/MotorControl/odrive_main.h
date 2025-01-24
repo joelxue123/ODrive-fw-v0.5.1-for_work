@@ -241,8 +241,8 @@ public:
     }
 
 
-    float get_adc_voltage(uint32_t gpio) override {
-        return ::get_adc_voltage(get_gpio_port_by_pin(gpio), get_gpio_pin_by_pin(gpio));
+    float get_adc_voltage(uint32_t channel) override {
+        return ::get_adc_voltage_channel(channel);
     }
 
     int32_t test_function(int32_t delta) override {
