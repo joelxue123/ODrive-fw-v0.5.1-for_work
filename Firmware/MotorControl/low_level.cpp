@@ -814,8 +814,21 @@ static void update_analog_endpoint(const struct PWMMapping_t *map, int gpio)
     //fibre::set_endpoint_from_float(map->endpoint, value);
 }
 
+
+bool check_phase_loss(void) {
+
+    Axis& axis = *axes[0];
+    axis.motor_.check_phase_loss();
+
+}
+
+
+
 static void analog_fault_polling_thread(void *)
 {
+    Axis& axis = *axes[0];
+    
+    
     while (true) {
         // Update analog endpoints
         for (int i = 0; i < GPIO_COUNT; i++) {
@@ -825,7 +838,8 @@ static void analog_fault_polling_thread(void *)
                 update_analog_endpoint(map, i + 1);
         }
         //update fault checkout
-
+        axis.motor_.check_protection();
+        check_phase_loss();
         osDelay(10);
     }
 }

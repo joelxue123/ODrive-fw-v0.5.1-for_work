@@ -32,6 +32,7 @@ public:
         float Iq_setpoint; // [A]
         float Iq_measured; // [A]
         float Id_measured; // [A]
+        int32_t Iq_measured_q15;
         float I_measured_report_filter_k;
         float max_allowed_current; // [A]
         float overcurrent_trip_level; // [A]
@@ -108,7 +109,7 @@ public:
 
     }
     void reset_current_control();
-
+    bool check_protection(void);
     void update_current_controller_gains();
     void DRV8301_setup();
     bool check_DRV_fault();
@@ -185,6 +186,28 @@ public:
         .async_phase_vel = 0.0f,
         .async_phase_offset = 0.0f,
     };
+
+struct PhaseMonitor {
+    // Simple current-based detection
+    const float MIN_CURRENT = 0.1f;
+    const float IMBALANCE_THRESHOLD = 0.3f;
+    const int SAMPLE_COUNT = 100;
+    
+    // State variables
+    float ia_sum, ib_sum, ic_sum;
+    int count;
+    bool fault;
+};
+struct PhaseMonitor phase_monitor = 
+{
+    .ia_sum = 0.0f,
+    .ib_sum = 0.0f,
+    .ic_sum = 0.0f,
+    .count = 0,
+    .fault = false
+
+};
+
     struct : GateDriverIntf {
         DrvFault drv_fault = DRV_FAULT_NO_FAULT;
     } gate_driver_exported_;
@@ -233,6 +256,8 @@ public:
     float convert_torque_from_current(float current,float *current2torque_coeff,uint32_t coeff_size,float current_step);
     void pos_linearity_init(void);
     bool measure_flux_linkage(void);
+    bool check_phase_loss();
+    float i2t_integral_ = 0;
 };
 
 #endif // __MOTOR_HPP

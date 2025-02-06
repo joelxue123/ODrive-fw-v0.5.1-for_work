@@ -727,6 +727,8 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     ictrl.Iq_measured += ictrl.I_measured_report_filter_k * (Iq - ictrl.Iq_measured);
     ictrl.Id_measured += ictrl.I_measured_report_filter_k * (Id - ictrl.Id_measured);
 
+    ictrl.Iq_measured_q15 = (int32_t)(ictrl.Iq_measured*32767.0f);
+
     Idq_filter_k_ = 0.4f;
     Iq_filter += Idq_filter_k_ * (Iq - Iq_filter);
     Id_filter += Idq_filter_k_ * (Id - Id_filter);
@@ -1144,8 +1146,68 @@ bool Motor::update2(float torque_setpoint, float phase, float phase_vel) {
 
 
 
+bool Motor::check_protection(void) {
+
+    CurrentControl_t& ictrl = current_control_;
+    // Calculate I2t with fixed point approximation
+    int32_t current_q15 =  ictrl.Iq_measured_q15;
+     ictrl.Iq_measured_q15 = 0;
+    float current = current_q15 * 0.000030519f; // 1/32767
+
+    float decay = 0.9967f;
+    
+    i2t_integral_ = 
+        decay * i2t_integral_ + 
+        (current * current * 0.01f);
+        
+    
+    if (i2t_integral_ > 3360.f) {
+        set_error(ERROR_I2T_INTEGRAL);
+        return false;
+    }
+    
+    return true;
+}
 
 
+
+
+
+
+bool  Motor::check_phase_loss(void) {
+
+    PhaseMonitor* pm = &phase_monitor;
+    // Get phase currents
+    float ia = current_meas_.phA;
+    float ib = current_meas_.phB;
+    float ic = current_meas_.phC;
+    
+    // Accumulate current magnitudes
+    pm->ia_sum += fabsf(ia);
+    pm->ib_sum += fabsf(ib);
+    pm->ic_sum += fabsf(ic);
+    
+    if (++pm->count >= pm->SAMPLE_COUNT) {
+        // Calculate averages
+        float ia_avg = pm->ia_sum / pm->SAMPLE_COUNT;
+        float ib_avg = pm->ib_sum / pm->SAMPLE_COUNT;
+        float ic_avg = pm->ic_sum / pm->SAMPLE_COUNT;
+        float mean = (ia_avg + ib_avg + ic_avg) / 3.0f;
+        
+        // Check imbalance
+        if (mean > pm->MIN_CURRENT) {
+            pm->fault = (fabsf(ia_avg - mean) > mean * pm->IMBALANCE_THRESHOLD) ||
+                       (fabsf(ib_avg - mean) > mean * pm->IMBALANCE_THRESHOLD) ||
+                       (fabsf(ic_avg - mean) > mean * pm->IMBALANCE_THRESHOLD);
+        }
+        
+        // Reset accumulators
+        pm->ia_sum = pm->ib_sum = pm->ic_sum = 0;
+        pm->count = 0;
+    }
+    
+    return !pm->fault;
+}
 
 
 

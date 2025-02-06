@@ -542,6 +542,7 @@ interfaces:
             { doc: too much current pushed into the power supply }
           DcBusOverCurrent:
             { doc: too much current pulled out of the power supply }
+          I2tIntegral:
       armed_state:
         typeargs: { fibre.Property.mode: readonly }
         values:
@@ -574,6 +575,7 @@ interfaces:
       notch_filter_enable: uint32
       dec_bemf: float32
       flux_link: float32
+      i2t_integral: float32
       current_control:
         c_is_class: False
         attributes:

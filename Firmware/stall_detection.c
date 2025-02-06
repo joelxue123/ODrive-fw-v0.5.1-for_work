@@ -169,7 +169,7 @@ bool Motor::check_protection(void) {
     // Calculate I2t with fixed point approximation
     float current = get_current_magnitude();
 
-    int32_t decay = 0.99;
+    int32_t decay = 0.99f;
     
     protection_.i2t_integral = 
         decay * protection_.i2t_integral + 

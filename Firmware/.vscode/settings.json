@@ -66,6 +66,7 @@
         "cfloat": "cpp",
         "icmu.h": "c",
         "assert.h": "c",
-        "board_config_v3.h": "c"
+        "board_config_v3.h": "c",
+        "source_location": "cpp"
     }
 }
