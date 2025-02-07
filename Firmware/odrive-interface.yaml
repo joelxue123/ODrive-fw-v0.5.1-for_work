@@ -543,6 +543,8 @@ interfaces:
           DcBusOverCurrent:
             { doc: too much current pulled out of the power supply }
           I2tIntegral:
+          CurrentStall:
+          
       armed_state:
         typeargs: { fibre.Property.mode: readonly }
         values:

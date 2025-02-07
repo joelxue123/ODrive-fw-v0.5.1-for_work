@@ -263,7 +263,7 @@ struct PhaseMonitor phase_monitor =
     bool measure_flux_linkage(void);
     bool check_phase_loss();
     float i2t_integral_ = 0;
-
+    int32_t current_stall_cnt_ = 0;
     float ia_avg_ = 0;
     float ib_avg_ = 0;
     float ic_avg_ = 0;

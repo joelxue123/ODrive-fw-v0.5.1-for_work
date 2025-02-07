@@ -1153,7 +1153,7 @@ bool Motor::update2(float torque_setpoint, float phase, float phase_vel) {
     return res;
 }
 
-
+static constexpr auto  CURRENT_THRESHOLD = 40.f*0.95f;
 
 bool Motor::check_protection(void) {
 
@@ -1173,6 +1173,20 @@ bool Motor::check_protection(void) {
     if (i2t_integral_ > 3360.f) {
         set_error(ERROR_I2T_INTEGRAL);
         return false;
+    }
+
+    if(current > CURRENT_THRESHOLD)
+    {
+        current_stall_cnt_++;
+        if( current_stall_cnt_ > 100)
+        {
+            set_error(ERROR_CURRENT_STALL);
+            return false;
+        }
+    }
+    else
+    {
+        current_stall_cnt_ = 0;
     }
     
     return true;
