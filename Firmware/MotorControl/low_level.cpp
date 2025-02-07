@@ -839,7 +839,7 @@ static void analog_fault_polling_thread(void *)
         }
         //update fault checkout
         axis.motor_.check_protection();
-        check_phase_loss();
+         axis.motor_.check_phase_loss();
         osDelay(10);
     }
 }

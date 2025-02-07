@@ -20,6 +20,9 @@
 #endif
 #endif
 
+#define CURRENT_SENSE_MIN_VOLT  0.2f
+#define CURRENT_SENSE_MAX_VOLT  3.1f
+
 
 typedef struct {
     uint16_t step_gpio_pin;

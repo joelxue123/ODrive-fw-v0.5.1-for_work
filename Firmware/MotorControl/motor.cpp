@@ -4,6 +4,8 @@
 #include "drv8301.h"
 #include "odrive_main.h"
 
+static constexpr auto CURRENT_ADC_LOWER_BOUND =        (uint32_t)((float)(1 << 12) * CURRENT_SENSE_MIN_VOLT / 3.3f);
+static constexpr auto CURRENT_ADC_UPPER_BOUND =        (uint32_t)((float)(1 << 12) * CURRENT_SENSE_MAX_VOLT / 3.3f);
 
 Motor::Motor(const MotorHardwareConfig_t& hw_config,
              const GateDriverHardwareConfig_t& gate_driver_config,
@@ -386,6 +388,12 @@ float Motor::convert_torque_from_current(float current,float *current2torque_coe
 
 
 float Motor::phase_current_from_adcval(uint32_t ADCValue, float phase_current_gain_coeff) {
+
+        // Make sure the measurements don't come too close to the current sensor's hardware limitations
+    if (ADCValue < CURRENT_ADC_LOWER_BOUND || ADCValue > CURRENT_ADC_UPPER_BOUND) {
+        set_error(ERROR_CURRENT_SENSE_SATURATION);
+        return 0;
+    }
     int adcval_bal = (int)ADCValue - (1 << 11);
     float amp_out_volt = (3.3f / (float)(1 << 12)) * (float)adcval_bal;
     float shunt_volt = amp_out_volt * phase_current_extern_amp_rev_gain_;
@@ -704,6 +712,7 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
 
     // For Reporting
     ictrl.Iq_setpoint = Iq_des;
+    phase_monitor.iq_set = Iq_des;
 
     // Check for current sense saturation
     if (std::abs(current_meas_.phB) > ictrl.overcurrent_trip_level || std::abs(current_meas_.phC) > ictrl.overcurrent_trip_level) {
@@ -1177,36 +1186,80 @@ bool Motor::check_protection(void) {
 bool  Motor::check_phase_loss(void) {
 
     PhaseMonitor* pm = &phase_monitor;
+    CurrentControl_t& ictrl = current_control_;
+
+    // For Reporting
+   
+
     // Get phase currents
     float ia = current_meas_.phA;
     float ib = current_meas_.phB;
     float ic = current_meas_.phC;
-    
+
+    float vel = axis_->encoder_.vel_estimate_;
     // Accumulate current magnitudes
-    pm->ia_sum += fabsf(ia);
-    pm->ib_sum += fabsf(ib);
-    pm->ic_sum += fabsf(ic);
-    
-    if (++pm->count >= pm->SAMPLE_COUNT) {
-        // Calculate averages
-        float ia_avg = pm->ia_sum / pm->SAMPLE_COUNT;
-        float ib_avg = pm->ib_sum / pm->SAMPLE_COUNT;
-        float ic_avg = pm->ic_sum / pm->SAMPLE_COUNT;
-        float mean = (ia_avg + ib_avg + ic_avg) / 3.0f;
-        
-        // Check imbalance
-        if (mean > pm->MIN_CURRENT) {
-            pm->fault = (fabsf(ia_avg - mean) > mean * pm->IMBALANCE_THRESHOLD) ||
-                       (fabsf(ib_avg - mean) > mean * pm->IMBALANCE_THRESHOLD) ||
-                       (fabsf(ic_avg - mean) > mean * pm->IMBALANCE_THRESHOLD);
-        }
-        
-        // Reset accumulators
-        pm->ia_sum = pm->ib_sum = pm->ic_sum = 0;
+    pm->vel_sum += 0.1f*(vel - pm->vel_sum);
+    float iq_set = fabsf(pm->iq_set);
+    if(iq_set <1.0f || fabsf(pm->vel_sum) > 1.0f)
+    {
+        pm->ia_sum = 0 ;
+        pm->ib_sum = 0;
+        pm->ic_sum = 0;
+        pm->iq_set_sum = 0;
+        pm->iq_actual_sum = 0;
+        ia_avg_ = 0;
+        ib_avg_ = 0;
+        ic_avg_ = 0;
+        mean_ = 0;
         pm->count = 0;
+        pm->vel_sum = 0;
+        return false;
     }
-    
-    return !pm->fault;
+
+    pm->ia_sum += 0.1f * ( fabsf(ia)  - pm->ia_sum);
+    pm->ib_sum += 0.1f * (fabsf(ib) - pm->ib_sum);
+    pm->ic_sum += 0.1f * (fabsf(ic) - pm->ic_sum);
+    pm->iq_set_sum +=   0.1f * ( fabsf(pm->iq_set) - pm->iq_set_sum);
+    pm->iq_actual_sum += 0.1f * ( fabsf(ictrl.Iq_measured) - pm->iq_actual_sum);
+    pm->iq_set = 0 ;
+
+
+    // Calculate averages
+    float ia_avg = pm->ia_sum ;
+    float ib_avg = pm->ib_sum ;
+    float ic_avg = pm->ic_sum ;
+    float mean = (ia_avg + ib_avg + ic_avg) / 3.0f;
+    ia_avg_ = ia_avg;
+    ib_avg_ = ib_avg;
+    ic_avg_ = ic_avg;
+    mean_ = mean;
+    vel_avg_ = fabsf(pm->vel_sum);
+
+    if(pm->iq_actual_sum *1.4f < pm->iq_set_sum  && fabsf(pm->vel_sum) < 2.0f)
+    {
+        pm->fault |= (1<<6);
+    }
+    else
+    {
+        return false;
+    }
+
+    // Check imbalance
+    if (mean > pm->MIN_CURRENT) {
+        pm->fault = ((ia_avg < mean * pm->IMBALANCE_THRESHOLD)<<2) |
+                    ((ib_avg  < mean * pm->IMBALANCE_THRESHOLD)<<1) |
+                    ((ic_avg < mean * pm->IMBALANCE_THRESHOLD)<<0);
+        pm->fault |= ((ia_avg > mean * 1.4f)<<5) |
+                    ((ib_avg  > mean * 1.4f)<<4) |
+                    ((ic_avg > mean * 1.4f)<<3);
+    }
+
+
+
+    pm_error_ = pm->fault;
+    // Reset accumulators
+
+    return  false;
 }
 
 

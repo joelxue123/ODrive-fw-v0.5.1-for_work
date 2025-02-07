@@ -189,14 +189,18 @@ public:
 
 struct PhaseMonitor {
     // Simple current-based detection
-    const float MIN_CURRENT = 0.1f;
+    const float MIN_CURRENT = 1.f;
     const float IMBALANCE_THRESHOLD = 0.3f;
-    const int SAMPLE_COUNT = 100;
+    const int SAMPLE_COUNT = 10;
     
     // State variables
     float ia_sum, ib_sum, ic_sum;
     int count;
-    bool fault;
+    float iq_set;
+    float iq_set_sum;
+    float iq_actual_sum;
+    float vel_sum;
+    int32_t fault;
 };
 struct PhaseMonitor phase_monitor = 
 {
@@ -204,9 +208,10 @@ struct PhaseMonitor phase_monitor =
     .ib_sum = 0.0f,
     .ic_sum = 0.0f,
     .count = 0,
-    .fault = false
+    .fault = 0
 
 };
+
 
     struct : GateDriverIntf {
         DrvFault drv_fault = DRV_FAULT_NO_FAULT;
@@ -258,6 +263,13 @@ struct PhaseMonitor phase_monitor =
     bool measure_flux_linkage(void);
     bool check_phase_loss();
     float i2t_integral_ = 0;
+
+    float ia_avg_ = 0;
+    float ib_avg_ = 0;
+    float ic_avg_ = 0;
+    float mean_ = 0 ;
+    int32_t pm_error_ = 0;
+    float vel_avg_ = 0;
 };
 
 #endif // __MOTOR_HPP

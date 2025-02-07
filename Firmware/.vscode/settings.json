@@ -67,6 +67,10 @@
         "icmu.h": "c",
         "assert.h": "c",
         "board_config_v3.h": "c",
-        "source_location": "cpp"
+        "source_location": "cpp",
+        "bitset": "cpp",
+        "hash_map": "cpp",
+        "hash_set": "cpp",
+        "format": "cpp"
     }
 }

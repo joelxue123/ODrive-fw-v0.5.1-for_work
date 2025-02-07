@@ -576,6 +576,13 @@ interfaces:
       dec_bemf: float32
       flux_link: float32
       i2t_integral: float32
+      ia_avg: float32
+      ib_avg: float32
+      ic_avg: float32
+      mean: float32
+      pm_error: int32
+      vel_avg: float32
+
       current_control:
         c_is_class: False
         attributes:
