@@ -391,7 +391,7 @@ float Motor::phase_current_from_adcval(uint32_t ADCValue, float phase_current_ga
 
         // Make sure the measurements don't come too close to the current sensor's hardware limitations
     if (ADCValue < CURRENT_ADC_LOWER_BOUND || ADCValue > CURRENT_ADC_UPPER_BOUND) {
-        set_error(ERROR_CURRENT_SENSE_SATURATION);
+        //set_error(ERROR_CURRENT_SENSE_SATURATION);
         return 0;
     }
     int adcval_bal = (int)ADCValue - (1 << 11);
@@ -492,7 +492,10 @@ void Motor::measure_current_offset(void)
     axis_->motor_.DC_calib_.phA = 0.0f;
     axis_->motor_.DC_calib_.phB = 0.0f;
     
-    
+    axis_->run_control_loop([&](){
+        return ++t < (100);
+    });
+    t = 0;
     axis_->run_control_loop([&](){
         motor_current_a_sum += axis_->motor_.current_meas_.phA;
         motor_current_b_sum += axis_->motor_.current_meas_.phB;
@@ -500,8 +503,8 @@ void Motor::measure_current_offset(void)
     });
 
     
-    axis_->motor_.DC_calib_.phA = motor_current_a_sum / (float)(num_cycles - 1);
-    axis_->motor_.DC_calib_.phB = motor_current_b_sum / (float)(num_cycles - 1);
+    axis_->motor_.DC_calib_.phA = motor_current_a_sum / (float)(num_cycles);
+    axis_->motor_.DC_calib_.phB = motor_current_b_sum / (float)(num_cycles);
     
 
 }
@@ -1213,8 +1216,7 @@ bool  Motor::check_phase_loss(void) {
     float vel = axis_->encoder_.vel_estimate_;
     // Accumulate current magnitudes
     pm->vel_sum += 0.1f*(vel - pm->vel_sum);
-    float iq_set = fabsf(pm->iq_set);
-    if(iq_set <1.0f || fabsf(pm->vel_sum) > 1.0f)
+    if(fabsf(pm->iq_set) <2.0f || fabsf(pm->vel_sum) > 2.0f)
     {
         pm->ia_sum = 0 ;
         pm->ib_sum = 0;
@@ -1227,17 +1229,25 @@ bool  Motor::check_phase_loss(void) {
         mean_ = 0;
         pm->count = 0;
         pm->vel_sum = 0;
+        pm_lost_cnt_ = 0;
+        mean_lost_cnt_ = 0;
         return false;
     }
+
+
+    
+
 
     pm->ia_sum += 0.1f * ( fabsf(ia)  - pm->ia_sum);
     pm->ib_sum += 0.1f * (fabsf(ib) - pm->ib_sum);
     pm->ic_sum += 0.1f * (fabsf(ic) - pm->ic_sum);
-    pm->iq_set_sum +=   0.1f * ( fabsf(pm->iq_set) - pm->iq_set_sum);
-    pm->iq_actual_sum += 0.1f * ( fabsf(ictrl.Iq_measured) - pm->iq_actual_sum);
+    pm->iq_set_sum +=   0.02f * ( (pm->iq_set) - pm->iq_set_sum);
+    pm->iq_actual_sum += 0.02f * ( (ictrl.Iq_measured) - pm->iq_actual_sum);
     pm->iq_set = 0 ;
 
 
+    iq_set_sum_ = pm->iq_set_sum;
+    iq_actual_sum_ = pm->iq_actual_sum;
     // Calculate averages
     float ia_avg = pm->ia_sum ;
     float ib_avg = pm->ib_sum ;
@@ -1249,23 +1259,47 @@ bool  Motor::check_phase_loss(void) {
     mean_ = mean;
     vel_avg_ = fabsf(pm->vel_sum);
 
-    if(pm->iq_actual_sum *1.4f < pm->iq_set_sum  && fabsf(pm->vel_sum) < 2.0f)
+    pm->fault &= 0xf0;
+
+
+    float iq_erro = pm->iq_set - pm->last_iq_set;
+    pm->last_iq_set = pm->iq_set;
+    if( fabsf(iq_erro) > 2.0f) //太快不适合检测
     {
-        pm->fault |= (1<<6);
+        pm_lost_cnt_ = 0;
+        mean_lost_cnt_ = 0;
+        return false; 
+    }
+
+
+    if(  (fabsf(pm->iq_set_sum) > 2.0f) && (fabsf(pm->iq_actual_sum) *1.4f < fabsf(pm->iq_set_sum))  )
+    {
+        pm_lost_cnt_++;
+        if(pm_lost_cnt_ > 100)
+        {
+            pm->fault |= (1<<6);
+        }
+        
     }
     else
     {
-        return false;
+        pm_lost_cnt_ = 0;
     }
 
-    // Check imbalance
-    if (mean > pm->MIN_CURRENT) {
-        pm->fault = ((ia_avg < mean * pm->IMBALANCE_THRESHOLD)<<2) |
+    int32_t fault = ((ia_avg < mean * pm->IMBALANCE_THRESHOLD)<<2) |
                     ((ib_avg  < mean * pm->IMBALANCE_THRESHOLD)<<1) |
                     ((ic_avg < mean * pm->IMBALANCE_THRESHOLD)<<0);
-        pm->fault |= ((ia_avg > mean * 1.4f)<<5) |
-                    ((ib_avg  > mean * 1.4f)<<4) |
-                    ((ic_avg > mean * 1.4f)<<3);
+    // Check imbalance
+    if(mean > pm->MIN_CURRENT && fault != 0 && fabsf(pm->iq_set_sum) > 2.0f) {
+        mean_lost_cnt_++;
+        if(mean_lost_cnt_ > 40)
+        {
+            pm->fault |= fault;
+        }
+    }
+    else
+    {
+        mean_lost_cnt_ = 0;
     }
 
 

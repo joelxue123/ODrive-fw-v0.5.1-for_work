@@ -37,7 +37,7 @@
                 "__GNUC__"
             ],
             "intelliSenseMode": "gcc-x64",
-            "compilerPath": "arm-none-eabi-g++ -mthumb -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -specs=nosys.specs -specs=nano.specs -u _printf_float -u _scanf_float",
+            "compilerPath": "/usr/share/gcc-arm-none-eabi-10-2020-q4-major/bin/arm-none-eabi-g++ -mthumb -mcpu=cortex-m4 -mfpu=fpv4-sp-d16 -mfloat-abi=hard -specs=nosys.specs -specs=nano.specs -u _printf_float -u _scanf_float",
             "cStandard": "c11",
             "cppStandard": "c++17"
         },

@@ -584,6 +584,11 @@ interfaces:
       mean: float32
       pm_error: int32
       vel_avg: float32
+      ia_set: float32
+      ib_set: float32
+      ic_set: float32
+      iq_set_sum: float32
+      iq_actual_sum: float32
 
       current_control:
         c_is_class: False

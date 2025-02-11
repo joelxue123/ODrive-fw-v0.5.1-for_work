@@ -831,16 +831,11 @@ static void analog_fault_polling_thread(void *)
     
     while (true) {
         // Update analog endpoints
-        for (int i = 0; i < GPIO_COUNT; i++) {
-            struct PWMMapping_t *map = &odrv.config_.analog_mappings[i];
-
-            if (fibre::is_endpoint_ref_valid(map->endpoint))
-                update_analog_endpoint(map, i + 1);
-        }
+    
         //update fault checkout
         axis.motor_.check_protection();
          axis.motor_.check_phase_loss();
-        osDelay(10);
+        osDelay(2);
     }
 }
 

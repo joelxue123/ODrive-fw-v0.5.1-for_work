@@ -189,7 +189,7 @@ public:
 
 struct PhaseMonitor {
     // Simple current-based detection
-    const float MIN_CURRENT = 1.f;
+    const float MIN_CURRENT = 2.f;
     const float IMBALANCE_THRESHOLD = 0.3f;
     const int SAMPLE_COUNT = 10;
     
@@ -197,6 +197,7 @@ struct PhaseMonitor {
     float ia_sum, ib_sum, ic_sum;
     int count;
     float iq_set;
+    float last_iq_set;
     float iq_set_sum;
     float iq_actual_sum;
     float vel_sum;
@@ -208,8 +209,9 @@ struct PhaseMonitor phase_monitor =
     .ib_sum = 0.0f,
     .ic_sum = 0.0f,
     .count = 0,
-    .fault = 0
-
+    .iq_set = 0.0f,
+    .last_iq_set = 0.0f,
+    .fault = 0,
 };
 
 
@@ -268,8 +270,15 @@ struct PhaseMonitor phase_monitor =
     float ib_avg_ = 0;
     float ic_avg_ = 0;
     float mean_ = 0 ;
+    int32_t pm_lost_cnt_ = 0;
     int32_t pm_error_ = 0;
     float vel_avg_ = 0;
+    float ia_set_ = 0;
+    float ib_set_ = 0;
+    float ic_set_ = 0;
+    float iq_set_sum_ = 0;
+    float iq_actual_sum_ = 0;
+    int32_t mean_lost_cnt_= 0;
 };
 
 #endif // __MOTOR_HPP
