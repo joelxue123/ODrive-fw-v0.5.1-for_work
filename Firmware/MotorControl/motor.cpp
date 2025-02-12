@@ -715,7 +715,7 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
 
     // For Reporting
     ictrl.Iq_setpoint = Iq_des;
-    phase_monitor.iq_set = Iq_des;
+
 
     // Check for current sense saturation
     if (std::abs(current_meas_.phB) > ictrl.overcurrent_trip_level || std::abs(current_meas_.phC) > ictrl.overcurrent_trip_level) {
@@ -740,6 +740,8 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     ictrl.Id_measured += ictrl.I_measured_report_filter_k * (Id - ictrl.Id_measured);
 
     ictrl.Iq_measured_q15 = (int32_t)(ictrl.Iq_measured*32767.0f);
+    phase_monitor.iq_set = Iq_des;
+    phase_monitor.iq_measured = ictrl.Iq_measured;
 
     Idq_filter_k_ = 0.4f;
     Iq_filter += Idq_filter_k_ * (Iq - Iq_filter);
@@ -1166,11 +1168,11 @@ bool Motor::check_protection(void) {
      ictrl.Iq_measured_q15 = 0;
     float current = current_q15 * 0.000030519f; // 1/32767
 
-    float decay = 0.9967f;
+    float decay = 0.9993f;
     
     i2t_integral_ = 
         decay * i2t_integral_ + 
-        (current * current * 0.01f);
+        (current * current * 0.002f);
         
     
     if (i2t_integral_ > 3360.f) {
@@ -1181,7 +1183,7 @@ bool Motor::check_protection(void) {
     if(current > CURRENT_THRESHOLD)
     {
         current_stall_cnt_++;
-        if( current_stall_cnt_ > 100)
+        if( current_stall_cnt_ > 1000)
         {
             set_error(ERROR_CURRENT_STALL);
             return false;
@@ -1216,34 +1218,14 @@ bool  Motor::check_phase_loss(void) {
     float vel = axis_->encoder_.vel_estimate_;
     // Accumulate current magnitudes
     pm->vel_sum += 0.1f*(vel - pm->vel_sum);
-    if(fabsf(pm->iq_set) <2.0f || fabsf(pm->vel_sum) > 2.0f)
-    {
-        pm->ia_sum = 0 ;
-        pm->ib_sum = 0;
-        pm->ic_sum = 0;
-        pm->iq_set_sum = 0;
-        pm->iq_actual_sum = 0;
-        ia_avg_ = 0;
-        ib_avg_ = 0;
-        ic_avg_ = 0;
-        mean_ = 0;
-        pm->count = 0;
-        pm->vel_sum = 0;
-        pm_lost_cnt_ = 0;
-        mean_lost_cnt_ = 0;
-        return false;
-    }
-
-
-    
-
 
     pm->ia_sum += 0.1f * ( fabsf(ia)  - pm->ia_sum);
     pm->ib_sum += 0.1f * (fabsf(ib) - pm->ib_sum);
     pm->ic_sum += 0.1f * (fabsf(ic) - pm->ic_sum);
     pm->iq_set_sum +=   0.02f * ( (pm->iq_set) - pm->iq_set_sum);
-    pm->iq_actual_sum += 0.02f * ( (ictrl.Iq_measured) - pm->iq_actual_sum);
+    pm->iq_actual_sum += 0.02f * ( (pm->iq_measured) - pm->iq_actual_sum);
     pm->iq_set = 0 ;
+    pm->iq_measured = 0 ;
 
 
     iq_set_sum_ = pm->iq_set_sum;
@@ -1252,7 +1234,7 @@ bool  Motor::check_phase_loss(void) {
     float ia_avg = pm->ia_sum ;
     float ib_avg = pm->ib_sum ;
     float ic_avg = pm->ic_sum ;
-    float mean = (ia_avg + ib_avg + ic_avg) / 3.0f;
+    float mean = (ia_avg + ib_avg + ic_avg) * 0.33333f;
     ia_avg_ = ia_avg;
     ib_avg_ = ib_avg;
     ic_avg_ = ic_avg;
@@ -1261,10 +1243,9 @@ bool  Motor::check_phase_loss(void) {
 
     pm->fault &= 0xf0;
 
-
     float iq_erro = pm->iq_set - pm->last_iq_set;
     pm->last_iq_set = pm->iq_set;
-    if( fabsf(iq_erro) > 2.0f) //太快不适合检测
+    if( fabsf(iq_erro) > 2.0f  || fabsf(pm->vel_sum) > 2.0f || (pm->iq_set_sum) < 2.0f) //太快不适合检测
     {
         pm_lost_cnt_ = 0;
         mean_lost_cnt_ = 0;

@@ -198,6 +198,7 @@ struct PhaseMonitor {
     int count;
     float iq_set;
     float last_iq_set;
+    float iq_measured;
     float iq_set_sum;
     float iq_actual_sum;
     float vel_sum;
@@ -211,6 +212,7 @@ struct PhaseMonitor phase_monitor =
     .count = 0,
     .iq_set = 0.0f,
     .last_iq_set = 0.0f,
+    .iq_measured = 0.0f,
     .fault = 0,
 };
 
