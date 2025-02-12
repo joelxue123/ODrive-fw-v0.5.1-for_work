@@ -139,8 +139,8 @@ void safety_critical_apply_motor_pwm_timings(Motor& motor, uint16_t timings[3]) 
         motor.armed_state_ = Motor::ARMED_STATE_DISARMED;
     }
 
-    motor.hw_config_.timer->Instance->CCR1 = timings[0];
-    motor.hw_config_.timer->Instance->CCR2 = timings[1];
+    motor.hw_config_.timer->Instance->CCR1 = timings[1];
+    motor.hw_config_.timer->Instance->CCR2 = timings[0];
     motor.hw_config_.timer->Instance->CCR3 = timings[2];
 
     if (motor.armed_state_ == Motor::ARMED_STATE_WAITING_FOR_TIMINGS) {
@@ -586,8 +586,8 @@ void pwm_trig_adc_cb(ADC_HandleTypeDef* hadc, bool injected) {
 
     // update_brake_current(); todo
     
-    uint32_t ADCValue_a = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_2);
-    uint32_t ADCValue_b = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_2);
+    uint32_t ADCValue_b = HAL_ADCEx_InjectedGetValue(&hadc2, ADC_INJECTED_RANK_2);
+    uint32_t ADCValue_a = HAL_ADCEx_InjectedGetValue(&hadc3, ADC_INJECTED_RANK_2);
 
     float current_a = axis.motor_.phase_current_from_adcval(ADCValue_a,1.0f);
     float current_b = axis.motor_.phase_current_from_adcval(ADCValue_b,1.0f);//0.718
