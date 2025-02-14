@@ -70,6 +70,7 @@ extern SPI_HandleTypeDef hspi1;
 extern void _Error_Handler(char *, int);
 
 void MX_SPI3_Init(void);
+void  MX_SPI3_Denit(void);
 void MX_SPI1_Init(void);
 void transmit_spi(SPI_HandleTypeDef* spiHandle,uint8_t *tx_buf, uint8_t *rx_buf, uint16_t len);
 /* USER CODE BEGIN Prototypes */

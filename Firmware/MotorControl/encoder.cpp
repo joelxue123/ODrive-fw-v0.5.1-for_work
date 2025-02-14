@@ -23,17 +23,16 @@ static void enc_index_cb_wrapper(void* ctx) {
 
 void Encoder::set_cs_high(void)
 {
-    if(config_.is_high_speed_encode_query_enabled == false)
-        return ;
+ 
+    HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_SET);
+    HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_,GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_SET);
 
-    if(mode_ & MODE_FLAG_ABS)
-    {  
-        HAL_GPIO_WritePin(motor_spi_cs_port_, motor_spi_cs_pin_, GPIO_PIN_SET);
-        HAL_GPIO_WritePin(GearboxOutputEncoder_spi_cs_port_,GearboxOutputEncoder_spi_cs_pin_, GPIO_PIN_SET);
-    }    
 }
 
 void Encoder::setup() {
+     abs_spi_cs_pin_init();
+     // config_.is_high_speed_encode_query_enabled = false;
+    //  return;
    // HAL_TIM_Encoder_Start(hw_config_.timer, TIM_CHANNEL_ALL);
    // set_idx_subscribe();
     motor_spi_hardware_.spi_handle = &hspi3;
@@ -44,11 +43,11 @@ void Encoder::setup() {
     GearboxOutputEncoder_spi_hardware_.cs_port = MU128_2_GPIO_Port;
     GearboxOutputEncoder_spi_hardware_.cs_pin = MU128_2_Pin;
 
-    gear_mu150_status_ = icmu_spi_init(&GearboxOutputEncoder_spi_hardware_);
-    motor_mu150_status_ = icmu_spi_init(&motor_spi_hardware_);
+    //gear_mu150_status_ = icmu_spi_init(&GearboxOutputEncoder_spi_hardware_);
+    //motor_mu150_status_ = icmu_spi_init(&motor_spi_hardware_);
 
     mode_ = config_.mode;
-    abs_spi_cs_pin_init();
+   
     if(mode_ & MODE_FLAG_ABS){
         
         abs_spi_init();

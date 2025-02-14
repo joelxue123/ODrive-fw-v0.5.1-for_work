@@ -480,6 +480,7 @@ extern DRV8301_DcCalMode_e DRV8301_getDcCalMode(DRV8301_Handle handle,
 //! \brief     Enables the DRV8301
 //! \param[in] handle     The DRV8301 handle
 extern void DRV8301_enable(DRV8301_Handle handle);
+extern void DRV8301_spi_init();
 
 
 //! \brief     Gets the fault type

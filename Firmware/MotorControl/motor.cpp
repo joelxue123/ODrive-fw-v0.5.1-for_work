@@ -125,12 +125,27 @@ void Motor::DRV8301_setup() {
 
 // @brief Checks if the gate driver is in operational state.
 // @returns: true if the gate driver is OK (no fault), false otherwise
+
 bool Motor::check_DRV_fault() {
     //TODO: make this pin configurable per motor ch
     GPIO_PinState nFAULT_state = HAL_GPIO_ReadPin(gate_driver_config_.nFAULT_port, gate_driver_config_.nFAULT_pin);
     if (nFAULT_state == GPIO_PIN_RESET) {
+        set_error(ERROR_DRV_FAULT);
+        volatile int i =0;
+
+            
+        axis_->encoder_.set_cs_high();
+        axis_->encoder_.config_.is_high_speed_encode_query_enabled = false;
+        DRV8301_spi_init();
+
+        
         // Update DRV Fault Code
-        gate_driver_exported_.drv_fault = (GateDriverIntf::DrvFault)DRV8301_getFaultType(&gate_driver_);
+        for(i = 0; i <10; i++) {
+
+            gate_driver_exported_.drv_fault = (GateDriverIntf::DrvFault)DRV8301_getFaultType(&gate_driver_);
+        }
+        //axis_->encoder_.abs_spi_init();
+        //axis_->encoder_.config_.is_high_speed_encode_query_enabled = true;
         // Update/Cache all SPI device registers
         // DRV_SPI_8301_Vars_t* local_regs = &gate_driver_regs_;
         // local_regs->RcvCmd = true;
@@ -139,6 +154,7 @@ bool Motor::check_DRV_fault() {
     };
     return true;
 }
+
 
 void Motor::set_error(Motor::Error error){
     error_ |= error;

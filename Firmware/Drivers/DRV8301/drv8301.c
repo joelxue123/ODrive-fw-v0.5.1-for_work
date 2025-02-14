@@ -50,10 +50,17 @@
 
 // **************************************************************************
 // the defines
-
+void DRV8301_spi_init(void)
+{
+  
+  MX_SPI3_Denit();
+  MX_SPI3_Init();
+  
+}
 
 // **************************************************************************
 // the globals
+
 
 
 // **************************************************************************
@@ -107,8 +114,8 @@ DRV8301_FaultType_e DRV8301_getFaultType(DRV8301_Handle handle)
 
 
   // read the data
-  readWord = DRV8301_readSpi(handle,DRV8301_RegName_Status_1);
-
+  readWord = DRV8301_readSpi(handle,DRV8301_RegName_Status_2);
+  return readWord;
   if(readWord & DRV8301_STATUS1_FAULT_BITS)
     {
       faultType = (DRV8301_FaultType_e)(readWord & DRV8301_FAULT_TYPE_MASK);
@@ -362,7 +369,9 @@ bool DRV8301_isReset(DRV8301_Handle handle)
 uint16_t DRV8301_readSpi(DRV8301_Handle handle, const DRV8301_RegName_e regName)
 {
 
-  // Actuate chipselect
+  HAL_GPIO_WritePin(handle->nCSgpioHandle, handle->nCSgpioNumber, GPIO_PIN_SET);
+  delay_us(100);
+  //Actuate chipselect
   HAL_GPIO_WritePin(handle->nCSgpioHandle, handle->nCSgpioNumber, GPIO_PIN_RESET);
   delay_us(1);
 
@@ -590,6 +599,9 @@ void DRV8301_setShuntAmpGain(DRV8301_Handle handle,const DRV8301_ShuntAmpGain_e 
 
 void DRV8301_writeSpi(DRV8301_Handle handle, const DRV8301_RegName_e regName,const uint16_t data)
 {
+  HAL_GPIO_WritePin(handle->nCSgpioHandle, handle->nCSgpioNumber, GPIO_PIN_SET);
+  delay_us(1);
+
   // Actuate chipselect
   HAL_GPIO_WritePin(handle->nCSgpioHandle, handle->nCSgpioNumber, GPIO_PIN_RESET);
   delay_us(1);
