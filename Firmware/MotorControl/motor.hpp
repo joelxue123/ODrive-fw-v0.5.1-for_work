@@ -128,8 +128,7 @@ public:
     bool FOC_voltage(float v_d, float v_q, float pwm_phase);
     bool FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_phase);
     bool update(float current_setpoint, float phase, float phase_vel);
-    bool update1(float current_setpoint, float phase, float phase_vel);
-    bool update2(float current_setpoint, float phase, float phase_vel);
+    void current_update(float I_phase);
     void pos_linearity_ini(void);
     float current_Correct(int32_t Torque_Org);
     void abc_sign_calculation(float phase , int32_t *a, int32_t *b, int32_t *c);

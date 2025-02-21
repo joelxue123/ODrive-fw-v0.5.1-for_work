@@ -721,7 +721,9 @@ bool Axis::run_idle_loop() {
     // if and only if we're in AXIS_STATE_IDLE
     safety_critical_disarm_motor_pwm(motor_);
     set_step_dir_active(config_.enable_step_dir && config_.step_dir_always_on);
+
     run_control_loop([this]() {
+        motor_.current_update(encoder_.phase_);
         return true;
     });
     return check_for_errors();
