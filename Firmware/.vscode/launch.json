@@ -5,6 +5,22 @@
     "version": "0.2.0",
     "configurations": [
         {
+            "type": "cortex-debug",
+            "servertype": "openocd",
+            "request": "launch",
+            "name": "Debug ODrive - ST-Link - FreeRTOS",
+            "executable": "${workspaceRoot}/build/ODriveFirmware.elf",
+            "configFiles": [
+                "interface/stlink.cfg",
+                "target/stm32f4x.cfg",
+            ],
+            "showDevDebugOutput": "raw",
+            "cwd": "${workspaceRoot}",
+            "rtos": "FreeRTOS",
+            "svdFile": "${workspaceRoot}/Board/v3/STM32F40x.svd",
+
+        },
+        {
             // For the Cortex-Debug extension
             "type": "cortex-debug",
             "servertype": "openocd",
@@ -19,38 +35,20 @@
             "cwd": "${workspaceRoot}",
         },
         {
-            // For the Cortex-Debug extension
-            "type": "cortex-debug",
-            "servertype": "openocd",
-            "request": "launch",
-            "name": "Debug ODrive - ST-Link - FreeRTOS",
-            "executable": "${workspaceRoot}/build/ODriveFirmware.elf",
-            "rtos": "FreeRTOS",
-            "configFiles": [
-                "${workspaceRoot}/openocd.cfg"
-            ],
-            "svdFile": "${workspaceRoot}/Board/v3/STM32F40x.svd",
-            "cwd": "${workspaceRoot}",
-            "armToolchainPath": "C:/Program Files (x86)/GNU Tools Arm Embedded/7 2018-q2-update/bin"
-        },
-        {
-            // For the Cortex-Debug extension
-            // ssh -t odrv -L3333:localhost:3333 bash -c "\"openocd '-f' 'interface/stlink-v2.cfg' '-f' 'target/stm32f4x_stlink.cfg'\""
             "type": "cortex-debug",
             "servertype": "external",
             "gdbTarget": "localhost:3333",
-            "preLaunchCommands": [
-                "load"
-            ],
             "request": "launch",
             "name": "Debug ODrive via external server",
             "executable": "${workspaceRoot}/build/ODriveFirmware.elf",
-            "configFiles": [
-                "interface/stlink.cfg",
-                "target/stm32f4x_stlink.cfg",
-            ],
-            "svdFile": "${workspaceRoot}/Board/v3/STM32F40x.svd",
-            "cwd": "${workspaceRoot}"
+            "cwd": "${workspaceRoot}",
+            "toolchainPath": "/usr/share/gcc-arm-none-eabi-10-2020-q4-major/bin/",  // Add this line
+            "svdFile": "${workspaceRoot}/Board/v3/STM32F40x.svd",  // Add this line
+            "preLaunchCommands": [
+                "monitor reset halt",  // Add this line
+                "load",
+                "monitor reset init"   // Add this line
+            ]
         },
         {
             // For the Cortex-Debug extensions

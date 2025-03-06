@@ -5,9 +5,21 @@
 BUILD_DIR = build
 FIRMWARE = $(BUILD_DIR)/ODriveFirmware.elf
 FIRMWARE_HEX = $(BUILD_DIR)/ODriveFirmware.hex
+
+
+USE_STLINK ?= 1
+
+# Configure OpenOCD for different debuggers
+ifeq ($(USE_STLINK),1)
+OPENOCD := openocd -f interface/stlink-v2.cfg \
+	$(if $(value PROGRAMMER),-c 'hla_serial $(PROGRAMMER)',) \
+	-f target/stm32f4x.cfg
+else
 OPENOCD := openocd -f interface/jlink.cfg \
-		$(if $(value PROGRAMMER),-c 'hla_serial $(PROGRAMMER)',) \
-		-f target/stm32f4x.cfg
+	$(if $(value PROGRAMMER),-c 'hla_serial $(PROGRAMMER)',) \
+	-f target/stm32f4x.cfg
+endif
+
 
 # Set the include paths for compiling test files
 TEST_INCLUDES = -I. -I./MotorControl -I./fibre/cpp/include -I./Drivers/DRV8301 -I./doctest
