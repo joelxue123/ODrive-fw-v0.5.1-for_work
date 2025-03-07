@@ -78,7 +78,7 @@ extern const BoardHardwareConfig_t hw_configs[2];
 const float fet_thermistor_poly_coeffs[] =
     {257.61f, -324.08f,  258.34f, -23.12f};  //3300 Ohm
 const float fet_thermistor_poly_coeffs2[] =
-    {258.86f,-337.07f, 237.83f, -26.42f};  //10000 Ohm
+    {432.91f,-634.23f, 383.988f, -62.37f};  //100000 Ohm
 const size_t fet_thermistor_num_coeffs = sizeof(fet_thermistor_poly_coeffs)/sizeof(fet_thermistor_poly_coeffs[1]);
 
 const BoardHardwareConfig_t hw_configs[2] = { {

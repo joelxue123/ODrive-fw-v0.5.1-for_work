@@ -794,7 +794,7 @@ bool Encoder::update() {
 
             sencond_pos_abs_ =  (GearboxOutputEncoder_spi_dma_rx_[2]<<16) | (GearboxOutputEncoder_spi_dma_rx_[3]<<8) | (GearboxOutputEncoder_spi_dma_rx_[4]&0xf8) ; 
             sencond_pos_abs_ >>= 6;
-            sencond_pos_abs_ =config_.GearboxOutputEncoder_cpr - sencond_pos_abs_; //取反
+            sencond_pos_abs_ = sencond_pos_abs_; //取反
             mt6835_status_ = GearboxOutputEncoder_spi_dma_rx_[4] & 0x07;
 
             gear_single_turn_abs_ = sencond_pos_abs_;
