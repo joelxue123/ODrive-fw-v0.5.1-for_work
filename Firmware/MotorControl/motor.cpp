@@ -731,6 +731,8 @@ bool Motor::FOC_current(float Id_des, float Iq_des, float I_phase, float pwm_pha
     float Iq = c_I * Ibeta - s_I * Ialpha;
     ictrl.Iq_measured += ictrl.I_measured_report_filter_k * (Iq - ictrl.Iq_measured);
     ictrl.Id_measured += ictrl.I_measured_report_filter_k * (Id - ictrl.Id_measured);
+    
+    ictrl.Iq_measured_q15 = (int32_t)(ictrl.Iq_measured*32767.0f);
 
     Idq_filter_k_ = 0.4f;
     Iq_filter += Idq_filter_k_ * (Iq - Iq_filter);
