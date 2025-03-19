@@ -32,6 +32,7 @@ public:
         float Iq_setpoint; // [A]
         float Iq_measured; // [A]
         float Id_measured; // [A]
+        int32_t Iq_measured_q15;
         float I_measured_report_filter_k;
         float max_allowed_current; // [A]
         float overcurrent_trip_level; // [A]
@@ -46,8 +47,8 @@ public:
     // example: current_lim and calibration_current will instead determine the maximum voltage applied to the motor.
     struct Config_t {
         bool pre_calibrated = false; // can be set to true to indicate that all values here are valid
-        int32_t pole_pairs = 21;
-        int32_t gear_ratio = 16;
+        int32_t pole_pairs = 10;
+        int32_t gear_ratio = 25;
         float motor_torque_base = 60.0f; // [Nm]
         float calibration_current = 10.0f;    // [A]
         float resistance_calib_max_voltage = 2.0f; // [V] - You may need to increase this if this voltage isn't sufficient to drive calibration_current through the motor.
@@ -104,7 +105,8 @@ public:
             L_Slop_Array_N_[index] = config_.CURRENT_LINEARITY_[index];
         }
         initNotchFilter(&notch_filter_, notch_filter_frequency_, notch_filter_sample_rate_, notch_filter_bandwidth_);
-
+        protection_config_.CURRENT_THRESHOLD = config_.current_lim *0.9f;
+        protection_config_.I2T_THRESHOLD = config_.current_lim * config_.current_lim*3.0f*0.7f;
 
     }
     void reset_current_control();
@@ -185,6 +187,61 @@ public:
         .async_phase_vel = 0.0f,
         .async_phase_offset = 0.0f,
     };
+
+
+    struct PhaseMonitor {
+        // Simple current-based detection
+        const float MIN_CURRENT = 2.f;
+        const float IMBALANCE_THRESHOLD = 0.3f;
+        const int SAMPLE_COUNT = 10;
+        
+        // State variables
+        float ia_sum, ib_sum, ic_sum;
+        int count;
+        float iq_set;
+        float last_iq_set;
+        float iq_measured;
+        float iq_set_sum;
+        float iq_actual_sum;
+        float vel_sum;
+        int32_t fault;
+    };
+    struct PhaseMonitor phase_monitor = 
+    {
+        .ia_sum = 0.0f,
+        .ib_sum = 0.0f,
+        .ic_sum = 0.0f,
+        .count = 0,
+        .iq_set = 0.0f,
+        .last_iq_set = 0.0f,
+        .iq_measured = 0.0f,
+        .fault = 0,
+    };
+    
+    struct ProtectionConfig {
+        float CURRENT_THRESHOLD = 40.0f * 0.95f;    // Stall current threshold
+        float I2T_THRESHOLD = 3360.0f;              // I2t protection threshold
+        static constexpr float DECAY_FACTOR = 0.9993f;               // I2t decay factor
+        static constexpr float CURRENT_SCALE = 1.0f / 32767.0f;      // Q15 to float conversion
+        static constexpr float THERMAL_INTEGRATION_RATE = 0.002f;    // Integration time constant
+        static constexpr int STALL_COUNT_THRESHOLD = 500;           // Stall detection time
+    };
+    struct ProtectionConfig protection_config_ = 
+    {
+        .CURRENT_THRESHOLD = 40.0f * 0.95f,
+        .I2T_THRESHOLD = 3360.0f,
+    };
+
+
+
+
+
+
+
+
+
+
+
     struct : GateDriverIntf {
         DrvFault drv_fault = DRV_FAULT_NO_FAULT;
     } gate_driver_exported_;
@@ -233,6 +290,31 @@ public:
     float convert_torque_from_current(float current,float *current2torque_coeff,uint32_t coeff_size,float current_step);
     void pos_linearity_init(void);
     bool measure_flux_linkage(void);
+
+
+
+    bool check_phase_loss();
+    bool check_protection(void);
+    void current_update(float I_phase);
+    float i2t_integral_ = 0;
+    int32_t current_stall_cnt_ = 0;
+    float ia_avg_ = 0;
+    float ib_avg_ = 0;
+    float ic_avg_ = 0;
+    float mean_ = 0 ;
+    int32_t pm_lost_cnt_ = 0;
+    int32_t pm_error_ = 0;
+    float vel_avg_ = 0;
+    float ia_set_ = 0;
+    float ib_set_ = 0;
+    float ic_set_ = 0;
+    float iq_set_sum_ = 0;
+    float iq_actual_sum_ = 0;
+    int32_t mean_lost_cnt_= 0;
+
+
+
+
 };
 
 #endif // __MOTOR_HPP

@@ -921,231 +921,180 @@ bool Motor::update(float torque_setpoint, float phase, float phase_vel) {
 
 
 
+void Motor::current_update(float I_phase) {
+
+    // Syntactic sugar
+    CurrentControl_t& ictrl = current_control_;
 
 
-
-
-
-
-
-
-// torque_setpoint [Nm]
-// phase [rad electrical]
-// phase_vel [rad/s electrical]
-bool Motor::update1(float torque_setpoint, float phase, float phase_vel) {
-    float current_setpoint = 0.0f;
-    float torque_constant = 0.12f;
-    phase *= config_.direction;
-    phase_vel *= config_.direction;
-    m_speed_est_fast =  phase_vel; 
-
-    // if (config_.motor_type == MOTOR_TYPE_ACIM) {
-    //     current_setpoint = torque_setpoint / (config_.torque_constant * fmax(current_control_.acim_rotor_flux, config_.acim_gain_min_flux));
-    // }
-    // else {
-    //     current_setpoint = torque_setpoint / config_.torque_constant;
-    // }
-    
-    if( notch_filter_enable_ )
-    {
-        torque_setpoint_filterd_ += 0.015f * (torque_setpoint - torque_setpoint_filterd_);
-        torque_setpoint_notch_filterd_= applyNotchFilter(&notch_filter_, torque_setpoint_filterd_);
+    // Check for current sense saturation
+    if (std::abs(current_meas_.phB) > ictrl.overcurrent_trip_level || std::abs(current_meas_.phC) > ictrl.overcurrent_trip_level) {
+        set_error(ERROR_CURRENT_SENSE_SATURATION);
+        axis_->axis_state_.erro = Axis::ENCOS_ERRO::ENCOS_ERROR_CURRENT_LIMIT_VIOLATION;
     }
-    else
-    {
-        torque_setpoint_notch_filterd_ = torque_setpoint;
-    }
+    // float Ialpha = -current_meas_.phB - current_meas_.phC;
+    // float Ibeta = one_by_sqrt3 * (current_meas_.phB - current_meas_.phC);
+    float Ialpha = current_meas_.phA;
+    float Ibeta = one_by_sqrt3 * (current_meas_.phB - current_meas_.phC);
+    //  float Ibeta = one_by_sqrt3 * (-current_meas_.phA - current_meas_.phC  - current_meas_.phC);
+
+    // Park transform
+    float c_I = our_arm_cos_f32(I_phase);
+    float s_I = our_arm_sin_f32(I_phase);
+    float Id = c_I * Ialpha + s_I * Ibeta;
+    float Iq = c_I * Ibeta - s_I * Ialpha;
+    ictrl.Iq_measured += ictrl.I_measured_report_filter_k * (Iq - ictrl.Iq_measured);
+    ictrl.Id_measured += ictrl.I_measured_report_filter_k * (Id - ictrl.Id_measured);
+    ictrl.Iq_measured_q15 = (int32_t)(ictrl.Iq_measured * 32767.0f);
     
 
-    if( using_old_torque_constant_ ==  true)
-    {
-        current_setpoint = torque_setpoint_notch_filterd_ / (config_.torque_constant );
-    }
-    else
-    {
-        float torque_setpoint_abs = fabsf(torque_setpoint_notch_filterd_);
-        uint32_t idex = (uint32_t)((torque_setpoint_abs*CALIBRATION_INCREMENT)); 
-        const float* torque_constant_array  = torque_setpoint_notch_filterd_ > 0.0f ? L_Slop_Array_P_ : L_Slop_Array_N_;
-        if( idex > (NUM_LINEARITY_SEG -2) )
-        {
-            idex = NUM_LINEARITY_SEG -1;
-            torque_constant = torque_constant_array [idex];
-        }
-        else
-        {
-            torque_constant = torque_constant_array [idex]*( 1.0f - torque_setpoint_abs+ (uint32_t)torque_setpoint_abs ) + torque_constant_array [idex+1]*( torque_setpoint_abs- (uint32_t)torque_setpoint_abs);
-        }
 
-        current_setpoint = torque_setpoint_notch_filterd_ / torque_constant;
-
-
-    }
-    current_setpoint *= config_.direction;
-
-    // TODO: 2-norm vs independent clamping (current could be sqrt(2) bigger)
-    float ilim = effective_current_lim();
-    float id = std::clamp(current_control_.Id_setpoint, -ilim, ilim);
-    float iq = std::clamp(current_setpoint, -ilim, ilim);
-
-    if (config_.motor_type == MOTOR_TYPE_ACIM) {
-        // Note that the effect of the current commands on the real currents is actually 1.5 PWM cycles later
-        // However the rotor time constant is (usually) so slow that it doesn't matter
-        // So we elect to write it as if the effect is immediate, to have cleaner code
-
-        if (config_.acim_autoflux_enable) {
-            float abs_iq = fabsf(iq);
-            float gain = abs_iq > id ? config_.acim_autoflux_attack_gain : config_.acim_autoflux_decay_gain;
-            id += gain * (abs_iq - id) * current_meas_period;
-            id = std::clamp(id, config_.acim_autoflux_min_Id, ilim);
-            current_control_.Id_setpoint = id;
-        }
-
-        // acim_rotor_flux is normalized to units of [A] tracking Id; rotor inductance is unspecified
-        float dflux_by_dt = config_.acim_slip_velocity * (id - current_control_.acim_rotor_flux);
-        current_control_.acim_rotor_flux += dflux_by_dt * current_meas_period;
-        float slip_velocity = config_.acim_slip_velocity * (iq / current_control_.acim_rotor_flux);
-        // Check for issues with small denominator. Polarity of check to catch NaN too
-        bool acceptable_vel = fabsf(slip_velocity) <= 0.1f * (float)current_meas_hz;
-        if (!acceptable_vel)
-            slip_velocity = 0.0f;
-        phase_vel += slip_velocity;
-        // reporting only:
-        current_control_.async_phase_vel = slip_velocity;
-
-        current_control_.async_phase_offset += slip_velocity * current_meas_period;
-        current_control_.async_phase_offset = wrap_pm_pi(current_control_.async_phase_offset);
-        phase += current_control_.async_phase_offset;
-        phase = wrap_pm_pi(phase);
-    }
-
-    float pwm_phase = phase + 1.5f * current_meas_period * phase_vel;
-    pwm_phase = wrap_pm_pi(pwm_phase);
-    I_phase_ = pwm_phase;
-    // Clarke transform
-
-
-    bool res = true;
-    // Execute current command
-    switch(config_.motor_type){
-        case MOTOR_TYPE_HIGH_CURRENT: res =  FOC_current(id, iq, phase, pwm_phase); break;
-        case MOTOR_TYPE_ACIM: res = FOC_current(id, iq, phase, pwm_phase); break;
-        case MOTOR_TYPE_GIMBAL: res =FOC_voltage(id, iq, pwm_phase); break;
-        default: set_error(ERROR_NOT_IMPLEMENTED_MOTOR_TYPE); return false; break;
-    }
-
-
-    return res;
 }
 
 
 
-// torque_setpoint [Nm]
-// phase [rad electrical]
-// phase_vel [rad/s electrical]
-bool Motor::update2(float torque_setpoint, float phase, float phase_vel) {
-    float current_setpoint = 0.0f;
-    float torque_constant = 0.12f;
-    phase *= config_.direction;
-    phase_vel *= config_.direction;
-    m_speed_est_fast =  phase_vel; 
 
-    // if (config_.motor_type == MOTOR_TYPE_ACIM) {
-    //     current_setpoint = torque_setpoint / (config_.torque_constant * fmax(current_control_.acim_rotor_flux, config_.acim_gain_min_flux));
-    // }
-    // else {
-    //     current_setpoint = torque_setpoint / config_.torque_constant;
-    // }
+bool Motor::check_protection(void) {
+
+    const auto & protection  = protection_config_;
+    CurrentControl_t& ictrl = current_control_;
+    // Calculate I2t with fixed point approximation
+    int32_t current_q15 =  ictrl.Iq_measured_q15;
+     ictrl.Iq_measured_q15 = 0;
+    float current = current_q15 * ProtectionConfig::CURRENT_SCALE; // 1/32767
+
+    float decay = ProtectionConfig::DECAY_FACTOR;
     
-    if( notch_filter_enable_ )
+    i2t_integral_ = 
+        decay * i2t_integral_ + 
+        (current * current * ProtectionConfig::THERMAL_INTEGRATION_RATE);
+        
+    
+    if (i2t_integral_ > protection.I2T_THRESHOLD) {
+        set_error(ERROR_I2T_INTEGRAL);
+        return false;
+    }
+
+    if(current > protection.CURRENT_THRESHOLD)
     {
-        torque_setpoint_filterd_ += 0.015f * (torque_setpoint - torque_setpoint_filterd_);
-        torque_setpoint_notch_filterd_= applyNotchFilter(&notch_filter_, torque_setpoint_filterd_);
+        current_stall_cnt_++;
+        if( current_stall_cnt_ > ProtectionConfig::STALL_COUNT_THRESHOLD)
+        {
+            set_error(ERROR_CURRENT_STALL);
+            return false;
+        }
     }
     else
     {
-        torque_setpoint_notch_filterd_ = torque_setpoint;
+        current_stall_cnt_ = 0;
     }
     
-
-    if( using_old_torque_constant_ ==  true)
-    {
-        current_setpoint = torque_setpoint_notch_filterd_ / (config_.torque_constant );
-    }
-    else
-    {
-        float torque_setpoint_abs = fabsf(torque_setpoint_notch_filterd_);
-        uint32_t idex = (uint32_t)((torque_setpoint_abs*CALIBRATION_INCREMENT)); 
-        const float* torque_constant_array  = torque_setpoint_notch_filterd_ > 0.0f ? L_Slop_Array_P_ : L_Slop_Array_N_;
-        if( idex > (NUM_LINEARITY_SEG -2) )
-        {
-            idex = NUM_LINEARITY_SEG -1;
-            torque_constant = torque_constant_array [idex];
-        }
-        else
-        {
-            torque_constant = torque_constant_array [idex]*( 1.0f - torque_setpoint_abs+ (uint32_t)torque_setpoint_abs ) + torque_constant_array [idex+1]*( torque_setpoint_abs- (uint32_t)torque_setpoint_abs);
-        }
-
-        current_setpoint = torque_setpoint_notch_filterd_ / torque_constant;
-
-
-    }
-    current_setpoint *= config_.direction;
-
-    // TODO: 2-norm vs independent clamping (current could be sqrt(2) bigger)
-    float ilim = effective_current_lim();
-    float id = std::clamp(current_control_.Id_setpoint, -ilim, ilim);
-    float iq = std::clamp(current_setpoint, -ilim, ilim);
-
-    if (config_.motor_type == MOTOR_TYPE_ACIM) {
-        // Note that the effect of the current commands on the real currents is actually 1.5 PWM cycles later
-        // However the rotor time constant is (usually) so slow that it doesn't matter
-        // So we elect to write it as if the effect is immediate, to have cleaner code
-
-        if (config_.acim_autoflux_enable) {
-            float abs_iq = fabsf(iq);
-            float gain = abs_iq > id ? config_.acim_autoflux_attack_gain : config_.acim_autoflux_decay_gain;
-            id += gain * (abs_iq - id) * current_meas_period;
-            id = std::clamp(id, config_.acim_autoflux_min_Id, ilim);
-            current_control_.Id_setpoint = id;
-        }
-
-        // acim_rotor_flux is normalized to units of [A] tracking Id; rotor inductance is unspecified
-        float dflux_by_dt = config_.acim_slip_velocity * (id - current_control_.acim_rotor_flux);
-        current_control_.acim_rotor_flux += dflux_by_dt * current_meas_period;
-        float slip_velocity = config_.acim_slip_velocity * (iq / current_control_.acim_rotor_flux);
-        // Check for issues with small denominator. Polarity of check to catch NaN too
-        bool acceptable_vel = fabsf(slip_velocity) <= 0.1f * (float)current_meas_hz;
-        if (!acceptable_vel)
-            slip_velocity = 0.0f;
-        phase_vel += slip_velocity;
-        // reporting only:
-        current_control_.async_phase_vel = slip_velocity;
-
-        current_control_.async_phase_offset += slip_velocity * current_meas_period;
-        current_control_.async_phase_offset = wrap_pm_pi(current_control_.async_phase_offset);
-        phase += current_control_.async_phase_offset;
-        phase = wrap_pm_pi(phase);
-    }
-
-    float pwm_phase = phase + 1.5f * current_meas_period * phase_vel;
-    pwm_phase = wrap_pm_pi(pwm_phase);
-    I_phase_ = pwm_phase;
-    // Clarke transform
-
-
-    bool res = true;
-    // Execute current command
-    switch(config_.motor_type){
-        case MOTOR_TYPE_HIGH_CURRENT: res =  FOC_current(id, iq, phase, pwm_phase); break;
-        case MOTOR_TYPE_ACIM: res = FOC_current(id, iq, phase, pwm_phase); break;
-        case MOTOR_TYPE_GIMBAL: res =FOC_voltage(id, iq, pwm_phase); break;
-        default: set_error(ERROR_NOT_IMPLEMENTED_MOTOR_TYPE); return false; break;
-    }
-
-
-    return res;
+    return true;
 }
+
+
+
+
+
+
+bool  Motor::check_phase_loss(void) {
+
+    PhaseMonitor* pm = &phase_monitor;
+    CurrentControl_t& ictrl = current_control_;
+
+    // For Reporting
+   
+
+    // Get phase currents
+    float ia = current_meas_.phA;
+    float ib = current_meas_.phB;
+    float ic = current_meas_.phC;
+
+    float vel = axis_->encoder_.vel_estimate_;
+    // Accumulate current magnitudes
+    pm->vel_sum += 0.1f*(vel - pm->vel_sum);
+
+    pm->ia_sum += 0.1f * ( fabsf(ia)  - pm->ia_sum);
+    pm->ib_sum += 0.1f * (fabsf(ib) - pm->ib_sum);
+    pm->ic_sum += 0.1f * (fabsf(ic) - pm->ic_sum);
+    pm->iq_set_sum +=   0.02f * ( (pm->iq_set) - pm->iq_set_sum);
+    pm->iq_actual_sum += 0.02f * ( (pm->iq_measured) - pm->iq_actual_sum);
+    pm->iq_set = 0 ;
+    pm->iq_measured = 0 ;
+
+
+    iq_set_sum_ = pm->iq_set_sum;
+    iq_actual_sum_ = pm->iq_actual_sum;
+    // Calculate averages
+    float ia_avg = pm->ia_sum ;
+    float ib_avg = pm->ib_sum ;
+    float ic_avg = pm->ic_sum ;
+    float mean = (ia_avg + ib_avg + ic_avg) * 0.33333f;
+    ia_avg_ = ia_avg;
+    ib_avg_ = ib_avg;
+    ic_avg_ = ic_avg;
+    mean_ = mean;
+    vel_avg_ = fabsf(pm->vel_sum);
+
+    pm->fault &= 0xf0;
+
+    float iq_erro = pm->iq_set - pm->last_iq_set;
+    pm->last_iq_set = pm->iq_set;
+    if( fabsf(iq_erro) > 2.0f  || fabsf(pm->vel_sum) > 2.0f || (pm->iq_set_sum) < 2.0f) //太快不适合检测
+    {
+        pm_lost_cnt_ = 0;
+        mean_lost_cnt_ = 0;
+        return false; 
+    }
+
+
+    if(  (fabsf(pm->iq_set_sum) > 2.0f) && (fabsf(pm->iq_actual_sum) *1.4f < fabsf(pm->iq_set_sum))  )
+    {
+        pm_lost_cnt_++;
+        if(pm_lost_cnt_ > 100)
+        {
+            pm->fault |= (1<<6);
+        }
+        
+    }
+    else
+    {
+        pm_lost_cnt_ = 0;
+    }
+
+    int32_t fault = ((ia_avg < mean * pm->IMBALANCE_THRESHOLD)<<2) |
+                    ((ib_avg  < mean * pm->IMBALANCE_THRESHOLD)<<1) |
+                    ((ic_avg < mean * pm->IMBALANCE_THRESHOLD)<<0);
+    // Check imbalance
+    if(mean > pm->MIN_CURRENT && fault != 0 && fabsf(pm->iq_set_sum) > 2.0f) {
+        mean_lost_cnt_++;
+        if(mean_lost_cnt_ > 40)
+        {
+            pm->fault |= fault;
+        }
+    }
+    else
+    {
+        mean_lost_cnt_ = 0;
+    }
+
+
+
+    pm_error_ = pm->fault;
+    // Reset accumulators
+
+    return  false;
+}
+
+
+
+
+
+
+
+
+
+
 
 
 
